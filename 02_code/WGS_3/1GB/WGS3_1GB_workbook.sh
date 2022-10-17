@@ -9,9 +9,9 @@
 
 # Submit job
 ## qsub -P RDS-FSC-Heartworm_MLR-RW WGS3_1GB_workbook.sh
-
 ### Reminder: Make sure you have your seqs and ref seqs ready in the folder
 
+## This code is for a subset of the 1GB heartworm genomes (WGS_3 batch).
 
 # FastQC
 cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_3/1GB/fastqc
