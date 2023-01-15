@@ -1,0 +1,48 @@
+-- Job Summary -------------------------------------------------------
+Job Id: 6549020.pbsserver for user rpow2134 in queue normal
+Job Name: HW_WGS_ALL_unzip
+Project: RDS-FSC-Heartworm_MLR-RW
+Exit Status: 1
+Job run as chunks (hpc147:ncpus=24:mem=52428800kb)
+Walltime requested:   24:00:00 :      Walltime used:   01:39:43
+                               :   Walltime percent:       6.9%
+-- Nodes Summary -----------------------------------------------------
+-- node hpc147 summary
+    Cpus requested:         24 :          Cpus used:       0.71
+          Cpu Time:   01:10:45 :        Cpu percent:       3.0%
+     Mem requested:     50.0GB :           Mem used:     50.0GB
+                               :        Mem percent:     100.0%
+
+-- WARNINGS ----------------------------------------------------------
+
+** Job Exit status > 0.  The job has indicated that it has failed for some
+** reason, which may be related to the analysis or application.
+** It may be worth checking the analysis results to confirm they are sensible.
+** 
+** Low Walltime utilisation.  While this may be normal, it may help to check the
+** following:
+**   Did the job parameters specify more walltime than necessary? Requesting
+**   lower walltime could help your job to start sooner.
+**   Did your analysis complete as expected or did it crash before completing?
+**   Did the application run more quickly than it should have? Is this analysis
+**   the one you intended to run?
+** 
+** Low CPU utilisation on hpc147.  While this may be normal, it may help to check
+** the following:
+**   Did the job parameters specify too many cores?  Requesting fewer cores
+**   could help your job to start sooner.
+**   Did you use MPI and was the work distributed correctly? Correcting this
+**   could make your job to run faster without needing any more cores.
+**   Did the application use fewer cores than it should have? Is this analysis
+**   the one you intended to run?
+**
+** Excessive Memory utilisation on hpc147. While this may be normal, it may help to
+** check the following:
+**   Did the job parameters specify enough memory?
+**   Did your analysis complete successfully, or did it run out of RAM?
+**   Did you use MPI and was the work distributed correctly? Correcting this
+**   could allow your job to run using less RAM in each chunk.
+**   Did the application use more memory than it should have? Is this analysis
+**   the one you intended to run?
+**
+-- End of Job Summary ------------------------------------------------

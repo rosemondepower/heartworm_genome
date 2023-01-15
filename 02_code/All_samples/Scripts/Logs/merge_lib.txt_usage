@@ -1,0 +1,51 @@
+-- Job Summary -------------------------------------------------------
+Job Id: 6622568.pbsserver for user rpow2134 in queue large
+Job Name: merge_lib
+Project: RDS-FSC-Heartworm_MLR-RW
+Exit Status: 0
+Job run as chunks (hpc128:ncpus=4:mem=31457280kb)+(hpc119:ncpus=4:mem=31457280kb)
+Walltime requested:   00:30:00 :      Walltime used:   00:12:39
+                               :   Walltime percent:      42.2%
+-- Nodes Summary -----------------------------------------------------
+-- node hpc128 summary
+    Cpus requested:          4 :          Cpus used:       0.16
+          Cpu Time:   00:02:02 :        Cpu percent:       4.0%
+     Mem requested:     30.0GB :           Mem used:     16.3GB
+                               :        Mem percent:      54.3%
+
+-- node hpc119 summary
+    Cpus requested:          4 :          Cpus used:    unknown
+          Cpu Time:    unknown :        Cpu percent:    unknown
+     Mem requested:     30.0GB :           Mem used:    unknown
+                               :        Mem percent:    unknown
+
+-- WARNINGS ----------------------------------------------------------
+
+** Low Walltime utilisation.  While this may be normal, it may help to check the
+** following:
+**   Did the job parameters specify more walltime than necessary? Requesting
+**   lower walltime could help your job to start sooner.
+**   Did your analysis complete as expected or did it crash before completing?
+**   Did the application run more quickly than it should have? Is this analysis
+**   the one you intended to run?
+** 
+** Low CPU utilisation on hpc128.  While this may be normal, it may help to check
+** the following:
+**   Did the job parameters specify too many cores?  Requesting fewer cores
+**   could help your job to start sooner.
+**   Did you use MPI and was the work distributed correctly? Correcting this
+**   could make your job to run faster without needing any more cores.
+**   Did the application use fewer cores than it should have? Is this analysis
+**   the one you intended to run?
+**
+** Low Memory utilisation on hpc128. While this may be normal, it may help to check
+** the following:
+**   Did the job parameters specify too much memory? Requesting less RAM could
+**   help your job to start sooner.
+**   Did you use MPI and was the work distributed correctly? Correcting this
+**   could allow your job to run using less RAM in each chunk.
+**   Did your analysis complete as expected or did it crash before completing?
+**   Did the application use less RAM than it should have? Is this analysis the
+**   one you intended to run?
+**
+-- End of Job Summary ------------------------------------------------
