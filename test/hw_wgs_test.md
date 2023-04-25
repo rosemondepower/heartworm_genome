@@ -52,8 +52,8 @@ OUTDIR="/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_test/data/analysis/fastqc"
 fastqc -t $NCPU -o $OUTDIR $INPUTDIR/*.fq.gz
 ```
 
-![](Capture.png)
-![](Capture2.png)
+![](images/Capture.png)
+![](images/Capture2.png)
 
 Looks like pretty good quality. Quality of reverse reads are a bit worse but that's normal.
 
@@ -259,18 +259,78 @@ samtools flagstat JS6279_di_wol_dog.sorted.bam > JS6279_di_wol_dog_flagstat2.txt
 
 ```
 
+## Extract reads that mapped to the *D. immitis* genome
+
+If I mapped to the *D. immitis* and dog genomes separately, there could be reads that mapped to both genomes. To avoid this, I mapped to the combined D. immitis/dog genome. I can now extract the reads that mapped to only the *D. immitis* genome and use this for downstream analyses.
+
+```bash
+
+# Load modules
+module load samtools/1.9
+
+# Index the reference file (from Steve's paper) using samtools faidx
+samtools faidx dimmitis_WSI_2.2.fa
+
+# Get the scaffolds/positions.
+head dimmitis_WSI_2.2.fa.fai
+# Column 1 is the chromosome/scaffold, column 2 is how long it is, then there's some other info.
+```
+![](images/ref_di.PNG)
+
+
+```bash
+# Get chromosome, then start and end positions
+awk '{print $1, "1", $2}' OFS="\t" dimmitis_WSI_2.2.fa.fai | head
+```
+![](images/ref_di2.PNG)
+
+```bash
+# Save this info as a bed file
+awk '{print $1, "1", $2}' OFS="\t" dimmitis_WSI_2.2.fa.fai > dimmitis_WSI_2.2.bed
+# Now we have a nice bed file that has info telling us where things are
+```
+![](images/ref_di3.PNG)
+
+```bash
+# Load modules
+module load samtools/1.15.1
+
+cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_test/data/analysis/mapping
+
+# Extract reads that only mapped to D. immitis.
+samtools view -b -h -L dimmitis_WSI_2.2.bed JS6279_di_wol_dog.sorted.bam > JS6279_extract.bam
+# Should still be in sorted form
+# -b flag makes sure the output is bam
+# -h flag includes the header in SAM output
+
+samtools view JS6279_extract.bam | head
+```
+
+
 
 ## SNPs (raw)
 
+Now that I've extracted the reads for D. immitis, I can continue to call SNPs.
 The code below uses bcftools for SNP calling. I could also use GATK -> variants identified -> HaplotypeCaller to generate GVCF files for each BAM file -> consolidate variants -> CombineGVCFs to merge GVCF files -> GATK GenotypeGVCFs for joint-call cohort genotyping -> generate single multisample VCF file (contains all initial variants and samples).
 
+# Do I have to sort the bam file again?
+
 ```bash
-# List all of the sorted.bam files and write them to a new file-of-file-names - "bam.fofn".
+# List all of the extracted files and write them to a new file-of-file-names - "bam.fofn".
 # This will contain the names of all the bam files
-ls -1 *_di_wol.sorted.bam > bam.fofn
+
+cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_test/data/analysis/mapping
+
+# Load modules
+module load samtools/1.11
+module load bcftools/1.11
+module load tabix/0.2.6
+
+ls -1 *_extract.bam > bam.fofn
 
 # call SNPs in the bam files using bam.fofn to generate a multi-sample bcf
-bcftools mpileup -Ou --annotate FORMAT/DP --fasta-ref hcontortus_mtDNA.fasta --bam-list bam.fofn | bcftools call -v -c --ploidy 1 -Ob --skip-variants indels > all_samples.bcf
+bcftools mpileup -Ou --annotate FORMAT/DP --fasta-ref dimmitis_WSI_2.2.fa --bam-list bam.fofn | bcftools call -v -c --ploidy 1 -Ob --skip-variants indels > all_samples.bcf
+# Can just use DI reference genome now
 
 # index the multi-sample bcf
 bcftools index all_samples.bcf
@@ -285,18 +345,5 @@ tabix -p vcf all_samples.vcf.gz
 
 
 
-NOTES
-- merging files - check that I have the same number of reads. Can count number of lines, make sure they're the same.
 
-```bash
-# index the reference file, get the scaffolds/positions. Make a bed file telling it where things are. Then use samtools view to extract the reads that are just for D. immitis.
-samtools faidx dimmitis_WSI_2.2.f
 
-head dimmitis_WSI_2.2.fa.fai
-
-awk '{print $1, "1", $2}' OFS="\t" dimmitis_WSI_2.2.fa.fai | head
-
-awk '{print $1, "1", $2}' OFS="\t" dimmitis_WSI_2.2.fa.fai > dimmitis_WSI_2.2.bed
-
-samtools view -L (bed file) (bamfile)
-```

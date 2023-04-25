@@ -63,7 +63,7 @@ map.axes()
 # Plot coordinates
 points(location$longitude, location$latitude, cex = 1.5, pch = 20, col = cols)
 ```
-![](map_world.png)
+![](images/map_world.png)
 
 
 
@@ -84,7 +84,7 @@ location %>%
   theme(panel.background = element_rect(fill = "lightgray"))
 ```
 
-![](map_aus.png)
+![](images/map_aus.png)
 
 
 
@@ -390,6 +390,94 @@ zcat JS6370*_2.fq.gz | gzip > JS6370_merged_2.fq.gz
 # done
 
 rm JS6370_DKDN220008348-1A_HKWGTDSX3_L3_1.fq.gz JS6370_DKDN220008348-1A_HVJMNDSX3_L1_1.fq.gz JS6370_DKDN220008348-1A_HKWGTDSX3_L3_2.fq.gz JS6370_DKDN220008348-1A_HVJMNDSX3_L1_2.fq.gz
+
+```
+
+### Check that files merged correctly
+
+I can check that I have the same number of reads before & after merging. I can do this by counting the number of lines. Collect info into Excel sheet.
+
+```bash
+# Count Forward reads
+cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/fastq/raw
+
+# Raw data files
+for f in *_1.fq.gz; do echo $f;zcat $f|wc -l ; done > /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/count/count_raw_1.txt
+
+cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/count
+
+# Every 2nd line moved to new column
+sed 'N;s/\n/ /g' count_raw_1.txt | column -t > raw_1.txt
+
+# Get list of unique sample name. Make sample list file.
+awk '{print $1}' OFS="\t" raw_1.txt | cut -c1-6 | uniq > samples.txt
+
+# Finds all files for each individual sample. Saves to new file for each sample.
+parallel --colsep "\t" 'grep {1} raw_1.txt > {1}_raw_1.txt' :::: samples.txt
+
+# prints sample ID and total at the bottom. Extract last line.
+parallel --colsep "\t" 'awk '{ sum+=$2;print $1" "$2} END {print "{1}", sum}' {1}_raw_1.txt | tail -1 > {1}_total_raw_1.txt' :::: samples.txt
+
+# combine files
+cat *_total_raw_1.txt > total_raw_1.txt
+
+# remove files I don't need anymore
+rm JS*.txt
+
+
+# Merged data files
+cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/fastq/merged
+
+# Forward reads
+for f in *_1.fq.gz; do echo $f;zcat $f|wc -l ; done > /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/count/merged_1.txt
+
+# Every 2nd line moved to new column
+sed 'N;s/\n/ /g' merged_1.txt | column -t
+
+
+
+
+
+# Join the raw & merged stats for FORWARD reads
+join total_raw_1.txt merged_1.txt > total_1.txt
+
+# Make txt file into csv file
+mv total_1.txt total_1.csv
+
+
+
+
+
+
+
+
+
+
+# Reverse reads
+for f in *_2.fq.gz; do echo $f;zcat $f|wc -l ; done > /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/count/count_raw_2.txt
+
+
+# Count reads in merged data files
+
+
+
+# Reverse reads
+for f in *_1.fq.gz; do echo $f;zcat $f|wc -l ; done > /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/count/count_merged_2.txt
+```
+
+
+
+
+
+
+
+
+
+
+```
+
+
+
 
 ```
 
