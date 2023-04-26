@@ -397,7 +397,11 @@ rm JS6370_DKDN220008348-1A_HKWGTDSX3_L3_1.fq.gz JS6370_DKDN220008348-1A_HVJMNDSX
 
 I can check that I have the same number of reads before & after merging. I can do this by counting the number of lines. Collect info into Excel sheet.
 
+**Forward reads**
+
 ```bash
+module load parallel/20160222
+
 # Count Forward reads
 cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/fastq/raw
 
@@ -410,19 +414,20 @@ cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/count
 sed 'N;s/\n/ /g' count_raw_1.txt | column -t > raw_1.txt
 
 # Get list of unique sample name. Make sample list file.
-awk '{print $1}' OFS="\t" raw_1.txt | cut -c1-6 | uniq > samples.txt
+awk '{print $1}' OFS="\t" raw_1.txt | cut -c1-6 | uniq > samples_1.txt
 
 # Finds all files for each individual sample. Saves to new file for each sample.
-parallel --colsep "\t" 'grep {1} raw_1.txt > {1}_raw_1.txt' :::: samples.txt
+parallel --colsep "\t" 'grep {1} raw_1.txt > {1}_raw_1.txt' :::: samples_1.txt
 
 # prints sample ID and total at the bottom. Extract last line.
-parallel --colsep "\t" 'awk '{ sum+=$2;print $1" "$2} END {print "{1}", sum}' {1}_raw_1.txt | tail -1 > {1}_total_raw_1.txt' :::: samples.txt
+for f in JS*_raw_1.txt; do awk '{sum+=$2;print $1" "$2} END {print "'$f'", sum}' $f | tail -1 > total_$f; done
 
 # combine files
-cat *_total_raw_1.txt > total_raw_1.txt
+cat total_JS*_raw_1.txt > total_raw_1.txt
 
 # remove files I don't need anymore
 rm JS*.txt
+rm *JS*.txt
 
 
 # Merged data files
@@ -431,55 +436,75 @@ cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/fastq/merged
 # Forward reads
 for f in *_1.fq.gz; do echo $f;zcat $f|wc -l ; done > /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/count/merged_1.txt
 
+cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/count
+
 # Every 2nd line moved to new column
-sed 'N;s/\n/ /g' merged_1.txt | column -t
-
-
-
+sed 'N;s/\n/ /g' count_merged_1.txt | column -t > merged_1.txt
 
 
 # Join the raw & merged stats for FORWARD reads
-join total_raw_1.txt merged_1.txt > total_1.txt
+paste total_raw_1.txt merged_1.txt | column -s $'\t' -t > total_both_1.txt
 
 # Make txt file into csv file
-mv total_1.txt total_1.csv
+mv total_both_1.txt total_both_1.csv
+```
 
 
+**Reverse reads**
 
+```bash
+# Count Reverse reads
+cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/fastq/raw
 
-
-
-
-
-
-
-# Reverse reads
+# Raw data files
 for f in *_2.fq.gz; do echo $f;zcat $f|wc -l ; done > /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/count/count_raw_2.txt
 
+cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/count
 
-# Count reads in merged data files
+# Every 2nd line moved to new column
+sed 'N;s/\n/ /g' count_raw_2.txt | column -t > raw_2.txt
+
+# Get list of unique sample name. Make sample list file.
+awk '{print $1}' OFS="\t" raw_2.txt | cut -c1-6 | uniq > samples_2.txt
+
+# Finds all files for each individual sample. Saves to new file for each sample.
+parallel --colsep "\t" 'grep {1} raw_2.txt > {1}_raw_2.txt' :::: samples_2.txt
+
+# prints sample ID and total at the bottom. Extract last line.
+for f in JS*_raw_2.txt; do awk '{sum+=$2;print $1" "$2} END {print "'$f'", sum}' $f | tail -1 > total_$f; done
+
+# combine files
+cat total_JS*_raw_2.txt > total_raw_2.txt
+
+# remove files I don't need anymore
+rm JS*.txt
+rm *JS*.txt
 
 
+# Merged data files
+cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/fastq/merged
 
-# Reverse reads
-for f in *_1.fq.gz; do echo $f;zcat $f|wc -l ; done > /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/count/count_merged_2.txt
+# Forward reads
+for f in *_2.fq.gz; do echo $f;zcat $f|wc -l ; done > /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/count/count_merged_2.txt
+
+cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/count
+
+# Every 2nd line moved to new column
+sed 'N;s/\n/ /g' count_merged_2.txt | column -t > merged_2.txt
+
+
+# Join the raw & merged stats for FORWARD reads
+paste total_raw_2.txt merged_2.txt | column -s $'\t' -t > total_both_2.txt
+
+# Make txt file into csv file
+mv total_both_2.txt total_both_2.csv
 ```
+Now we have 2 excel files: 1. Raw vs merged FORWARD reads and 2. Raw vs merged REVERSE reads. Compare the total numbers and ensure that they match up so we didn't lose any data in the merging process.
 
 
 
 
 
-
-
-
-
-
-```
-
-
-
-
-```
 
 
 

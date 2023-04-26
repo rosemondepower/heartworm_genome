@@ -216,7 +216,7 @@ samtools flagstat JS6279_dog.sorted.bam > JS6279_dog_flagstat.txt
 # qsub ../mapping_di_wol_dog.pbs
 
 # Combine the 2 references
-cat dimmitis_WSI_2.2.fa GCA_014441545.1_ROS_Cfam_1.0_genomic.fna > reference_di_wol_dog.fa
+# cat dimmitis_WSI_2.2.fa GCA_014441545.1_ROS_Cfam_1.0_genomic.fna > reference_di_wol_dog.fa
 
 # Map reads to combined reference genome
 
@@ -254,10 +254,6 @@ rm *tmp*
 samtools flagstat JS6279_di_wol_dog.sorted.bam > JS6279_di_wol_dog_flagstat2.txt
 ```
 
-```bash
-# Pull out the D. immitis scaffolds I want
-
-```
 
 ## Extract reads that mapped to the *D. immitis* genome
 
@@ -292,9 +288,6 @@ awk '{print $1, "1", $2}' OFS="\t" dimmitis_WSI_2.2.fa.fai > dimmitis_WSI_2.2.be
 ![](images/ref_di3.PNG)
 
 ```bash
-# Load modules
-module load samtools/1.15.1
-
 cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_test/data/analysis/mapping
 
 # Extract reads that only mapped to D. immitis.
@@ -322,7 +315,7 @@ The code below uses bcftools for SNP calling. I could also use GATK -> variants 
 cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_test/data/analysis/mapping
 
 # Load modules
-module load samtools/1.11
+module load samtools/1.9
 module load bcftools/1.11
 module load tabix/0.2.6
 
