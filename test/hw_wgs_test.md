@@ -226,6 +226,8 @@ cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_test/data/analysis/mapping
 # Load modules
 module load bwa/0.7.17
 module load samtools/1.9
+module load bcftools/1.11
+module load tabix/0.2.6
 
 # index reference sequence
 bwa index reference_di_wol_dog.fa
@@ -260,10 +262,6 @@ samtools flagstat JS6279_di_wol_dog.sorted.bam > JS6279_di_wol_dog_flagstat2.txt
 If I mapped to the *D. immitis* and dog genomes separately, there could be reads that mapped to both genomes. To avoid this, I mapped to the combined D. immitis/dog genome. I can now extract the reads that mapped to only the *D. immitis* genome and use this for downstream analyses.
 
 ```bash
-
-# Load modules
-module load samtools/1.9
-
 # Index the reference file (from Steve's paper) using samtools faidx
 samtools faidx dimmitis_WSI_2.2.fa
 
@@ -297,8 +295,18 @@ samtools view -b -h -L dimmitis_WSI_2.2.bed JS6279_di_wol_dog.sorted.bam > JS627
 # -h flag includes the header in SAM output
 
 samtools view JS6279_extract.bam | head
+
+# Do I have to sort the bam file again? No, it should still be sorted.
 ```
 
+## QC
+
+```bash
+# How many D. immitis reads were extracted?
+# Load modules
+module load samtools/1.9
+samtools flagstat JS6279_extract.bam > JS6279_extract_flagstat.txt
+```
 
 
 ## SNPs (raw)
@@ -306,7 +314,7 @@ samtools view JS6279_extract.bam | head
 Now that I've extracted the reads for D. immitis, I can continue to call SNPs.
 The code below uses bcftools for SNP calling. I could also use GATK -> variants identified -> HaplotypeCaller to generate GVCF files for each BAM file -> consolidate variants -> CombineGVCFs to merge GVCF files -> GATK GenotypeGVCFs for joint-call cohort genotyping -> generate single multisample VCF file (contains all initial variants and samples).
 
-# Do I have to sort the bam file again?
+
 
 ```bash
 # List all of the extracted files and write them to a new file-of-file-names - "bam.fofn".
@@ -333,6 +341,70 @@ bcftools view all_samples.bcf -Oz > all_samples.vcf.gz
 
 # index the compressed vcf
 tabix -p vcf all_samples.vcf.gz
+```
+
+## QC
+
+```bash
+# Get stats for bcf and vcf files we just created
+# Load modules
+module load bcftools/1.11
+bcftools stats all_samples.bcf > all_samples_bcf_stats.txt
+bcftools stats all_samples.vcf.gz > all_samples_vcf_stats.txt
+```
+Both of these outputs seem to be the same. Can just get stats on the compressed vcf file.
+
+## SNPs (filter)
+
+- SNP callers tend to call too many variants, so some filtering is required. The code below uses vcftools. I could also use GATK SelectVariants & VariantFiltration. Nuclear, mitochondrial & Wolbachia variants filtered separately. 
+- Quality metrics I can look at: QUAL, DP, MQ, SOR, FS, QD, MQRankSum, ReadPosRankSum. Also min/max alleles, minor allele frequency, Hary Weinberg Equilibrium, per genotype depth.
+- Missingness: per-sample & per-site
+- Are there SNPs in certain chromosomes I want to keep/exclude?
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N snps_filter
+#PBS -l select=1:ncpus=4:mem=20GB
+#PBS -l walltime=03:00:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o snps_filter.txt
+
+# qsub ../snps_filter.pbs
+
+# Filter SNPs in the vcf to select variants with:
+# 1. a minor allele frequence (maf) greater than 0.05, and
+# 2. minimum and maximum allele count of 2 
+
+cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_test/data/analysis/mapping
+
+# Load modules
+module load vcftools/0.1.14
+
+vcftools --gzvcf all_samples.vcf.gz --maf 0.05 --min-alleles 2 --max-alleles 2 --recode --out all_samples.filtered
+
+# --gzvcf options reads compressed VCF files directly
+# --maf 0.05 includes only sites with a minor allele frequency greater than or equal to 0.05. Allele frequency is the number of times an allele appears over all individuals at that site, divided by the total number of non-missing alleles at that site.
+# --min-alleles 2 and --max-alleles 2 includes only sites with a number of alleles greater than or equal to 2 and less than or equal to 2.
+# --recode is used to generate a new file in either vcf/bcf from the input vcf/bcf after applying the filtering options.
+# --out defines the output filename prefix
+
+# barely used any time/gb, make it way less next time.
+```
+
+## QC
+
+```bash
+# Load modules
+module load bcftools/1.11
+
+cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_test/data/analysis/mapping
+
+# How many SNPs remain after this filtering step?
+bcftools stats all_samples.filtered.recode.vcf > all_samples_filtered_stats.txt
 ```
 
 

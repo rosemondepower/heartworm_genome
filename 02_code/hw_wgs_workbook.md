@@ -501,10 +501,7 @@ mv total_both_2.txt total_both_2.csv
 ```
 Now we have 2 excel files: 1. Raw vs merged FORWARD reads and 2. Raw vs merged REVERSE reads. Compare the total numbers and ensure that they match up so we didn't lose any data in the merging process.
 
-
-
-
-
+After inspecting the tables, everything matches up. We have the same number of lines in the raw and merged fastq files. We can continue with the analysis using the merged files.
 
 
 
@@ -516,24 +513,24 @@ Now we have 2 excel files: 1. Raw vs merged FORWARD reads and 2. Raw vs merged R
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N fastQC_merged
-#PBS -l select=2:ncpus=12:mem=40GB
-#PBS -l walltime=03:00:00
+#PBS -l select=2:ncpus=4:mem=30GB
+#PBS -l walltime=02:30:00
 #PBS -m e
 #PBS -q defaultQ
 #PBS -o fastQC_merged.txt
 
 # Submit job
-## qsub -P RDS-FSC-Heartworm_MLR-RW fastQC_merged.pbs
+## qsub fastQC_merged.pbs
 
 # Load modules
 module load fastqc/0.11.8
 
 # FastQC
-cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/processed/fastqc/merged
+cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/fastqc/merged
 
 INPUTDIR="/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/fastq/merged"
 NCPU=24
-OUTDIR="/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/processed/fastqc/merged"
+OUTDIR="/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/fastqc/merged"
 
 fastqc -t $NCPU -o $OUTDIR $INPUTDIR/*.fq.gz
 
@@ -542,10 +539,10 @@ fastqc -t $NCPU -o $OUTDIR $INPUTDIR/*.fq.gz
 cd /project/RDS-FSC-Heartworm_MLR-RW/MultiQC
 
 # Load modules
-module load git
-module load python/3.9.15
+module load git/2.25.0
+module load python/3.10.8
 
-multiqc /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/processed/fastqc/merged -o /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/processed/fastqc/merged
+multiqc /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/fastqc/merged -o /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/processed/fastqc/merged
 ```
 
 
@@ -794,31 +791,7 @@ parallel --colsep "\t" 'samtools flagstat {3}_di_wol_dog.sorted.bam > {3}_di_wol
 
 The code below uses bcftools for SNP calling. I could also use GATK -> variants identified -> HaplotypeCaller to generate GVCF files for each BAM file -> consolidate variants -> CombineGVCFs to merge GVCF files -> GATK GenotypeGVCFs for joint-call cohort genotyping -> generate single multisample VCF file (contains all initial variants and samples).
 
-```bash
-cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping
 
-# Load modules
-module load bwa/0.7.17
-
-# List all of the sorted.bam files and write them to a new file-of-file-names - "bam.fofn".
-# This will contain the names of all the bam files
-ls -1 *.sorted.bam > bam.fofn
-
-# call SNPs in the bam files using bam.fofn to generate a multi-sample bcf
-bcftools mpileup -Ou --annotate FORMAT/DP --fasta-ref reference_di_wol_dog.fa --bam-list bam.fofn | bcftools call -v -c --ploidy 1 -Ob --skip-variants indels > all_samples.bcf
-# -Ou means output as uncompressed BCF
-# -Ob means output as compressed BCF
-
-# index the multi-sample bcf
-bcftools index all_samples.bcf
-
-# convert the bcf to a compressed vcf
-bcftools view all_samples.bcf -Oz > all_samples.vcf.gz
-# -Oz means output as uncompressed VCF
-
-# index the compressed vcf
-tabix -p vcf all_samples.vcf.gz
-```
 
 ## QC
 
