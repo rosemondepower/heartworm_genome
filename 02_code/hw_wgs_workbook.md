@@ -768,11 +768,19 @@ The code below uses bwa mem for mapping, but I could also use minimap2 -> Sambam
 cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping
 
 # Combine the 2 references
-cat dimmitis_WSI_2.2.fa GCA_014441545.1_ROS_Cfam_1.0_genomic.fna > reference_di_wol_dog.fa
+# cat dimmitis_WSI_2.2.fa GCA_014441545.1_ROS_Cfam_1.0_genomic.fna > reference_di_wol_dog.fa 
+# Already did this step in the test run. Can just copy over the joined reference file.
+cp /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_test/data/analysis/mapping/reference_di_wol_dog.fa .
+
+# Also copy over the D. immitis/Wol reference
+cp /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_test/data/analysis/mapping/dimmitis_WSI_2.2.fa
+
 
 # Load modules
 module load bwa/0.7.17
 module load samtools/1.9
+module load bcftools/1.11
+module load tabix/0.2.6
 module load parallel/20160222
 
 # index reference sequence
@@ -781,27 +789,87 @@ bwa index reference_di_wol_dog.fa
 # Perform mapping, sam-to-bam conversion, filtering, and indexing. Need to have separate table with the relevant sample names I want. Then need to use variables to replace the sample names. This will reduce time/effort and minimise typos. I could make a loop, but since I will be running it on the Artemis server as a job, it may be best to write out a script.
 
 # map the reads
-parallel --colsep "\t" 'bwa mem reference_di_wol_dog.fa ../trimmomatic/{3}_1_trimpaired.fq.gz ../trimmomatic/{3}_2_trimpaired.fq.gz > {3}_di_wol_dog.tmp.sam' :::: ../../sample_list.txt
+parallel --colsep "\t" 'bwa mem reference_di_wol_dog.fa ../trimmomatic/{3}_1_trimpaired.fq.gz ../trimmomatic/{3}_2_trimpaired.fq.gz > {3}_di_wol_dog.tmp.sam' :::: ../sample_list.txt
 # The {1}, {2} and {3} are the variables pointing towards the names in columns 1, 2 and 3 in the sample list file.
 
 # Mapping stats
-parallel --colsep "\t" 'samtools flagstat {3}_di_wol_dog.tmp.sam > {3}_di_wol_dog_flagstat1.txt' :::: ../../sample_list.txt
+parallel --colsep "\t" 'samtools flagstat {3}_di_wol_dog.tmp.sam > {3}_di_wol_dog_flagstat1.txt' :::: ../sample_list.txt
 	
 # convert the sam to bam format
-parallel --colsep "\t" 'samtools view -q 15 -b -o {3}_di_wol_dog.tmp.bam {3}_di_wol_dog.tmp.sam' :::: ../../sample_list.txt
+parallel --colsep "\t" 'samtools view -q 15 -b -o {3}_di_wol_dog.tmp.bam {3}_di_wol_dog.tmp.sam' :::: ../sample_list.txt
 
 # sort the mapped reads in the bam file
-parallel --colsep "\t" 'samtools sort {3}_di_wol_dog.tmp.bam -o {3}_di_wol_dog.sorted.bam' :::: ../../sample_list.txt
+parallel --colsep "\t" 'samtools sort {3}_di_wol_dog.tmp.bam -o {3}_di_wol_dog.sorted.bam' :::: ../sample_list.txt
  
 # index the sorted bam
-parallel --colsep "\t" 'samtools index {3}_di_wol_dog.sorted.bam' :::: ../../sample_list.txt
+parallel --colsep "\t" 'samtools index {3}_di_wol_dog.sorted.bam' :::: ../sample_list.txt
 
 # lets clean up and remove files we don’t need
 rm *tmp*
 
 # Mapping stats after filtering
-parallel --colsep "\t" 'samtools flagstat {3}_di_wol_dog.sorted.bam > {3}_di_wol_dog_flagstat2.txt' :::: ../../sample_list.txt
+parallel --colsep "\t" 'samtools flagstat {3}_di_wol_dog.sorted.bam > {3}_di_wol_dog_flagstat2.txt' :::: ../sample_list.txt
 ```
+
+
+## Extract reads that mapped to the *D. immitis* genome
+
+If I mapped to the *D. immitis* and dog genomes separately, there could be reads that mapped to both genomes. To avoid this, I mapped to the combined D. immitis/dog genome. I can now extract the reads that mapped to only the *D. immitis* genome and use this for downstream analyses.
+
+```bash
+cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping
+
+# Index the reference file (from Steve's paper) using samtools faidx
+samtools faidx dimmitis_WSI_2.2.fa
+
+# Get the scaffolds/positions.
+head dimmitis_WSI_2.2.fa.fai
+# Column 1 is the chromosome/scaffold, column 2 is how long it is, then there's some other info.
+
+# Get chromosome, then start and end positions
+awk '{print $1, "1", $2}' OFS="\t" dimmitis_WSI_2.2.fa.fai | head
+
+# Save this info as a bed file
+awk '{print $1, "1", $2}' OFS="\t" dimmitis_WSI_2.2.fa.fai > dimmitis_WSI_2.2.bed
+# Now we have a nice bed file that has info telling us where things are
+
+# Extract reads that only mapped to D. immitis.
+parallel --colsep "\t" 'samtools view -b -h -L dimmitis_WSI_2.2.bed {3}_di_wol_dog.sorted.bam > {3}_extract.bam' :::: ../sample_list.txt
+# Should still be in sorted form
+# -b flag makes sure the output is bam
+# -h flag includes the header in SAM output
+
+parallel --colsep "\t" 'samtools view {3}_extract.bam | head' :::: ../sample_list.txt
+
+# Do I have to sort the bam file again? No, it should still be sorted.
+```
+
+
+## QC
+
+```bash
+# How many D. immitis reads were extracted?
+
+cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping
+
+# Load modules
+module load samtools/1.9
+
+parallel --colsep "\t" 'samtools flagstat {3}_extract.bam > {3}_extract_flagstat.txt' :::: ../sample_list.txt
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
