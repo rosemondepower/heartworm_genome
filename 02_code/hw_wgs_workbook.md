@@ -761,11 +761,15 @@ The code below uses bwa mem for mapping, but I could also use minimap2 -> Sambam
 - samtools to pull out DI scaffolds I want
 - do stats before filtering, so I can see how many were mapped, then how many after filtering etc. Do before samtools view -q 15.
 
-```bash
-# qsub ../mapping_di_wol_dog.pbs
+Prepare everything for mapping:
 
+```bash
 # Set working directory
 cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping
+
+# Load modules
+module load bwa/0.7.17
+module load parallel/20160222
 
 # Combine the 2 references
 # cat dimmitis_WSI_2.2.fa GCA_014441545.1_ROS_Cfam_1.0_genomic.fna > reference_di_wol_dog.fa 
@@ -773,24 +777,72 @@ cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping
 cp /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_test/data/analysis/mapping/reference_di_wol_dog.fa .
 
 # Also copy over the D. immitis/Wol reference
-cp /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_test/data/analysis/mapping/dimmitis_WSI_2.2.fa
-
-
-# Load modules
-module load bwa/0.7.17
-module load samtools/1.9
-module load bcftools/1.11
-module load tabix/0.2.6
-module load parallel/20160222
+cp /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_test/data/analysis/mapping/dimmitis_WSI_2.2.fa .
 
 # index reference sequence
 bwa index reference_di_wol_dog.fa
 
 # Perform mapping, sam-to-bam conversion, filtering, and indexing. Need to have separate table with the relevant sample names I want. Then need to use variables to replace the sample names. This will reduce time/effort and minimise typos. I could make a loop, but since I will be running it on the Artemis server as a job, it may be best to write out a script.
 
+# Get list of sample names
+cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/trimmomatic
+ls -1 | cut -c1-6 | uniq > ../trimmed_list
+```
+
+Map the reads:
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N mapping
+#PBS -l select=12:ncpus=1:mem=20GB
+#PBS -l walltime=45:00:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o mapping.txt
+#PBS -J 1-54
+
+# Set working directory
+cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping
+
+#Set the filename based on the PBS Array Index
+sample_name=`sed -n "${PBS_ARRAY_INDEX}{p;q}" trimmed_list`
+
 # map the reads
+bwa mem reference_di_wol_dog.fa \
+-t $NCPUS \
+../trimmomatic/${sample_name}_1_trimpaired.fq.gz \
+../trimmomatic/${sample_name}_2_trimpaired.fq.gz \
+> ${sample_name}.tmp.sam
+
+```
+
+***************************
+
+
+
+
+
+
+
+
+
+
+
 parallel --colsep "\t" 'bwa mem reference_di_wol_dog.fa ../trimmomatic/{3}_1_trimpaired.fq.gz ../trimmomatic/{3}_2_trimpaired.fq.gz > {3}_di_wol_dog.tmp.sam' :::: ../sample_list.txt
 # The {1}, {2} and {3} are the variables pointing towards the names in columns 1, 2 and 3 in the sample list file.
+
+
+
+
+
+
+```bash
+module load samtools/1.9
+module load bcftools/1.11
+module load tabix/0.2.6
+module load parallel/20160222
 
 # Mapping stats
 parallel --colsep "\t" 'samtools flagstat {3}_di_wol_dog.tmp.sam > {3}_di_wol_dog_flagstat1.txt' :::: ../sample_list.txt
