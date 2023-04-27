@@ -513,8 +513,8 @@ After inspecting the tables, everything matches up. We have the same number of l
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N fastQC_merged
-#PBS -l select=2:ncpus=4:mem=30GB
-#PBS -l walltime=02:30:00
+#PBS -l select=2:ncpus=3:mem=30GB
+#PBS -l walltime=03:30:00
 #PBS -m e
 #PBS -q defaultQ
 #PBS -o fastQC_merged.txt
@@ -533,6 +533,22 @@ NCPU=24
 OUTDIR="/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/fastqc/merged"
 
 fastqc -t $NCPU -o $OUTDIR $INPUTDIR/*.fq.gz
+```
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N multiqc_merged
+#PBS -l select=1:ncpus=1:mem=3GB
+#PBS -l walltime=00:03:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o multiqc_merged.txt
+
+# Submit job
+# qsub ../multiqc_merged.pbs
 
 # Run MultiQC to combine all of the FastQC reports for the fastq files (fastq files of samples with same library were merged)
 
@@ -540,7 +556,7 @@ cd /project/RDS-FSC-Heartworm_MLR-RW/MultiQC
 
 # Load modules
 module load git/2.25.0
-module load python/3.10.8
+module load python/3.9.15
 
 multiqc /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/fastqc/merged -o /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/processed/fastqc/merged
 ```
@@ -685,6 +701,17 @@ parallel --colsep "\t" 'trim_galore --paired --fastqc --length 50 --output_dir {
 ### Trimmomatic
 
 ```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N trimmomatic
+#PBS -l select=3:ncpus=24:mem=25GB
+#PBS -l walltime=05:00:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o trimmomatic.txt
+
 # qsub trimmomatic.pbs
 
 cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis
@@ -698,11 +725,11 @@ module load parallel/20160222
 # Run Trimmomatic
 parallel --colsep "\t" 'java -jar /usr/local/trimmomatic/0.38/trimmomatic-0.38.jar PE \
 -threads 10 -phred33 \
-/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/fastq/{1} \
-/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/fastq/{2} \
+/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/fastq/merged/{1} \
+/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/fastq/merged/{2} \
 {3}_1_trimpaired.fq.gz {3}_1_trimunpaired.fq.gz \
 {3}_2_trimpaired.fq.gz {3}_2_trimunpaired.fq.gz \
-SLIDINGWINDOW:10:20 MINLEN:50' :::: ../../sample_list.txt
+SLIDINGWINDOW:10:20 MINLEN:50' :::: ../sample_list.txt
 
 # SLIDINGWINDOW:10:20 means it will scan the read with a 10-base wide sliding window, cutting when the average quality per base drops below 20.
 
