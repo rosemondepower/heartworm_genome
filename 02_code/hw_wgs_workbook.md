@@ -513,8 +513,8 @@ After inspecting the tables, everything matches up. We have the same number of l
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N fastQC_merged
-#PBS -l select=2:ncpus=3:mem=30GB
-#PBS -l walltime=03:30:00
+#PBS -l select=2:ncpus=3:mem=40GB
+#PBS -l walltime=06:00:00
 #PBS -m e
 #PBS -q defaultQ
 #PBS -o fastQC_merged.txt
@@ -558,9 +558,17 @@ cd /project/RDS-FSC-Heartworm_MLR-RW/MultiQC
 module load git/2.25.0
 module load python/3.9.15
 
-multiqc /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/fastqc/merged -o /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/processed/fastqc/merged
+multiqc /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/fastqc/merged -o /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/fastqc/merged
 ```
+![](images/fastqc_sequence_counts_plot.png)
+Some samples have much fewer reads. This makes sense because some samples were only sequenced for 1GB due to low quality.
 
+![](images/fastqc_per_base_sequence_quality_plot.png)
+![](images/fastqc_per_sequence_quality_scores_plot.png)
+Quality looks pretty good.
+
+![](images/fastqc_per_sequence_gc_content_plot.png)
+JS6278 (this was one of Wilson's HWs) and JS6348 (this was the D. roemeri sample) failed the GC content check. 
 
 
 ## Contamination
@@ -735,6 +743,65 @@ SLIDINGWINDOW:10:20 MINLEN:50' :::: ../sample_list.txt
 
 # Instead of SLIDINGWINDOW, in my previous practice code I used 'AVGQUAL:30 MINLEN:150'.
 ```
+## FastQC & Multi-QC on the merged files AFTER TRIMMING
+
+Check to see how the data looks after trimming.
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N fastQC_trimmed
+#PBS -l select=2:ncpus=1:mem=25GB
+#PBS -l walltime=04:00:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o fastQC_trimmed.txt
+
+# Submit job
+## qsub fastQC_trimmed.pbs
+
+# Load modules
+module load fastqc/0.11.8
+
+# FastQC
+cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/fastqc
+mkdir trimmed
+cd trimmed
+
+INPUTDIR="/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/trimmomatic"
+NCPU=24
+OUTDIR="/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/fastqc/trimmed"
+
+fastqc -t $NCPU -o $OUTDIR $INPUTDIR/*.fq.gz
+```
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N multiqc_trimmed
+#PBS -l select=1:ncpus=1:mem=2GB
+#PBS -l walltime=00:02:30
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o multiqc_trimmed.txt
+
+# Submit job
+# qsub ../multiqc_trimmed.pbs
+
+# Run MultiQC to combine all of the FastQC reports for the trimmed fastq files
+
+cd /project/RDS-FSC-Heartworm_MLR-RW/MultiQC
+
+# Load modules
+module load git/2.25.0
+module load python/3.9.15
+
+multiqc /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/fastqc/trimmed -o /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/fastqc/trimmed
+```
 
 
 
@@ -769,7 +836,6 @@ cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping
 
 # Load modules
 module load bwa/0.7.17
-module load parallel/20160222
 
 # Combine the 2 references
 # cat dimmitis_WSI_2.2.fa GCA_014441545.1_ROS_Cfam_1.0_genomic.fna > reference_di_wol_dog.fa 
@@ -789,78 +855,92 @@ cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/trimmomatic
 ls -1 | cut -c1-6 | uniq > ../trimmed_list
 ```
 
+
+```bash
+# How many files are in trimmed_list?
+cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis
+cat trimmed_list | wc -l | tr -d ' '
+```
+
+
 Map the reads:
+
 ```bash
 #!/bin/bash
 
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N mapping
-#PBS -l select=12:ncpus=1:mem=20GB
-#PBS -l walltime=45:00:00
-#PBS -m e
+#PBS -l select=1:ncpus=24:mem=50GB
+#PBS -l walltime=10:00:00
+#PBS -m abe
 #PBS -q defaultQ
 #PBS -o mapping.txt
-#PBS -J 1-54
+#PBS -J 1-27
+
+# qsub ../mapping.pbs
 
 # Set working directory
 cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping
 
-#Set the filename based on the PBS Array Index
-sample_name=`sed -n "${PBS_ARRAY_INDEX}{p;q}" trimmed_list`
+# Load modules
+module load bwa/0.7.17
 
-# map the reads
+#Set the filename based on the PBS Array Index
+sample_name=`sed -n "${PBS_ARRAY_INDEX}{p;q}" ../trimmed_list`
+
+# map the reads, with a separate mapping job for each sample
 bwa mem reference_di_wol_dog.fa \
 -t $NCPUS \
 ../trimmomatic/${sample_name}_1_trimpaired.fq.gz \
 ../trimmomatic/${sample_name}_2_trimpaired.fq.gz \
 > ${sample_name}.tmp.sam
 
+# Set the num_threads param to directly scale with the number of cpus using the PBS environment variable "${NCPUS}). 
 ```
 
-***************************
 
-
-
-
-
-
-
-
-
-
-
-parallel --colsep "\t" 'bwa mem reference_di_wol_dog.fa ../trimmomatic/{3}_1_trimpaired.fq.gz ../trimmomatic/{3}_2_trimpaired.fq.gz > {3}_di_wol_dog.tmp.sam' :::: ../sample_list.txt
-# The {1}, {2} and {3} are the variables pointing towards the names in columns 1, 2 and 3 in the sample list file.
-
-
-
-
-
+Convert to bam & sort the mapped reads:
 
 ```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N mapping_sort
+#PBS -l select=1:ncpus=16:mem=40GB
+#PBS -l walltime=10:00:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o mapping_sort.txt
+#PBS -M rosemonde.power@sydney.edu.au
+
+# qsub ../mapping_sort.pbs
+
+# Set working directory
+cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping
+
+# Load modules
 module load samtools/1.9
-module load bcftools/1.11
-module load tabix/0.2.6
 module load parallel/20160222
 
 # Mapping stats
-parallel --colsep "\t" 'samtools flagstat {3}_di_wol_dog.tmp.sam > {3}_di_wol_dog_flagstat1.txt' :::: ../sample_list.txt
+parallel --colsep "\t" 'samtools flagstat {1}.tmp.sam > {1}_flagstat1.txt' :::: ../trimmed_list
 	
 # convert the sam to bam format
-parallel --colsep "\t" 'samtools view -q 15 -b -o {3}_di_wol_dog.tmp.bam {3}_di_wol_dog.tmp.sam' :::: ../sample_list.txt
+parallel --colsep "\t" 'samtools view -q 15 -b -o {1}.tmp.bam {1}.tmp.sam' :::: ../trimmed_list
 
 # sort the mapped reads in the bam file
-parallel --colsep "\t" 'samtools sort {3}_di_wol_dog.tmp.bam -o {3}_di_wol_dog.sorted.bam' :::: ../sample_list.txt
+parallel --colsep "\t" 'samtools sort {1}.tmp.bam -o {1}.sorted.bam' :::: ../trimmed_list
  
 # index the sorted bam
-parallel --colsep "\t" 'samtools index {3}_di_wol_dog.sorted.bam' :::: ../sample_list.txt
+parallel --colsep "\t" 'samtools index {1}.sorted.bam' :::: ../trimmed_list
 
 # lets clean up and remove files we don’t need
 rm *tmp*
 
 # Mapping stats after filtering
-parallel --colsep "\t" 'samtools flagstat {3}_di_wol_dog.sorted.bam > {3}_di_wol_dog_flagstat2.txt' :::: ../sample_list.txt
+parallel --colsep "\t" 'samtools flagstat {1}.sorted.bam > {1}_flagstat2.txt' :::: ../trimmed_list
 ```
 
 
