@@ -831,6 +831,19 @@ The code below uses bwa mem for mapping, but I could also use minimap2 -> Sambam
 Prepare everything for mapping:
 
 ```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N mapping_prep
+#PBS -l select=1:ncpus=2:mem=30GB
+#PBS -l walltime=02:00:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o mapping_prep.txt
+
+# qsub ../mapping_prep.pbs
+
 # Set working directory
 cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping
 
@@ -861,6 +874,7 @@ ls -1 | cut -c1-6 | uniq > ../trimmed_list
 cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis
 cat trimmed_list | wc -l | tr -d ' '
 ```
+There are 27 samples (so 27 jobs).
 
 
 Map the reads:
@@ -889,14 +903,21 @@ module load bwa/0.7.17
 #Set the filename based on the PBS Array Index
 sample_name=`sed -n "${PBS_ARRAY_INDEX}{p;q}" ../trimmed_list`
 
+# Tried using /mapping in /project directory but the sam files took up lots of space (disk quota exceeded). Put output files into /scratch instead.
+
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/
+mkdir mapping
+cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping
+
 # map the reads, with a separate mapping job for each sample
 bwa mem reference_di_wol_dog.fa \
 -t $NCPUS \
 ../trimmomatic/${sample_name}_1_trimpaired.fq.gz \
 ../trimmomatic/${sample_name}_2_trimpaired.fq.gz \
-> ${sample_name}.tmp.sam
+> /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/${sample_name}.tmp.sam
 
-# Set the num_threads param to directly scale with the number of cpus using the PBS environment variable "${NCPUS}). 
+# Set the num_threads param to directly scale with the number of cpus using the PBS environment variable "${NCPUS}).
+
 ```
 
 
@@ -909,39 +930,47 @@ Convert to bam & sort the mapped reads:
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N mapping_sort
 #PBS -l select=1:ncpus=16:mem=40GB
-#PBS -l walltime=10:00:00
+#PBS -l walltime=02:00:00
 #PBS -m e
 #PBS -q defaultQ
 #PBS -o mapping_sort.txt
-#PBS -M rosemonde.power@sydney.edu.au
+#PBS -J 1-27
 
 # qsub ../mapping_sort.pbs
 
 # Set working directory
-cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/
 
 # Load modules
 module load samtools/1.9
-module load parallel/20160222
+
+#Set the filename based on the PBS Array Index
+sample_name=`sed -n "${PBS_ARRAY_INDEX}{p;q}" /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/trimmed_list`
 
 # Mapping stats
-parallel --colsep "\t" 'samtools flagstat {1}.tmp.sam > {1}_flagstat1.txt' :::: ../trimmed_list
+samtools flagstat ${sample_name}.tmp.sam > ${sample_name}_flagstat1.txt
 	
 # convert the sam to bam format
-parallel --colsep "\t" 'samtools view -q 15 -b -o {1}.tmp.bam {1}.tmp.sam' :::: ../trimmed_list
+samtools view -q 15 -b -o ${sample_name}.tmp.bam ${sample_name}.tmp.sam
 
 # sort the mapped reads in the bam file
-parallel --colsep "\t" 'samtools sort {1}.tmp.bam -o {1}.sorted.bam' :::: ../trimmed_list
+samtools sort ${sample_name}.tmp.bam -o ${sample_name}.sorted.bam
  
 # index the sorted bam
-parallel --colsep "\t" 'samtools index {1}.sorted.bam' :::: ../trimmed_list
-
-# lets clean up and remove files we don’t need
-rm *tmp*
+samtools index ${sample_name}.sorted.bam
 
 # Mapping stats after filtering
-parallel --colsep "\t" 'samtools flagstat {1}.sorted.bam > {1}_flagstat2.txt' :::: ../trimmed_list
+samtools flagstat ${sample_name}.sorted.bam > ${sample_name}_flagstat2.txt
 ```
+
+
+```bash
+# lets clean up and remove files we don’t need
+rm *tmp*
+```
+
+
+
 
 
 ## Extract reads that mapped to the *D. immitis* genome
@@ -949,7 +978,24 @@ parallel --colsep "\t" 'samtools flagstat {1}.sorted.bam > {1}_flagstat2.txt' ::
 If I mapped to the *D. immitis* and dog genomes separately, there could be reads that mapped to both genomes. To avoid this, I mapped to the combined D. immitis/dog genome. I can now extract the reads that mapped to only the *D. immitis* genome and use this for downstream analyses.
 
 ```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N mapping_bed
+#PBS -l select=1:ncpus=4:mem=10GB
+#PBS -l walltime=01:00:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o mapping_bed.txt
+
+# qsub ../mapping_bed.pbs
+
+# Set working directory
 cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping
+
+# Load modules
+module load samtools/1.9
 
 # Index the reference file (from Steve's paper) using samtools faidx
 samtools faidx dimmitis_WSI_2.2.fa
@@ -964,63 +1010,112 @@ awk '{print $1, "1", $2}' OFS="\t" dimmitis_WSI_2.2.fa.fai | head
 # Save this info as a bed file
 awk '{print $1, "1", $2}' OFS="\t" dimmitis_WSI_2.2.fa.fai > dimmitis_WSI_2.2.bed
 # Now we have a nice bed file that has info telling us where things are
-
-# Extract reads that only mapped to D. immitis.
-parallel --colsep "\t" 'samtools view -b -h -L dimmitis_WSI_2.2.bed {3}_di_wol_dog.sorted.bam > {3}_extract.bam' :::: ../sample_list.txt
-# Should still be in sorted form
-# -b flag makes sure the output is bam
-# -h flag includes the header in SAM output
-
-parallel --colsep "\t" 'samtools view {3}_extract.bam | head' :::: ../sample_list.txt
-
-# Do I have to sort the bam file again? No, it should still be sorted.
 ```
 
-
-## QC
-
 ```bash
-# How many D. immitis reads were extracted?
+#!/bin/bash
 
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N mapping_extract
+#PBS -l select=1:ncpus=1:mem=10GB
+#PBS -l walltime=01:00:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o mapping_extract.txt
+#PBS -J 1-27
+
+# qsub ../mapping_extract.pbs
+
+# Set working directory
 cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping
 
 # Load modules
 module load samtools/1.9
 
-parallel --colsep "\t" 'samtools flagstat {3}_extract.bam > {3}_extract_flagstat.txt' :::: ../sample_list.txt
+#Set the filename based on the PBS Array Index
+sample_name=`sed -n "${PBS_ARRAY_INDEX}{p;q}" ../trimmed_list`
+
+# Extract reads that only mapped to D. immitis.
+samtools view -b -h -L dimmitis_WSI_2.2.bed /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/${sample_name}.sorted.bam > /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/${sample_name}_extract.bam
+# Should still be in sorted form
+# -b flag makes sure the output is bam
+# -h flag includes the header in SAM output
+
+samtools view /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/${sample_name}_extract.bam | head
+
+# I do not have to sort the bam file again, it should still be sorted.
+
+## QC
+# How many D. immitis reads were extracted?
+
+samtools flagstat /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/${sample_name}_extract.bam > ${sample_name}_extract_flagstat.txt
 ```
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+***
 ## QC, coverage, sex
 - Samtools faidx to compare the D. immitis assemblies.
 - Minimap2 for more large-scale comparisons between the assemblies -> paf outputs -> visualise in R.
 - Bamtools, bedtools makewindows, samtools bedcov to assess genome coverage.
 - Infer sample sex using coverage of X chromosome:autosome
+***
 
 
 ## SNPs (raw)
 
+Now that I've extracted the reads for D. immitis, I can continue to call SNPs.
 The code below uses bcftools for SNP calling. I could also use GATK -> variants identified -> HaplotypeCaller to generate GVCF files for each BAM file -> consolidate variants -> CombineGVCFs to merge GVCF files -> GATK GenotypeGVCFs for joint-call cohort genotyping -> generate single multisample VCF file (contains all initial variants and samples).
 
+```bash
+#!/bin/bash
 
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N snps_raw
+#PBS -l select=1:ncpus=8:mem=30GB
+#PBS -l walltime=02:00:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o snps_raw.txt
+
+# qsub ../snps_raw.pbs
+
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/
+
+# Load modules
+module load samtools/1.9
+module load bcftools/1.11
+module load tabix/0.2.6
+
+# List all of the extracted files and write them to a new file-of-file-names - "bam.fofn".
+# This will contain the names of all the bam files
+ls -1 *_extract.bam > bam.fofn
+
+# call SNPs in the bam files using bam.fofn to generate a multi-sample bcf
+bcftools mpileup -Ou --annotate FORMAT/DP --fasta-ref /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/dimmitis_WSI_2.2.fa --bam-list bam.fofn | bcftools call -v -c --ploidy 1 -Ob --skip-variants indels > all_samples.bcf
+# Can just use DI reference genome now
+
+# index the multi-sample bcf
+bcftools index all_samples.bcf
+
+# convert the bcf to a compressed vcf
+bcftools view all_samples.bcf -Oz > all_samples.vcf.gz
+
+# index the compressed vcf
+tabix -p vcf all_samples.vcf.gz
 
 ## QC
+# Get stats for bcf and vcf files we just created
+bcftools stats all_samples.bcf > all_samples_bcf_stats.txt
+bcftools stats all_samples.vcf.gz > all_samples_vcf_stats.txt
+```
+
+Both of these outputs seem to be the same. Can just get stats on the compressed vcf file.
+
+
+
 
 ## SNPs (filter)
 
@@ -1030,17 +1125,55 @@ The code below uses bcftools for SNP calling. I could also use GATK -> variants 
 - Are there SNPs in certain chromosomes I want to keep/exclude?
 
 ```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N snps_filter
+#PBS -l select=1:ncpus=4:mem=20GB
+#PBS -l walltime=00:30:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o snps_filter.txt
+
+# qsub ../snps_filter.pbs
+
 # Filter SNPs in the vcf to select variants with:
 # 1. a minor allele frequence (maf) greater than 0.05, and
 # 2. minimum and maximum allele count of 2 
 
-cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/mapping
 
 # Load modules
 module load vcftools/0.1.14
 
 vcftools --gzvcf all_samples.vcf.gz --maf 0.05 --min-alleles 2 --max-alleles 2 --recode --out all_samples.filtered
+
+# --gzvcf options reads compressed VCF files directly
+# --maf 0.05 includes only sites with a minor allele frequency greater than or equal to 0.05. Allele frequency is the number of times an allele appears over all individuals at that site, divided by the total number of non-missing alleles at that site.
+# --min-alleles 2 and --max-alleles 2 includes only sites with a number of alleles greater than or equal to 2 and less than or equal to 2.
+# --recode is used to generate a new file in either vcf/bcf from the input vcf/bcf after applying the filtering options.
+# --out defines the output filename prefix
+
+## QC
+
+# Load modules
+module load bcftools/1.11
+
+# How many SNPs remain after this filtering step?
+bcftools stats all_samples.filtered.recode.vcf > all_samples_filtered_stats.txt
 ```
+
+
+
+
+
+
+
+
+
+
+
 
 ## VCF
 
