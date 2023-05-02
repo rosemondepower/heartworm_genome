@@ -970,8 +970,55 @@ rm *tmp*
 ```
 
 
+Combine flagstat files for all samples so it's easier to read.
 
+```bash
+#!/bin/bash
 
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N multiqc_flagstat1
+#PBS -l select=1:ncpus=1:mem=2GB
+#PBS -l walltime=00:02:30
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o multiqc_flagstat1.txt
+
+# Submit job
+# qsub ../multiqc_flagstat1.pbs
+
+cd /project/RDS-FSC-Heartworm_MLR-RW/MultiQC
+
+# Load modules
+module load git/2.25.0
+module load python/3.9.15
+
+multiqc /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/*_flagstat1.txt -o /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/flagstat1
+```
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N multiqc_flagstat2
+#PBS -l select=1:ncpus=1:mem=2GB
+#PBS -l walltime=00:02:30
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o multiqc_flagstat2.txt
+
+# Submit job
+# qsub ../multiqc_flagstat2.pbs
+
+cd /project/RDS-FSC-Heartworm_MLR-RW/MultiQC
+
+# Load modules
+module load git/2.25.0
+module load python/3.9.15
+
+multiqc /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/*_flagstat2.txt -o /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/flagstat2
+```
 
 ## Extract reads that mapped to the *D. immitis* genome
 
@@ -1052,6 +1099,31 @@ samtools view /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/${sample_name}_extract.b
 samtools flagstat /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/${sample_name}_extract.bam > ${sample_name}_extract_flagstat.txt
 ```
 
+Combine flagstat files for all samples so it's easier to read.
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N multiqc_extract_flagstat
+#PBS -l select=1:ncpus=1:mem=2GB
+#PBS -l walltime=00:02:30
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o multiqc_extract_flagstat.txt
+
+# Submit job
+# qsub ../multiqc_extract_flagstat.pbs
+
+cd /project/RDS-FSC-Heartworm_MLR-RW/MultiQC
+
+# Load modules
+module load git/2.25.0
+module load python/3.9.15
+
+multiqc /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/*_extract_flagstat.txt -o /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extract_flagstat
+```
 
 
 ***
@@ -1108,7 +1180,7 @@ tabix -p vcf all_samples.vcf.gz
 
 ## QC
 # Get stats for bcf and vcf files we just created
-bcftools stats all_samples.bcf > all_samples_bcf_stats.txt
+# bcftools stats all_samples.bcf > all_samples_bcf_stats.txt
 bcftools stats all_samples.vcf.gz > all_samples_vcf_stats.txt
 ```
 
@@ -1131,7 +1203,7 @@ Both of these outputs seem to be the same. Can just get stats on the compressed 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N snps_filter
 #PBS -l select=1:ncpus=4:mem=20GB
-#PBS -l walltime=00:30:00
+#PBS -l walltime=03:00:00
 #PBS -m e
 #PBS -q defaultQ
 #PBS -o snps_filter.txt
@@ -1179,17 +1251,8 @@ bcftools stats all_samples.filtered.recode.vcf > all_samples_filtered_stats.txt
 
 We want to now look at Fst, PCA, genome-wide, dog vs fox. We will mostly use R for this because it has good population genetic tools and makes good graphs/plots.
 
-```bash
-# We have mapped the reads and called SNPs in all of them. Now we want to identify any patterns in the genetic variation of the parasite.
 
-# Prepare the data
-cd ~/Module_6_Genetic_Variation/R_analysis
-cp ../multi_sample_analysis/all_samples.filtered.recode.vcf .
-cp ../sample_metadata.txt .
-
-# Open Rstudio. Alternatively, you can load R on the command line simply by typing:
-R
-```
+We have mapped the reads and called SNPs in all of them. Now we want to identify any patterns in the genetic variation of the parasite.
 
 ```R
 # Load packages
@@ -1198,7 +1261,32 @@ library(dplyr)
 library(session) # need to load a bunch of other packages. Check what's needed on the VM.
 ```
 
-## Import and prepare data
+## Import and prepare data for analysis
+
+```R
+# Input file
+vcf_file <- "all_samples.filtered.recode.vcf"
+
+# Metadata file that describes where the samples come from
+metadata_file <- "location.csv"
+
+# Read data into R
+vcf <- read.vcfR(vcf_file, verbose = FALSE)
+metadata <- read.csv(metadata_file, header = TRUE)
+
+# Convert into data drame that the packages can understand. use "genlight" format as it is good for storing variant call data.
+vcf.gl <- vcfR2genlight(vcf)
+pop(vcf.gl) <- metadata$city
+ploidy(vcf.gl) <- 1
+
+# How does the data look in the genlight format?
+vcf.gl
+
+# How is the data stored in this object?
+vcf.gl@ind.names # might need to change this?
+vcf.gl@pop # might need to change this?
+
+```
 
 ## Principal component analysis (PCA) of genetic diversity
 
@@ -1213,10 +1301,10 @@ vcf.pca
 
 vcf.pca.scores <- as.data.frame(vcf.pca$scores)
 
-vcf.pca.scores$country <- metadata$country 
+vcf.pca.scores$city <- metadata$city
 
 # We will also determine the variance each PC contributes the data, which will help us understand potential drivers of patterns in our dataset. 
-Lets plot the eigenvectors to try an understand this a bit more.
+# Lets plot the eigenvectors to try and understand this a bit more.
 
 barplot(100 * vcf.pca$eig / sum(vcf.pca$eig), col="green")
 title(ylab = "Percent of variance explained") 
@@ -1234,13 +1322,16 @@ PC4.variance <- formatC(head(vcf.pca$eig)[4]/eig.total * 100)
 # Lets check that this has worked
 
 PC1.variance 
-# [1] "36.96”
-# This suggests that PC1 describes 36.96% of the variance in the data, which is consistent with our previous plot.
+# [1] "___%"
+# This suggests that PC1 describes ___% of the variance in the data, which is consistent with our previous plot.
+```
 
 
+
+
+```R
 # OK, time to visualize our data and make some plots! 
-# Lets build a plot of your data using ggplot, and explore how to incorporate additional information into the plot to make it more 
-informative. Ggplot works by adding layers of information (hence the “+”) to build the plot.
+# Lets build a plot of your data using ggplot, and explore how to incorporate additional information into the plot to make it more informative. Ggplot works by adding layers of information (hence the “+”) to build the plot.
 
 plot12 <- ggplot(vcf.pca.scores, aes(PC1, PC2)) + geom_point()
 plot12
@@ -1256,13 +1347,13 @@ plot12
 
 cols <- colorRampPalette(brewer.pal(8, "Set1"))(17)
 
-plot12 <- plot12 + geom_point(aes(col = country)) + scale_colour_manual(values=cols) 
+plot12 <- plot12 + geom_point(aes(col = city)) + scale_colour_manual(values=cols) 
 plot12
 
 # Lets quickly look at PC3/PC4, and compare to the first plot.
 
 plot34 <- ggplot(vcf.pca.scores, aes(PC3, PC4)) + 
-	geom_point(aes(col = country)) + 
+	geom_point(aes(col = city)) + 
 	labs(x = paste0("PC3 variance = ", PC3.variance,"%"), y = paste0("PC4 variance = ", PC4.variance, "%")) + 
 	scale_colour_manual(values = cols) 
 
@@ -1271,16 +1362,16 @@ plot12 + plot34
 
 # Calculate the mean value of the principal components for each country. We can use this to make some labels for our plots
 
-means <- vcf.pca.scores %>% group_by(country) %>% summarize(meanPC1 = mean(PC1), meanPC2 = mean(PC2),meanPC3 = mean(PC3), meanPC4 = mean(PC4))
+means <- vcf.pca.scores %>% group_by(city) %>% summarize(meanPC1 = mean(PC1), meanPC2 = mean(PC2),meanPC3 = mean(PC3), meanPC4 = mean(PC4))
 
 # Lets make a slightly different plot that our first comparison of PC1 and PC2, 
 
-plot12.2 <- ggplot(vcf.pca.scores, aes(PC1, PC2, col = 	country)) + 
+plot12.2 <- ggplot(vcf.pca.scores, aes(PC1, PC2, col = 	city)) + 
   	labs(x = paste0("PC1 variance = ", PC1.variance, "%"), y = paste0("PC2 variance = ", PC2.variance, "%")) + 
   	scale_colour_manual(values = cols) +
 	stat_ellipse(level = 0.95, size = 1) +
 	geom_label_repel(data = means,
-	aes(means$meanPC1, means$meanPC2, col = means$country, label = means$country))
+	aes(means$meanPC1, means$meanPC2, col = means$city, label = means$city))
 
 plot12 + plot12.2
 ```
@@ -1301,6 +1392,32 @@ tree_plot <- ggtree(tree_data) +
 
 tree_plot
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+*********************************************
+
+```bash
+# Prepare the data
+cd ~/Module_6_Genetic_Variation/R_analysis
+cp ../multi_sample_analysis/all_samples.filtered.recode.vcf .
+cp ../sample_metadata.txt .
+
+# Open Rstudio. Alternatively, you can load R on the command line simply by typing:
+R
+```
+
+
+
 
 ## Illustrate genetic data on maps
 
