@@ -10,7 +10,7 @@ To save time, I will select just 1 sample to test my code/analysis on. I will se
 
 ## Get subset of reads to test
 
-I will use just 1 of the paired read files for this sample (since I have 2-3 pairs of reads for the same sample sometimes). 
+I will use just 1 merged sample for this sample (since I have 2-3 pairs of reads for the same sample sometimes). 
 If I had just one huge fastq file, I could extract just the first million reads for testing:
 
 ```bash
@@ -18,9 +18,10 @@ zcat JS6279_FSFP220054792-1r_HTY2GDSX2_L1_1.fq.gz | head -n 4000000 | gzip > tes
 zcat JS6279_FSFP220054792-1r_HTY2GDSX2_L1_2.fq.gz | head -n 4000000 | gzip > test_JS6279_2.fq.gz
 # If we want the first 1 million reads, we need to do the head tool for 4 million reads (layout of fastq file has 4 lines).
 ```
+I will not be doing the above. Instead, I will use just 1 whole merged sample to test.
 
 
-## FastQC & Multi-QC
+## FastQC
 
 We want to get some stats on the raw data.
 
@@ -31,13 +32,13 @@ We want to get some stats on the raw data.
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N fastQC
-#PBS -l select=1:ncpus=2:mem=20GB
-#PBS -l walltime=00:20:00
+#PBS -l select=1:ncpus=4:mem=30GB
+#PBS -l walltime=01:00:00
 #PBS -m e
 #PBS -q defaultQ
 #PBS -o fastQC.txt
 
-## qsub -P RDS-FSC-Heartworm_MLR-RW fastQC.pbs
+## qsub ../fastQC.pbs
 
 # Load modules
 module load fastqc/0.11.8
@@ -46,7 +47,7 @@ module load fastqc/0.11.8
 cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_test
 
 INPUTDIR="/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_test/data/fastq"
-NCPU=2
+NCPU=4
 OUTDIR="/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_test/data/analysis/fastqc"
 
 fastqc -t $NCPU -o $OUTDIR $INPUTDIR/*.fq.gz
@@ -60,26 +61,22 @@ Looks like pretty good quality. Quality of reverse reads are a bit worse but tha
 
 ## Trimming
 
-We may want to trim the raw reads. To do this, we can use the trim_galore and trimmomatic tools.
-
-### Trim galore
-
-```bash
-# qsub trimgalore.pbs
-
-cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_test/data/analysis/trimgalore
-
-# Load modules
-module load trimgalore/030816
-
-# Run Trim galore
-trim_galore --paired --fastqc --length 50 /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_test/data/fastq/JS6279_FSFP220054792-1r_HTY2GDSX2_L1_1.fq.gz /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_test/data/fastq/JS6279_FSFP220054792-1r_HTY2GDSX2_L1_2.fq.gz
-
-```
+We may want to trim the raw reads. To do this, we can use the trimmomatic tool.
 
 ### Trimmomatic
 
 ```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N trimmomatic
+#PBS -l select=1:ncpus=24:mem=20GB
+#PBS -l walltime=05:00:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o trimmomatic.txt
+
 # qsub trimmomatic.pbs
 
 cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_test/data/analysis
@@ -91,11 +88,11 @@ module load trimmomatic/0.38
 
 # Run Trimmomatic
 java -jar /usr/local/trimmomatic/0.38/trimmomatic-0.38.jar PE \
--threads 10 -phred33 \
-/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_test/data/fastq/JS6279_FSFP220054792-1r_HTY2GDSX2_L1_1.fq.gz \
-/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_test/data/fastq/JS6279_FSFP220054792-1r_HTY2GDSX2_L1_2.fq.gz \
-JS6279_1_trimpaired.fq.gz JS6279_1_trimunpaired.fq.gz \
-JS6279_2_trimpaired.fq.gz JS6279_2_trimunpaired.fq.gz \
+-threads 24 \
+/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_test/data/fastq/JS6277_merged_1.fq.gz \
+/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_test/data/fastq/JS6277_merged_2.fq.gz \
+JS6277_1_trimpaired.fq.gz JS6277_1_trimunpaired.fq.gz \
+JS6277_2_trimpaired.fq.gz JS6277_2_trimunpaired.fq.gz \
 SLIDINGWINDOW:10:20 MINLEN:50
 
 # SLIDINGWINDOW:10:20 means it will scan the read with a 10-base wide sliding window, cutting when the average quality per base drops below 20.
@@ -213,6 +210,17 @@ samtools flagstat JS6279_dog.sorted.bam > JS6279_dog_flagstat.txt
 - do stats before filtering, so I can see how many were mapped, then how many after filtering etc. Do before samtools view -q 15.
 
 ```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N mapping_di_wol_dog
+#PBS -l select=1:ncpus=24:mem=40GB
+#PBS -l walltime=05:00:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o mapping_di_wol_dog.txt
+
 # qsub ../mapping_di_wol_dog.pbs
 
 # Combine the 2 references
@@ -235,25 +243,25 @@ bwa index reference_di_wol_dog.fa
 # Perform mapping, sam-to-bam conversion, filtering, and indexing
 
 # map the reads
-bwa mem reference_di_wol_dog.fa ../trimmomatic/JS6279_1_trimpaired.fq.gz ../trimmomatic/JS6279_2_trimpaired.fq.gz > JS6279_di_wol_dog.tmp.sam
+bwa mem -t 24 reference_di_wol_dog.fa ../trimmomatic/JS6277_1_trimpaired.fq.gz ../trimmomatic/JS6277_2_trimpaired.fq.gz > JS6277_di_wol_dog.tmp.sam
 
 # Mapping stats
-samtools flagstat JS6279_di_wol_dog.tmp.sam > JS6279_di_wol_dog_flagstat1.txt
+samtools flagstat JS6277_di_wol_dog.tmp.sam > JS6277_di_wol_dog_flagstat1.txt
 	
 # convert the sam to bam format
-samtools view -q 15 -b -o JS6279_di_wol_dog.tmp.bam JS6279_di_wol_dog.tmp.sam
+samtools view -q 15 -b -o JS6277_di_wol_dog.tmp.bam JS6277_di_wol_dog.tmp.sam
 
 # sort the mapped reads in the bam file
-samtools sort JS6279_di_wol_dog.tmp.bam -o JS6279_di_wol_dog.sorted.bam 
+samtools sort JS6277_di_wol_dog.tmp.bam -o JS6277_di_wol_dog.sorted.bam 
  
 # index the sorted bam
-samtools index JS6279_di_wol_dog.sorted.bam
+samtools index JS6277_di_wol_dog.sorted.bam
 
 # lets clean up and remove files we don’t need
 rm *tmp*
 
 # Mapping stats after filtering
-samtools flagstat JS6279_di_wol_dog.sorted.bam > JS6279_di_wol_dog_flagstat2.txt
+samtools flagstat JS6277_di_wol_dog.sorted.bam > JS6277_di_wol_dog_flagstat2.txt
 ```
 
 
@@ -262,6 +270,24 @@ samtools flagstat JS6279_di_wol_dog.sorted.bam > JS6279_di_wol_dog_flagstat2.txt
 If I mapped to the *D. immitis* and dog genomes separately, there could be reads that mapped to both genomes. To avoid this, I mapped to the combined D. immitis/dog genome. I can now extract the reads that mapped to only the *D. immitis* genome and use this for downstream analyses.
 
 ```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N mapping_extract
+#PBS -l select=1:ncpus=4:mem=20GB
+#PBS -l walltime=05:00:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o mapping_extract.txt
+
+# qsub ../mapping_extract.pbs
+
+# Load modules
+module load samtools/1.9
+
+cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_test/data/analysis/mapping
+
 # Index the reference file (from Steve's paper) using samtools faidx
 samtools faidx dimmitis_WSI_2.2.fa
 
@@ -289,12 +315,12 @@ awk '{print $1, "1", $2}' OFS="\t" dimmitis_WSI_2.2.fa.fai > dimmitis_WSI_2.2.be
 cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_test/data/analysis/mapping
 
 # Extract reads that only mapped to D. immitis.
-samtools view -b -h -L dimmitis_WSI_2.2.bed JS6279_di_wol_dog.sorted.bam > JS6279_extract.bam
+samtools view -b -h -L dimmitis_WSI_2.2.bed JS6277_di_wol_dog.sorted.bam > JS6277_extract.bam
 # Should still be in sorted form
 # -b flag makes sure the output is bam
 # -h flag includes the header in SAM output
 
-samtools view JS6279_extract.bam | head
+samtools view JS6277_extract.bam | head
 
 # Do I have to sort the bam file again? No, it should still be sorted.
 ```
@@ -305,7 +331,7 @@ samtools view JS6279_extract.bam | head
 # How many D. immitis reads were extracted?
 # Load modules
 module load samtools/1.9
-samtools flagstat JS6279_extract.bam > JS6279_extract_flagstat.txt
+samtools flagstat JS6277_extract.bam > JS6277_extract_flagstat.txt
 ```
 
 
@@ -317,6 +343,19 @@ The code below uses bcftools for SNP calling. I could also use GATK -> variants 
 
 
 ```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N snps_raw
+#PBS -l select=1:ncpus=4:mem=50GB
+#PBS -l walltime=10:00:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o snps_raw.txt
+
+## qsub ../snps_raw.pbs
+
 # List all of the extracted files and write them to a new file-of-file-names - "bam.fofn".
 # This will contain the names of all the bam files
 
@@ -367,8 +406,8 @@ Both of these outputs seem to be the same. Can just get stats on the compressed 
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N snps_filter
-#PBS -l select=1:ncpus=4:mem=20GB
-#PBS -l walltime=03:00:00
+#PBS -l select=1:ncpus=1:mem=30GB
+#PBS -l walltime=00:15:00
 #PBS -m e
 #PBS -q defaultQ
 #PBS -o snps_filter.txt

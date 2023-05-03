@@ -63,7 +63,7 @@ map.axes()
 # Plot coordinates
 points(location$longitude, location$latitude, cex = 1.5, pch = 20, col = cols)
 ```
-![](images/map_world.png)
+![](output/images/map_world.png)
 
 
 
@@ -84,7 +84,7 @@ location %>%
   theme(panel.background = element_rect(fill = "lightgray"))
 ```
 
-![](images/map_aus.png)
+![](output/images/map_aus.png)
 
 
 
@@ -505,22 +505,22 @@ After inspecting the tables, everything matches up. We have the same number of l
 
 
 
-## FastQC & Multi-QC on the merged files
+## FastQC & Multi-QC on the merged files (including Daisy's Sydney samples)
 
 ```bash
 #!/bin/bash
 
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
-#PBS -N fastQC_merged
-#PBS -l select=2:ncpus=3:mem=40GB
-#PBS -l walltime=06:00:00
+#PBS -N fastqc_merged
+#PBS -l select=2:ncpus=2:mem=30GB
+#PBS -l walltime=05:00:00
 #PBS -m e
 #PBS -q defaultQ
-#PBS -o fastQC_merged.txt
+#PBS -o fastqc_merged.txt
 
 # Submit job
-## qsub fastQC_merged.pbs
+## qsub fastqc_merged.pbs
 
 # Load modules
 module load fastqc/0.11.8
@@ -540,8 +540,36 @@ fastqc -t $NCPU -o $OUTDIR $INPUTDIR/*.fq.gz
 
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N fastqc_daisy
+#PBS -l select=1:ncpus=24:mem=40GB
+#PBS -l walltime=01:00:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o fastqc_daisy.txt
+
+# Submit job
+## qsub fastqc_daisy.pbs
+
+# Load modules
+module load fastqc/0.11.8
+
+# FastQC
+cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/fastqc/merged
+
+INPUTDIR="/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/fastq/merged"
+NCPU=24
+OUTDIR="/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/fastqc/merged"
+
+fastqc -t $NCPU -o $OUTDIR $INPUTDIR/*.fastq.gz
+```
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N multiqc_merged
-#PBS -l select=1:ncpus=1:mem=3GB
+#PBS -l select=1:ncpus=1:mem=2GB
 #PBS -l walltime=00:03:00
 #PBS -m e
 #PBS -q defaultQ
@@ -560,14 +588,20 @@ module load python/3.9.15
 
 multiqc /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/fastqc/merged -o /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/fastqc/merged
 ```
-![](images/fastqc_sequence_counts_plot.png)
+
+![](output/multiqc_merged/fastqc_sequence_counts_plot.png)
+
 Some samples have much fewer reads. This makes sense because some samples were only sequenced for 1GB due to low quality.
 
-![](images/fastqc_per_base_sequence_quality_plot.png)
-![](images/fastqc_per_sequence_quality_scores_plot.png)
+
+![](output/multiqc_merged/fastqc_per_base_sequence_quality_plot.png)
+![](output/multiqc_merged/fastqc_per_sequence_quality_scores_plot.png)
+
 Quality looks pretty good.
 
-![](images/fastqc_per_sequence_gc_content_plot.png)
+
+![](output/multiqc_merged/fastqc_per_sequence_gc_content_plot.png)
+
 JS6278 (this was one of Wilson's HWs) and JS6348 (this was the D. roemeri sample) failed the GC content check. 
 
 
@@ -685,26 +719,34 @@ cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/kraken
 ```
 
 
+# Get list of sample names
+
+```bash
+cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/fastq/merged
+
+# Get list of JS samples and SRR samples
+ls -1 | grep "JS*" | cut -c1-6 | uniq > ../../analysis/JS_list
+ls -1 | grep "SRR*" | cut -c1-11 | uniq > ../../analysis/SRR_list
+
+# combine them
+cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis
+cat JS_list SRR_list > sample_list
+
+# delete the JS and SRR files I don't need anymore
+rm JS_list
+rm SRR_list
+
+# How many files are in sample_list?
+cat sample_list | wc -l | tr -d ' '
+```
+There are 32 samples (so 32 jobs).
+
+
+
 
 ## Trimming
 
-We may want to trim the raw reads. To do this, we can use the trim_galore and trimmomatic tools.
-
-### Trim galore
-
-```bash
-# qsub trimgalore.pbs
-
-cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis
-mkdir trimgalore
-cd trimgalore
-
-# Load modules
-module load trimgalore/0.6.1
-
-# Run Trim galore
-parallel --colsep "\t" 'trim_galore --paired --fastqc --length 50 --output_dir {3}_trimdata /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/fastq/merged/{1} /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/fastq/merged/{2}' :::: ../../sample_list.txt
-```
+We may want to trim the merged reads. To do this, we can use the trimmomatic tool.
 
 ### Trimmomatic
 
@@ -714,30 +756,31 @@ parallel --colsep "\t" 'trim_galore --paired --fastqc --length 50 --output_dir {
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N trimmomatic
-#PBS -l select=3:ncpus=24:mem=25GB
-#PBS -l walltime=05:00:00
+#PBS -l select=1:ncpus=24:mem=25GB
+#PBS -l walltime=01:00:00
 #PBS -m e
 #PBS -q defaultQ
 #PBS -o trimmomatic.txt
+#PBS -J 1-32
 
-# qsub trimmomatic.pbs
+# qsub ../trimmomatic.pbs
 
-cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis
-mkdir trimmomatic
-cd trimmomatic
+cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/trimmomatic
 
 # Load modules
 module load trimmomatic/0.38
-module load parallel/20160222
+
+#Set the filename based on the PBS Array Index
+sample_name=`sed -n "${PBS_ARRAY_INDEX}{p;q}" ../sample_list`
 
 # Run Trimmomatic
-parallel --colsep "\t" 'java -jar /usr/local/trimmomatic/0.38/trimmomatic-0.38.jar PE \
--threads 10 -phred33 \
-/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/fastq/merged/{1} \
-/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/fastq/merged/{2} \
-{3}_1_trimpaired.fq.gz {3}_1_trimunpaired.fq.gz \
-{3}_2_trimpaired.fq.gz {3}_2_trimunpaired.fq.gz \
-SLIDINGWINDOW:10:20 MINLEN:50' :::: ../sample_list.txt
+java -jar /usr/local/trimmomatic/0.38/trimmomatic-0.38.jar PE \
+-threads $NCPUS \
+/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/fastq/merged/${sample_name}*1.f*.gz \
+/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/fastq/merged/${sample_name}*2.f*.gz \
+${sample_name}_1_trimpaired.fq.gz ${sample_name}_1_trimunpaired.fq.gz \
+${sample_name}_2_trimpaired.fq.gz ${sample_name}_2_trimunpaired.fq.gz \
+SLIDINGWINDOW:10:20 MINLEN:50
 
 # SLIDINGWINDOW:10:20 means it will scan the read with a 10-base wide sliding window, cutting when the average quality per base drops below 20.
 
@@ -753,8 +796,8 @@ Check to see how the data looks after trimming.
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N fastQC_trimmed
-#PBS -l select=2:ncpus=1:mem=25GB
-#PBS -l walltime=04:00:00
+#PBS -l select=2:ncpus=2:mem=30GB
+#PBS -l walltime=05:00:00
 #PBS -m e
 #PBS -q defaultQ
 #PBS -o fastQC_trimmed.txt
@@ -836,8 +879,8 @@ Prepare everything for mapping:
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N mapping_prep
-#PBS -l select=1:ncpus=2:mem=30GB
-#PBS -l walltime=02:00:00
+#PBS -l select=1:ncpus=2:mem=14GB
+#PBS -l walltime=01:00:00
 #PBS -m e
 #PBS -q defaultQ
 #PBS -o mapping_prep.txt
@@ -853,29 +896,17 @@ module load bwa/0.7.17
 # Combine the 2 references
 # cat dimmitis_WSI_2.2.fa GCA_014441545.1_ROS_Cfam_1.0_genomic.fna > reference_di_wol_dog.fa 
 # Already did this step in the test run. Can just copy over the joined reference file.
-cp /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_test/data/analysis/mapping/reference_di_wol_dog.fa .
+# cp /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_test/data/analysis/mapping/reference_di_wol_dog.fa .
 
 # Also copy over the D. immitis/Wol reference
-cp /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_test/data/analysis/mapping/dimmitis_WSI_2.2.fa .
+# cp /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_test/data/analysis/mapping/dimmitis_WSI_2.2.fa .
+# Already did these steps prior.
 
 # index reference sequence
 bwa index reference_di_wol_dog.fa
 
 # Perform mapping, sam-to-bam conversion, filtering, and indexing. Need to have separate table with the relevant sample names I want. Then need to use variables to replace the sample names. This will reduce time/effort and minimise typos. I could make a loop, but since I will be running it on the Artemis server as a job, it may be best to write out a script.
-
-# Get list of sample names
-cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/trimmomatic
-ls -1 | cut -c1-6 | uniq > ../trimmed_list
 ```
-
-
-```bash
-# How many files are in trimmed_list?
-cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis
-cat trimmed_list | wc -l | tr -d ' '
-```
-There are 27 samples (so 27 jobs).
-
 
 Map the reads:
 
@@ -886,11 +917,11 @@ Map the reads:
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N mapping
 #PBS -l select=1:ncpus=24:mem=50GB
-#PBS -l walltime=10:00:00
+#PBS -l walltime=01:00:00
 #PBS -m abe
 #PBS -q defaultQ
 #PBS -o mapping.txt
-#PBS -J 1-27
+#PBS -J 1-?
 
 # qsub ../mapping.pbs
 
@@ -901,7 +932,7 @@ cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping
 module load bwa/0.7.17
 
 #Set the filename based on the PBS Array Index
-sample_name=`sed -n "${PBS_ARRAY_INDEX}{p;q}" ../trimmed_list`
+sample_name=`sed -n "${PBS_ARRAY_INDEX}{p;q}" ../sample_list`
 
 # Tried using /mapping in /project directory but the sam files took up lots of space (disk quota exceeded). Put output files into /scratch instead.
 
@@ -934,7 +965,7 @@ Convert to bam & sort the mapped reads:
 #PBS -m e
 #PBS -q defaultQ
 #PBS -o mapping_sort.txt
-#PBS -J 1-27
+#PBS -J 1-?
 
 # qsub ../mapping_sort.pbs
 
@@ -945,7 +976,7 @@ cd /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/
 module load samtools/1.9
 
 #Set the filename based on the PBS Array Index
-sample_name=`sed -n "${PBS_ARRAY_INDEX}{p;q}" /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/trimmed_list`
+sample_name=`sed -n "${PBS_ARRAY_INDEX}{p;q}" /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/sample_list`
 
 # Mapping stats
 samtools flagstat ${sample_name}.tmp.sam > ${sample_name}_flagstat1.txt
@@ -1070,7 +1101,7 @@ awk '{print $1, "1", $2}' OFS="\t" dimmitis_WSI_2.2.fa.fai > dimmitis_WSI_2.2.be
 #PBS -m e
 #PBS -q defaultQ
 #PBS -o mapping_extract.txt
-#PBS -J 1-27
+#PBS -J 1-?
 
 # qsub ../mapping_extract.pbs
 
@@ -1081,7 +1112,7 @@ cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping
 module load samtools/1.9
 
 #Set the filename based on the PBS Array Index
-sample_name=`sed -n "${PBS_ARRAY_INDEX}{p;q}" ../trimmed_list`
+sample_name=`sed -n "${PBS_ARRAY_INDEX}{p;q}" ../sample_list`
 
 # Extract reads that only mapped to D. immitis.
 samtools view -b -h -L dimmitis_WSI_2.2.bed /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/${sample_name}.sorted.bam > /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/${sample_name}_extract.bam
@@ -1140,14 +1171,15 @@ multiqc /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/*_ext
 Now that I've extracted the reads for D. immitis, I can continue to call SNPs.
 The code below uses bcftools for SNP calling. I could also use GATK -> variants identified -> HaplotypeCaller to generate GVCF files for each BAM file -> consolidate variants -> CombineGVCFs to merge GVCF files -> GATK GenotypeGVCFs for joint-call cohort genotyping -> generate single multisample VCF file (contains all initial variants and samples).
 
+
 ```bash
 #!/bin/bash
 
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N snps_raw
-#PBS -l select=1:ncpus=8:mem=30GB
-#PBS -l walltime=02:00:00
+#PBS -l select=1:ncpus=24:mem=30GB
+#PBS -l walltime=24:00:00
 #PBS -m e
 #PBS -q defaultQ
 #PBS -o snps_raw.txt
@@ -1166,8 +1198,9 @@ module load tabix/0.2.6
 ls -1 *_extract.bam > bam.fofn
 
 # call SNPs in the bam files using bam.fofn to generate a multi-sample bcf
-bcftools mpileup -Ou --annotate FORMAT/DP --fasta-ref /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/dimmitis_WSI_2.2.fa --bam-list bam.fofn | bcftools call -v -c --ploidy 1 -Ob --skip-variants indels > all_samples.bcf
+bcftools mpileup --threads 24 -Ou --annotate FORMAT/DP --fasta-ref /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/dimmitis_WSI_2.2.fa --bam-list bam.fofn | bcftools call -v -c --ploidy 1 -Ob --skip-variants indels > all_samples.bcf
 # Can just use DI reference genome now
+# can i multithread it? It can really help.
 
 # index the multi-sample bcf
 bcftools index all_samples.bcf
