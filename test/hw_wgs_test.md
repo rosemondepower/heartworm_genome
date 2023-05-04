@@ -328,10 +328,27 @@ samtools view JS6277_extract.bam | head
 ## QC
 
 ```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N mapping_extract_qc
+#PBS -l select=1:ncpus=2:mem=20GB
+#PBS -l walltime=01:00:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o mapping_extract_qc.txt
+
+# qsub ../mapping_extract_qc.pbs
+
 # How many D. immitis reads were extracted?
 # Load modules
 module load samtools/1.9
+
+cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_test/data/analysis/mapping
+
 samtools flagstat JS6277_extract.bam > JS6277_extract_flagstat.txt
+
 ```
 
 
@@ -348,8 +365,8 @@ The code below uses bcftools for SNP calling. I could also use GATK -> variants 
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N snps_raw
-#PBS -l select=1:ncpus=4:mem=50GB
-#PBS -l walltime=10:00:00
+#PBS -l select=1:ncpus=24:mem=30GB
+#PBS -l walltime=24:00:00
 #PBS -m e
 #PBS -q defaultQ
 #PBS -o snps_raw.txt
@@ -369,7 +386,7 @@ module load tabix/0.2.6
 ls -1 *_extract.bam > bam.fofn
 
 # call SNPs in the bam files using bam.fofn to generate a multi-sample bcf
-bcftools mpileup -Ou --annotate FORMAT/DP --fasta-ref dimmitis_WSI_2.2.fa --bam-list bam.fofn | bcftools call -v -c --ploidy 1 -Ob --skip-variants indels > all_samples.bcf
+bcftools mpileup --threads 24 -Ou --annotate FORMAT/DP --fasta-ref dimmitis_WSI_2.2.fa --bam-list bam.fofn | bcftools call -v -c --ploidy 1 -Ob --skip-variants indels > all_samples.bcf
 # Can just use DI reference genome now
 
 # index the multi-sample bcf
@@ -385,9 +402,25 @@ tabix -p vcf all_samples.vcf.gz
 ## QC
 
 ```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N snps_raw_qc
+#PBS -l select=1:ncpus=1:mem=10GB
+#PBS -l walltime=00:30:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o snps_raw_qc.txt
+
+# qsub ../snps_raw_qc.pbs
+
 # Get stats for bcf and vcf files we just created
 # Load modules
 module load bcftools/1.11
+
+cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_test/data/analysis/mapping
+
 bcftools stats all_samples.bcf > all_samples_bcf_stats.txt
 bcftools stats all_samples.vcf.gz > all_samples_vcf_stats.txt
 ```
@@ -406,8 +439,8 @@ Both of these outputs seem to be the same. Can just get stats on the compressed 
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N snps_filter
-#PBS -l select=1:ncpus=1:mem=30GB
-#PBS -l walltime=00:15:00
+#PBS -l select=1:ncpus=1:mem=2GB
+#PBS -l walltime=00:10:00
 #PBS -m e
 #PBS -q defaultQ
 #PBS -o snps_filter.txt
@@ -423,7 +456,7 @@ cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_test/data/analysis/mapping
 # Load modules
 module load vcftools/0.1.14
 
-vcftools --gzvcf all_samples.vcf.gz --maf 0.05 --min-alleles 2 --max-alleles 2 --recode --out all_samples.filtered
+vcftools --gzvcf all_samples.vcf.gz --maf 0.02 --min-alleles 2 --max-alleles 2 --recode --out all_samples.filtered
 
 # --gzvcf options reads compressed VCF files directly
 # --maf 0.05 includes only sites with a minor allele frequency greater than or equal to 0.05. Allele frequency is the number of times an allele appears over all individuals at that site, divided by the total number of non-missing alleles at that site.
@@ -437,6 +470,19 @@ vcftools --gzvcf all_samples.vcf.gz --maf 0.05 --min-alleles 2 --max-alleles 2 -
 ## QC
 
 ```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N snps_filter_qc
+#PBS -l select=1:ncpus=1:mem=1GB
+#PBS -l walltime=00:02:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o snps_filter_qc.txt
+
+# qsub ../snps_filter_qc.pbs
+
 # Load modules
 module load bcftools/1.11
 

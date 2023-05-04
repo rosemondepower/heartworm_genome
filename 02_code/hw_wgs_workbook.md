@@ -853,7 +853,6 @@ multiqc /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/fastqc/trimme
 Some samples have high/some low amounts of data. Which samples do we want to include/exclude from further analysis?
 
 
-
 ## Mapping
 
 We want to map the reads to 3/4 different genomes: 
@@ -879,8 +878,8 @@ Prepare everything for mapping:
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N mapping_prep
-#PBS -l select=1:ncpus=2:mem=14GB
-#PBS -l walltime=01:00:00
+#PBS -l select=1:ncpus=1:mem=15GB
+#PBS -l walltime=01:30:00
 #PBS -m e
 #PBS -q defaultQ
 #PBS -o mapping_prep.txt
@@ -921,7 +920,7 @@ Map the reads:
 #PBS -m abe
 #PBS -q defaultQ
 #PBS -o mapping.txt
-#PBS -J 1-?
+#PBS -J 1-32
 
 # qsub ../mapping.pbs
 
@@ -935,10 +934,6 @@ module load bwa/0.7.17
 sample_name=`sed -n "${PBS_ARRAY_INDEX}{p;q}" ../sample_list`
 
 # Tried using /mapping in /project directory but the sam files took up lots of space (disk quota exceeded). Put output files into /scratch instead.
-
-cd /scratch/RDS-FSC-Heartworm_MLR-RW/
-mkdir mapping
-cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping
 
 # map the reads, with a separate mapping job for each sample
 bwa mem reference_di_wol_dog.fa \
@@ -960,12 +955,12 @@ Convert to bam & sort the mapped reads:
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N mapping_sort
-#PBS -l select=1:ncpus=16:mem=40GB
+#PBS -l select=1:ncpus=2:mem=50GB
 #PBS -l walltime=02:00:00
 #PBS -m e
 #PBS -q defaultQ
 #PBS -o mapping_sort.txt
-#PBS -J 1-?
+#PBS -J 1-32
 
 # qsub ../mapping_sort.pbs
 
@@ -979,7 +974,7 @@ module load samtools/1.9
 sample_name=`sed -n "${PBS_ARRAY_INDEX}{p;q}" /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/sample_list`
 
 # Mapping stats
-samtools flagstat ${sample_name}.tmp.sam > ${sample_name}_flagstat1.txt
+samtools flagstat ${sample_name}.tmp.sam > flagstat1/${sample_name}_flagstat1.txt
 	
 # convert the sam to bam format
 samtools view -q 15 -b -o ${sample_name}.tmp.bam ${sample_name}.tmp.sam
@@ -991,7 +986,7 @@ samtools sort ${sample_name}.tmp.bam -o ${sample_name}.sorted.bam
 samtools index ${sample_name}.sorted.bam
 
 # Mapping stats after filtering
-samtools flagstat ${sample_name}.sorted.bam > ${sample_name}_flagstat2.txt
+samtools flagstat ${sample_name}.sorted.bam > flagstat2/${sample_name}_flagstat2.txt
 ```
 
 
@@ -1009,7 +1004,7 @@ Combine flagstat files for all samples so it's easier to read.
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N multiqc_flagstat1
-#PBS -l select=1:ncpus=1:mem=2GB
+#PBS -l select=1:ncpus=1:mem=1GB
 #PBS -l walltime=00:02:30
 #PBS -m e
 #PBS -q defaultQ
@@ -1024,7 +1019,7 @@ cd /project/RDS-FSC-Heartworm_MLR-RW/MultiQC
 module load git/2.25.0
 module load python/3.9.15
 
-multiqc /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/*_flagstat1.txt -o /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/flagstat1
+multiqc /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/flagstat1/*_flagstat1.txt -o /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/flagstat1
 ```
 
 ```bash
@@ -1033,8 +1028,8 @@ multiqc /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/*_flagstat1.txt -o /scratch/RD
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N multiqc_flagstat2
-#PBS -l select=1:ncpus=1:mem=2GB
-#PBS -l walltime=00:02:30
+#PBS -l select=1:ncpus=1:mem=1GB
+#PBS -l walltime=00:03:00
 #PBS -m e
 #PBS -q defaultQ
 #PBS -o multiqc_flagstat2.txt
@@ -1048,7 +1043,7 @@ cd /project/RDS-FSC-Heartworm_MLR-RW/MultiQC
 module load git/2.25.0
 module load python/3.9.15
 
-multiqc /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/*_flagstat2.txt -o /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/flagstat2
+multiqc /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/flagstat2/*_flagstat2.txt -o /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/flagstat2
 ```
 
 ## Extract reads that mapped to the *D. immitis* genome
@@ -1061,8 +1056,8 @@ If I mapped to the *D. immitis* and dog genomes separately, there could be reads
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N mapping_bed
-#PBS -l select=1:ncpus=4:mem=10GB
-#PBS -l walltime=01:00:00
+#PBS -l select=1:ncpus=1:mem=1GB
+#PBS -l walltime=00:01:30
 #PBS -m e
 #PBS -q defaultQ
 #PBS -o mapping_bed.txt
@@ -1096,12 +1091,12 @@ awk '{print $1, "1", $2}' OFS="\t" dimmitis_WSI_2.2.fa.fai > dimmitis_WSI_2.2.be
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N mapping_extract
-#PBS -l select=1:ncpus=1:mem=10GB
-#PBS -l walltime=01:00:00
+#PBS -l select=1:ncpus=1:mem=15GB
+#PBS -l walltime=00:45:00
 #PBS -m e
 #PBS -q defaultQ
 #PBS -o mapping_extract.txt
-#PBS -J 1-?
+#PBS -J 1-32
 
 # qsub ../mapping_extract.pbs
 
@@ -1127,7 +1122,7 @@ samtools view /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/${sample_name}_extract.b
 ## QC
 # How many D. immitis reads were extracted?
 
-samtools flagstat /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/${sample_name}_extract.bam > ${sample_name}_extract_flagstat.txt
+samtools flagstat /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/${sample_name}_extract.bam > /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extract_flagstat/${sample_name}_extract_flagstat.txt
 ```
 
 Combine flagstat files for all samples so it's easier to read.
@@ -1138,7 +1133,7 @@ Combine flagstat files for all samples so it's easier to read.
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N multiqc_extract_flagstat
-#PBS -l select=1:ncpus=1:mem=2GB
+#PBS -l select=1:ncpus=1:mem=1GB
 #PBS -l walltime=00:02:30
 #PBS -m e
 #PBS -q defaultQ
@@ -1153,7 +1148,7 @@ cd /project/RDS-FSC-Heartworm_MLR-RW/MultiQC
 module load git/2.25.0
 module load python/3.9.15
 
-multiqc /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/*_extract_flagstat.txt -o /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extract_flagstat
+multiqc /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extract_flagstat/*_extract_flagstat.txt -o /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extract_flagstat
 ```
 
 
@@ -1164,6 +1159,10 @@ multiqc /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/*_ext
 - Bamtools, bedtools makewindows, samtools bedcov to assess genome coverage.
 - Infer sample sex using coverage of X chromosome:autosome
 ***
+
+## Remove D. roemeri sample from analysis
+
+Moved JS6348 sample into D. roemeri folder because I don't want to include it in subsequent analyses.
 
 
 ## SNPs (raw)
@@ -1178,8 +1177,8 @@ The code below uses bcftools for SNP calling. I could also use GATK -> variants 
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N snps_raw
-#PBS -l select=1:ncpus=24:mem=30GB
-#PBS -l walltime=24:00:00
+#PBS -l select=1:ncpus=24:mem=80GB
+#PBS -l walltime=20:00:00
 #PBS -m e
 #PBS -q defaultQ
 #PBS -o snps_raw.txt
@@ -1198,7 +1197,7 @@ module load tabix/0.2.6
 ls -1 *_extract.bam > bam.fofn
 
 # call SNPs in the bam files using bam.fofn to generate a multi-sample bcf
-bcftools mpileup --threads 24 -Ou --annotate FORMAT/DP --fasta-ref /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/dimmitis_WSI_2.2.fa --bam-list bam.fofn | bcftools call -v -c --ploidy 1 -Ob --skip-variants indels > all_samples.bcf
+bcftools mpileup --threads 10 -Ou --annotate FORMAT/DP --fasta-ref /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/dimmitis_WSI_2.2.fa --bam-list bam.fofn | bcftools call -v -c --ploidy 1 -Ob --skip-variants indels > all_samples.bcf
 # Can just use DI reference genome now
 # can i multithread it? It can really help.
 
