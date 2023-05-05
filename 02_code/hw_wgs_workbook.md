@@ -1164,6 +1164,36 @@ multiqc /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extract_flagstat/*_extract_fla
 
 Moved JS6348 sample into D. roemeri folder because I don't want to include it in subsequent analyses.
 
+## Index the extracted bam files
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N mapping_extract_index
+#PBS -l select=1:ncpus=8:mem=10GB
+#PBS -l walltime=01:00:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o mapping_extract_index.txt
+#PBS -J 1-31
+
+#qsub ../mapping_extract_index.pbs
+
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/mapping
+
+# Load modules
+module load samtools/1.9
+
+#Set the filename based on the PBS Array Index
+sample_name=`sed -n "${PBS_ARRAY_INDEX}{p;q}" /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/sample_list_v2`
+# Sample_list_v2 basically is the same thing but minus the D. roemeri sample.
+
+samtools index ${sample_name}_extract.bam
+```
+
+
 
 ## SNPs (raw)
 
@@ -1177,7 +1207,7 @@ The code below uses bcftools for SNP calling. I could also use GATK -> variants 
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N snps_raw
-#PBS -l select=1:ncpus=24:mem=80GB
+#PBS -l select=1:ncpus=10:mem=50GB
 #PBS -l walltime=72:00:00
 #PBS -m abe
 #PBS -q defaultQ
@@ -1198,7 +1228,7 @@ module load tabix/0.2.6
 ls -1 *_extract.bam > bam.fofn
 
 # call SNPs in the bam files using bam.fofn to generate a multi-sample bcf
-bcftools mpileup --threads 24 -Ou --annotate FORMAT/DP --fasta-ref /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/dimmitis_WSI_2.2.fa --bam-list bam.fofn | bcftools call -v -c --ploidy 1 -Ob --skip-variants indels > all_samples.bcf
+bcftools mpileup --threads 10 -Ou --annotate FORMAT/DP --fasta-ref /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/dimmitis_WSI_2.2.fa --bam-list bam.fofn | bcftools call -v -c --ploidy 1 -Ob --skip-variants indels > all_samples.bcf
 # Can just use DI reference genome now
 # can i multithread it? It can really help.
 
@@ -1544,3 +1574,56 @@ Extract the 42 (or more) SNPs in all samples and compare. Can use grep? Artemis?
 
 
 
+# Coverage
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N coverage
+#PBS -l select=1:ncpus=24:mem=40GB
+#PBS -l walltime=02:00:00
+#PBS -m abe
+#PBS -q defaultQ
+#PBS -o coverage.txt
+#PBS -M rosemonde.power@sydney.edu.au
+
+# qsub ../coverage.pbs
+
+WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/coverage
+cd ${WORKING_DIR}/coverage
+
+WINDOW='100000'
+
+module load bamtools/2.5.1
+module load bedtools/2.29.2
+module load samtools/1.9
+
+for i in /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/*extract.bam; do
+
+bamtools header -in ${i} | grep "^@SQ" | awk -F'[:\t]' '{printf $3"\t"1"\t"$5"\n"}' OFS="\t" > ${i%.bam}.chr.bed
+bamtools header -in ${i} | grep "^@SQ" | awk -F'[:\t]' '{printf $3"\t"$5"\n"}' OFS="\t" > ${i%.bam}.chr.genome
+
+bedtools makewindows -g ${i%.bam}.chr.genome -w ${WINDOW} > ${i%.bam}.${WINDOW}_window.bed
+
+samtools bedcov -Q 20 ${i%.bam}.chr.bed ${i} | awk -F'\t' '{printf $1"\t"$2"\t"$3"\t"$4"\t"$4/($3-$2)"\n"}' OFS="\t" > ${i%.bam}.chr.cov
+samtools bedcov -Q 20 ${i%.bam}.${WINDOW}_window.bed ${i} | awk -F'\t' '{printf $1"\t"$2"\t"$3"\t"$4"\t"$4/($3-$2)"\n"}' OFS="\t" > ${i%.bam}.${WINDOW}_window.cov
+
+rm ${i%.bam}.chr.bed ${i%.bam}.${WINDOW}_window.bed ${i%.bam}.chr.genome;
+
+done
+
+for i in *.chr.cov; do 
+
+printf "${i}\n" > ${i}.tmp | awk '{print $5}' OFS="\t" ${i} >> ${i}.tmp;
+
+done
+
+paste *.tmp > coverage_stats.summary
+rm *.tmp
+
+mkdir COV_STATS
+mv *.chr.cov *_window.cov *.cov coverage_stats.summary COV_STATS/
+cd COV_STATS/
+```
