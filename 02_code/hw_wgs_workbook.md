@@ -1178,10 +1178,11 @@ The code below uses bcftools for SNP calling. I could also use GATK -> variants 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N snps_raw
 #PBS -l select=1:ncpus=24:mem=80GB
-#PBS -l walltime=20:00:00
-#PBS -m e
+#PBS -l walltime=72:00:00
+#PBS -m abe
 #PBS -q defaultQ
 #PBS -o snps_raw.txt
+#PBS -M rosemonde.power@sydney.edu.au
 
 # qsub ../snps_raw.pbs
 
@@ -1197,7 +1198,7 @@ module load tabix/0.2.6
 ls -1 *_extract.bam > bam.fofn
 
 # call SNPs in the bam files using bam.fofn to generate a multi-sample bcf
-bcftools mpileup --threads 10 -Ou --annotate FORMAT/DP --fasta-ref /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/dimmitis_WSI_2.2.fa --bam-list bam.fofn | bcftools call -v -c --ploidy 1 -Ob --skip-variants indels > all_samples.bcf
+bcftools mpileup --threads 24 -Ou --annotate FORMAT/DP --fasta-ref /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/dimmitis_WSI_2.2.fa --bam-list bam.fofn | bcftools call -v -c --ploidy 1 -Ob --skip-variants indels > all_samples.bcf
 # Can just use DI reference genome now
 # can i multithread it? It can really help.
 
