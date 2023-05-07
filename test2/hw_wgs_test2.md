@@ -1,6 +1,47 @@
-# Dirofilaria immitis WGS test 2 - Run 3 samples to try and get a PCA
+# Dirofilaria immitis WGS test 2 - Run 3 samples to try and get a PCA to practice with
 
 ### Rose Power USYD 2023
+
+# Get list of sample names
+
+```bash
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/test2/analysis
+
+# Get list of JS samples and SRR samples
+ls -1 | grep "JS*" | cut -c1-6 | uniq > ../sample_list
+
+# How many files are in sample_list?
+cat ../sample_list | wc -l | tr -d ' '
+```
+There are 3 samples (so 3 jobs).
+
+## Index the extracted bam files
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N mapping_extract_index
+#PBS -l select=1:ncpus=8:mem=10GB
+#PBS -l walltime=01:00:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o mapping_extract_index.txt
+#PBS -J 1-3
+
+#qsub ../mapping_extract_index.pbs
+
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/test2/analysis
+
+# Load modules
+module load samtools/1.9
+
+#Set the filename based on the PBS Array Index
+sample_name=`sed -n "${PBS_ARRAY_INDEX}{p;q}" ../sample_list`
+
+samtools index ${sample_name}_extract.bam
+```
 
 ## SNPs (raw)
 
@@ -14,8 +55,8 @@ The code below uses bcftools for SNP calling. I could also use GATK -> variants 
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N snps_raw
-#PBS -l select=1:ncpus=24:mem=80GB
-#PBS -l walltime=20:00:00
+#PBS -l select=1:ncpus=24:mem=40GB
+#PBS -l walltime=36:00:00
 #PBS -m abe
 #PBS -q defaultQ
 #PBS -o snps_raw.txt

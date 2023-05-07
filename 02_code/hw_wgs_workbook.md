@@ -1582,8 +1582,8 @@ Extract the 42 (or more) SNPs in all samples and compare. Can use grep? Artemis?
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N coverage
-#PBS -l select=1:ncpus=24:mem=40GB
-#PBS -l walltime=02:00:00
+#PBS -l select=1:ncpus=16:mem=40GB
+#PBS -l walltime=24:00:00
 #PBS -m abe
 #PBS -q defaultQ
 #PBS -o coverage.txt
@@ -1592,7 +1592,7 @@ Extract the 42 (or more) SNPs in all samples and compare. Can use grep? Artemis?
 # qsub ../coverage.pbs
 
 WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/coverage
-cd ${WORKING_DIR}/coverage
+cd ${WORKING_DIR}
 
 WINDOW='100000'
 
@@ -1624,6 +1624,65 @@ paste *.tmp > coverage_stats.summary
 rm *.tmp
 
 mkdir COV_STATS
-mv *.chr.cov *_window.cov *.cov coverage_stats.summary COV_STATS/
-cd COV_STATS/
+mv *.chr.cov *_window.cov *.cov coverage_stats.summary /COV_STATS/
+cd COV_STATS
+```
+
+### Generate quantitative stats on coverage for supplementary tables etc
+Extract mtDNA, Wb and nuclear (mean & stddev) data
+
+For nuclear, we will select only the defined Chr (chrX and chr1 to chr4)
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N mtDNA_nuclear
+#PBS -l select=1:ncpus=1:mem=1GB
+#PBS -l walltime=00:04:00
+#PBS -m abe
+#PBS -q defaultQ
+#PBS -o mtDNA_nuclear.txt
+#PBS -M rosemonde.power@sydney.edu.au
+#PBS -J 1-31
+
+# qsub ../mtDNA_nuclear.pbs
+
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/coverage/COV_STATS
+
+# Merge the 100000_windows.cov and .chr.cov files together for each sample?
+#Set the filename based on the PBS Array Index
+sample_name=`sed -n "${PBS_ARRAY_INDEX}{p;q}" /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/sample_list_v2`
+
+cat ${sample_name}_extract.100000_window.cov ${sample_name}_extract.chr.cov > ${sample_name}_extract.chr.cov.merged.100000_window.cov
+```
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N mtDNA_nuclear2
+#PBS -l select=1:ncpus=1:mem=4GB
+#PBS -l walltime=00:10:00
+#PBS -m abe
+#PBS -q defaultQ
+#PBS -o mtDNA_nuclear2.txt
+#PBS -M rosemonde.power@sydney.edu.au
+
+# qsub ../mtDNA_nuclear2.pbs
+
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/coverage/COV_STATS
+# Load modules
+module load datamash/1.7
+
+# extract mtDNA and nuclear (mean & stddev) data
+for i in *.chr.cov; do
+	name=${i%.chr.cov};
+	nuc=$(grep -v "scaffold\|Wb\|Mt" ${i%.merged.chr.cov}.merged.100000_window.cov | datamash mean 5 sstdev 5 );
+	mtDNA=$(grep "chrMtDNA" ${i} | cut -f5 );
+	Wb=$(grep 'chrWb' ${i} | cut -f5 ); 
+	echo -e "${name}\t${nuc}\t${mtDNA}\t${Wb}";
+done > 'mito_wolb_cov.stats'
 ```
