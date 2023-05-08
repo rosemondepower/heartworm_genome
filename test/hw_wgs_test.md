@@ -325,6 +325,30 @@ samtools view JS6277_extract.bam | head
 # Do I have to sort the bam file again? No, it should still be sorted.
 ```
 
+## Index the extracted bam files
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N extract_index
+#PBS -l select=1:ncpus=4:mem=20GB
+#PBS -l walltime=05:00:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o extract_index.txt
+
+# qsub ../extract_index.pbs
+
+cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_test/data/analysis/mapping
+
+# Load modules
+module load samtools/1.9
+
+# index the extracted bam
+samtools index JS6277_extract.bam
+```
+
 ## QC
 
 ```bash
@@ -333,8 +357,8 @@ samtools view JS6277_extract.bam | head
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N mapping_extract_qc
-#PBS -l select=1:ncpus=2:mem=20GB
-#PBS -l walltime=01:00:00
+#PBS -l select=1:ncpus=1:mem=1GB
+#PBS -l walltime=00:03:00
 #PBS -m e
 #PBS -q defaultQ
 #PBS -o mapping_extract_qc.txt
@@ -366,10 +390,11 @@ The code below uses bcftools for SNP calling. I could also use GATK -> variants 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N snps_raw
 #PBS -l select=1:ncpus=24:mem=30GB
-#PBS -l walltime=24:00:00
+#PBS -l walltime=08:00:00
 #PBS -m e
 #PBS -q defaultQ
 #PBS -o snps_raw.txt
+#PBS -M rosemonde.power@sydney.edu.au
 
 ## qsub ../snps_raw.pbs
 
@@ -386,8 +411,10 @@ module load tabix/0.2.6
 ls -1 *_extract.bam > bam.fofn
 
 # call SNPs in the bam files using bam.fofn to generate a multi-sample bcf
-bcftools mpileup --threads 24 -Ou --annotate FORMAT/DP --fasta-ref dimmitis_WSI_2.2.fa --bam-list bam.fofn | bcftools call -v -c --ploidy 1 -Ob --skip-variants indels > all_samples.bcf
+bcftools mpileup --threads 10 -Ou --annotate FORMAT/DP --fasta-ref dimmitis_WSI_2.2.fa --bam-list bam.fofn | bcftools call --threads 10 -v -c -Ob --skip-variants indels > all_samples.bcf
 # Can just use DI reference genome now
+# bcftools call -v means output variant sites only, -c means the original samtools/bcftools calling method (consensus caller)
+# Removed the ploidy option entirely and it worked?
 
 # index the multi-sample bcf
 bcftools index all_samples.bcf

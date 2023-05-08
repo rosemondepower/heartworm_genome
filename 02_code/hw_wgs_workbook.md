@@ -1228,7 +1228,7 @@ module load tabix/0.2.6
 ls -1 *_extract.bam > bam.fofn
 
 # call SNPs in the bam files using bam.fofn to generate a multi-sample bcf
-bcftools mpileup --threads 10 -Ou --annotate FORMAT/DP --fasta-ref /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/dimmitis_WSI_2.2.fa --bam-list bam.fofn | bcftools call -v -c --ploidy 1 -Ob --skip-variants indels > all_samples.bcf
+bcftools mpileup --threads 10 -Ou --annotate FORMAT/DP --fasta-ref /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/dimmitis_WSI_2.2.fa --bam-list bam.fofn | bcftools call --threads 10 -v -c --ploidy 2 -Ob --skip-variants indels > all_samples.bcf
 # Can just use DI reference genome now
 # can i multithread it? It can really help.
 
@@ -1574,7 +1574,9 @@ Extract the 42 (or more) SNPs in all samples and compare. Can use grep? Artemis?
 
 
 
-# Coverage
+## Coverage
+
+Adopted the code from Javier's paper.
 
 ```bash
 #!/bin/bash
@@ -1686,3 +1688,114 @@ for i in *.chr.cov; do
 	echo -e "${name}\t${nuc}\t${mtDNA}\t${Wb}";
 done > 'mito_wolb_cov.stats'
 ```
+Transferred all the relevant files into the R_analysis folder on my computer for further analysis in R. Now we'll generate some plots and stats.
+
+### Coverage in R
+
+```R
+# HW WGS Coverage
+
+# load libraries
+library(tidyverse)
+library(ggpubr)
+library(ggsci)
+library(stringr)
+
+#first, I have to read the nuclear cov stat and estimate the mean and sd
+#then, to add it to 'mito_wolb_cov.stats
+
+nuc_mito_wb_cov <- read.table('mito_wolb_cov.stats', header = F) %>% as_tibble()
+
+colnames(nuc_mito_wb_cov) <- c('ID', 'nuc_cov', 'sd_nuc_cov', 'mito_cov', 'wb_cov')
+nuc_mito_wb_cov$ID <- str_replace(nuc_mito_wb_cov$ID, '.merged', '')
+
+write_csv(nuc_mito_wb_cov, 'nuc_mit_wb_cov.csv')
+
+# nuclear, mitochondrial and Wb DNA coverage ratio
+
+n_m <- ggplot(nuc_mito_wb_cov, aes(x=ID, y=mito_cov/nuc_cov)) +
+  geom_point() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  labs(title = "Nuc. to mito. genome coverage ratio", y = "Coverage Ratio")
+n_m
+
+n_wb <- ggplot(nuc_mito_wb_cov, aes(x=ID, y=wb_cov/nuc_cov)) +
+  geom_point() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  labs(title = "Nuc. to Wolb. genome coverage ratio", y = "Coverage Ratio")
+n_wb
+
+m_wb <- ggplot(nuc_mito_wb_cov, aes(x=ID, y=mito_cov/wb_cov)) +
+  geom_point() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  labs(title = "Mito. to Wolb. genome coverage ratio", y = "Coverage Ratio")
+m_wb
+# This is where 3 rows had missing values
+
+ggarrange(n_m, n_wb, m_wb, ncol = 3)
+ggsave("cov_ratios.png", height=6, width=20)
+```
+![](output/images/cov_ratios.png)
+
+```R
+# list file names
+file_names.window <- list.files(path = "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis",pattern = ".merged.100000_window.cov")
+
+# load data using file names, and make a formatted data frame
+setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis")
+
+data <- purrr::map_df(file_names.window, function(x) {
+  data <- read.delim(x, header = F, sep="\t")
+  data$V1 <- str_replace(data$V1, 'dirofilaria_immitis_', '')
+  data <- tibble::rowid_to_column(data, "NUM")
+  cbind(sample_name = gsub(".merged.100000_window.cov","",x), data)
+})
+colnames(data) <- c("ID", "NUM", "CHR", "START", "END", 
+                    "RAW_COVERAGE", "PROPORTION_COVERAGE")
+
+# remove scaffolds, mitochondrial and wolbachia genome
+data_nuc <- dplyr::filter(data, !grepl("scaffold|MtDNA|Wb|JAAUVH|CM025",CHR))
+# Also remove random things called JAAUVH010000344 and CM025130.1 etc. - don't know what they are. Could they be from the dog genome? Doing this made the plot below work!! But check what these things could be and whether it's ok for them to be there in the first place.
+
+# data$SEX <- str_detect(data$SCAF,"Trichuris_trichiura_1_")
+
+
+# plot the general cov for each sample
+ggplot(data_nuc, aes(NUM, PROPORTION_COVERAGE/(median(PROPORTION_COVERAGE)), group = ID, col = CHR)) +
+  geom_point(size=0.5) +
+  labs( x = "Genome position" , y = "Relative coverage per 100kb window") +
+  theme_bw() + theme(strip.text.x = element_text(size = 6)) +
+  facet_wrap(~ID, scales = "free_y")
+
+ggsave("ALL_genomewide_coverage_allsamples.png", height=11.25, width=15)
+```
+![](output/images/ALL_genomewide_coverage_allsamples.png)
+
+```R
+# Let's see only the chrX to explore the sex of the sample
+#Plotting with the chr1 helps to see differences
+data_nuc %>%
+  filter(., grepl("chrX|chr1",CHR)) %>%
+  ggplot(aes(NUM, PROPORTION_COVERAGE/(median(PROPORTION_COVERAGE)), group = ID, col = CHR)) +
+  geom_point(size=0.2) +
+  labs( x = "Genome position" , y = "Relative coverage per 100kb window") +
+  theme_bw() + theme(strip.text.x = element_text(size = 6)) +
+  facet_wrap(~ID, scales = "free_y")
+
+ggsave("chrXtochr1_genomewide_coverage_allsamples.png", height=11.25, width=15)
+```
+![](output/images/chrXtochr1_genomewide_coverage_allsamples.png)
+
+```R
+# Can I restrict the x axis to see the plotting better? There seems to be some outliers to the far right.
+data_nuc %>%
+  filter(., grepl("chrX|chr1",CHR)) %>%
+  ggplot(aes(NUM, PROPORTION_COVERAGE/(median(PROPORTION_COVERAGE)), group = ID, col = CHR)) +
+  geom_point(size=0.2) +
+  labs( x = "Genome position" , y = "Relative coverage per 100kb window") +
+  theme_bw() + theme(strip.text.x = element_text(size = 6)) +
+  facet_wrap(~ID, scales = "free_y") +
+  xlim(0,500)
+ggsave("chrXtochr1_genomewide_coverage_allsamples_v2.png", height=11.25, width=15)
+```
+![](output/images/chrXtochr1_genomewide_coverage_allsamples_v2.png)

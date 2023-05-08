@@ -156,10 +156,38 @@ We want to now look at Fst, PCA, genome-wide, dog vs fox. We will mostly use R f
 We have mapped the reads and called SNPs in all of them. Now we want to identify any patterns in the genetic variation of the parasite.
 
 ```R
+# VCF analysis
+
 # Load packages
 library(ggplot2)
 library(dplyr)
-library(session) # need to load a bunch of other packages. Check what's needed on the VM.
+library(apex)
+library(phangorn)
+library(mmod)
+library(pegas)
+library(ape)
+library(poppr)
+library(vcfR)
+library(adegenet)
+library(ade4)
+library(mapplots)
+library(plotrix)
+library(mapdata)
+library(maps)
+library(ggmap)
+library(RColorBrewer)
+library(ggtree)
+library(ggrepel)
+library(patchwork)
+library(reshape2)
+library(dplyr)
+library(stats)
+library(graphics)
+library(grDevices)
+library(utils)
+library(datasets)
+library(methods)
+library(base)
 ```
 
 ## Import and prepare data for analysis
