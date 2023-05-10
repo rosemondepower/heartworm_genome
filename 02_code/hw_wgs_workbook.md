@@ -1207,8 +1207,8 @@ The code below uses bcftools for SNP calling. I could also use GATK -> variants 
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N snps_raw
-#PBS -l select=1:ncpus=10:mem=50GB
-#PBS -l walltime=72:00:00
+#PBS -l select=14:ncpus=4:mem=20GB
+#PBS -l walltime=350:00:00
 #PBS -m abe
 #PBS -q defaultQ
 #PBS -o snps_raw.txt
@@ -1228,7 +1228,7 @@ module load tabix/0.2.6
 ls -1 *_extract.bam > bam.fofn
 
 # call SNPs in the bam files using bam.fofn to generate a multi-sample bcf
-bcftools mpileup --threads 10 -Ou --annotate FORMAT/DP --fasta-ref /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/dimmitis_WSI_2.2.fa --bam-list bam.fofn | bcftools call --threads 10 -v -c --ploidy 2 -Ob --skip-variants indels > all_samples.bcf
+bcftools mpileup --threads 24 -Ou --annotate FORMAT/DP --fasta-ref /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/dimmitis_WSI_2.2.fa --bam-list bam.fofn | bcftools call --threads 24 -v -c -Ob --skip-variants indels > all_samples.bcf
 # Can just use DI reference genome now
 # can i multithread it? It can really help.
 
@@ -1574,7 +1574,7 @@ Extract the 42 (or more) SNPs in all samples and compare. Can use grep? Artemis?
 
 
 
-## Coverage
+## Coverage on extracted D. immitis reads
 
 Adopted the code from Javier's paper.
 
@@ -1701,6 +1701,8 @@ library(ggpubr)
 library(ggsci)
 library(stringr)
 
+setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis")
+
 #first, I have to read the nuclear cov stat and estimate the mean and sd
 #then, to add it to 'mito_wolb_cov.stats
 
@@ -1755,7 +1757,7 @@ colnames(data) <- c("ID", "NUM", "CHR", "START", "END",
 
 # remove scaffolds, mitochondrial and wolbachia genome
 data_nuc <- dplyr::filter(data, !grepl("scaffold|MtDNA|Wb|JAAUVH|CM025",CHR))
-# Also remove random things called JAAUVH010000344 and CM025130.1 etc. - don't know what they are. Could they be from the dog genome? Doing this made the plot below work!! But check what these things could be and whether it's ok for them to be there in the first place.
+# Also remove chromosomes called JAAUVH010000344 and CM025130.1 etc. - they are part of the dog genome because they are still in the header of the extracted bam files (even though the dog reads aren't there anymore). Removing these dog chromosomes made the plot below work!! Removing them here is totally fine.
 
 # data$SEX <- str_detect(data$SCAF,"Trichuris_trichiura_1_")
 
@@ -1770,6 +1772,20 @@ ggplot(data_nuc, aes(NUM, PROPORTION_COVERAGE/(median(PROPORTION_COVERAGE)), gro
 ggsave("ALL_genomewide_coverage_allsamples.png", height=11.25, width=15)
 ```
 ![](output/images/ALL_genomewide_coverage_allsamples.png)
+
+```R
+# Let's set some x and y limits to see the data a bit better.
+ggplot(data_nuc, aes(NUM, PROPORTION_COVERAGE/(median(PROPORTION_COVERAGE)), group = ID, col = CHR)) +
+  geom_point(size=0.5) +
+  labs( x = "Genome position" , y = "Relative coverage per 100kb window") +
+  theme_bw() + theme(strip.text.x = element_text(size = 6)) +
+  facet_wrap(~ID, scales = "free_y") +
+  xlim(0,1000) +
+  ylim(0,3)
+
+ggsave("ALL_genomewide_coverage_allsamples_v2.png", height=11.25, width=15)
+```
+![](output/images/ALL_genomewide_coverage_allsamples_v2.png)
 
 ```R
 # Let's see only the chrX to explore the sex of the sample
@@ -1787,7 +1803,7 @@ ggsave("chrXtochr1_genomewide_coverage_allsamples.png", height=11.25, width=15)
 ![](output/images/chrXtochr1_genomewide_coverage_allsamples.png)
 
 ```R
-# Can I restrict the x axis to see the plotting better? There seems to be some outliers to the far right.
+# Restrict the x and y axes to see the plotting better. There seems to be some outliers to the far right - it's ok to remove those since we just want to focus on sex.
 data_nuc %>%
   filter(., grepl("chrX|chr1",CHR)) %>%
   ggplot(aes(NUM, PROPORTION_COVERAGE/(median(PROPORTION_COVERAGE)), group = ID, col = CHR)) +
@@ -1795,7 +1811,69 @@ data_nuc %>%
   labs( x = "Genome position" , y = "Relative coverage per 100kb window") +
   theme_bw() + theme(strip.text.x = element_text(size = 6)) +
   facet_wrap(~ID, scales = "free_y") +
-  xlim(0,500)
+  xlim(0,500) +
+  ylim(0,3)
 ggsave("chrXtochr1_genomewide_coverage_allsamples_v2.png", height=11.25, width=15)
+ # There are some samples which look a bit strange. The relative coverage per 100kb window should be ~1. Check if these samples had poor data from the beginning, which could explain the poor coverage.
 ```
 ![](output/images/chrXtochr1_genomewide_coverage_allsamples_v2.png)
+
+Now analyse the coverage on the original sorted bam files to get some coverage statistics on D. immitis, Wolbachia and dog.
+
+
+
+
+
+## Coverage on original sorted bam files (D. immitis, Wolbachia and dog)
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N coverage_di_wol_dog
+#PBS -l select=3:ncpus=1:mem=50GB
+#PBS -l walltime=24:00:00
+#PBS -m abe
+#PBS -q defaultQ
+#PBS -o coverage_di_wol_dog.txt
+#PBS -M rosemonde.power@sydney.edu.au
+
+# qsub ../coverage_di_wol_dog.pbs
+
+WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/coverage_di_wol_dog
+cd ${WORKING_DIR}
+
+WINDOW='100000'
+
+module load bamtools/2.5.1
+module load bedtools/2.29.2
+module load samtools/1.9
+
+for i in /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/*sorted.bam; do
+
+bamtools header -in ${i} | grep "^@SQ" | awk -F'[:\t]' '{printf $3"\t"1"\t"$5"\n"}' OFS="\t" > ${i%.bam}.chr.bed
+bamtools header -in ${i} | grep "^@SQ" | awk -F'[:\t]' '{printf $3"\t"$5"\n"}' OFS="\t" > ${i%.bam}.chr.genome
+
+bedtools makewindows -g ${i%.bam}.chr.genome -w ${WINDOW} > ${i%.bam}.${WINDOW}_window.bed
+
+samtools bedcov -Q 20 ${i%.bam}.chr.bed ${i} | awk -F'\t' '{printf $1"\t"$2"\t"$3"\t"$4"\t"$4/($3-$2)"\n"}' OFS="\t" > ${i%.bam}.chr.cov
+samtools bedcov -Q 20 ${i%.bam}.${WINDOW}_window.bed ${i} | awk -F'\t' '{printf $1"\t"$2"\t"$3"\t"$4"\t"$4/($3-$2)"\n"}' OFS="\t" > ${i%.bam}.${WINDOW}_window.cov
+
+rm ${i%.bam}.chr.bed ${i%.bam}.${WINDOW}_window.bed ${i%.bam}.chr.genome;
+
+done
+
+for i in *.chr.cov; do 
+
+printf "${i}\n" > ${i}.tmp | awk '{print $5}' OFS="\t" ${i} >> ${i}.tmp;
+
+done
+
+paste *.tmp > coverage_stats.summary
+rm *.tmp
+
+mkdir COV_STATS
+mv *.chr.cov *_window.cov *.cov coverage_stats.summary /COV_STATS/
+cd COV_STATS
+```
