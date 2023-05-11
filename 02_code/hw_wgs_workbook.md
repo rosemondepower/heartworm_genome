@@ -1193,6 +1193,141 @@ sample_name=`sed -n "${PBS_ARRAY_INDEX}{p;q}" /project/RDS-FSC-Heartworm_MLR-RW/
 samtools index ${sample_name}_extract.bam
 ```
 
+## Re-map and re-extract samples that had errors with the EOF marker.
+
+Samples JS6360, 68, 69 & 70 bam files had the EOF marker absent. Re-run these 4 samples (generate the sam, bam files again and extract the D. immitis reads again). After this, I can re-submit the SNP calling and re-do the coverage analysis.
+
+``bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N re-mapping
+#PBS -l select=2:ncpus=12:mem=25GB
+#PBS -l walltime=01:00:00
+#PBS -m abe
+#PBS -q defaultQ
+#PBS -o re-mapping.txt
+#PBS -J 1-4
+#PBS -M rosemonde.power@sydney.edu.au
+
+# qsub ../re-mapping.pbs
+
+# Some sorted bam files had no EOF header. Re-map these samples so I can analyse coverage.
+
+# Set working directory
+cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping
+
+# Load modules
+module load bwa/0.7.17
+
+#Set the filename based on the PBS Array Index
+sample_name=`sed -n "${PBS_ARRAY_INDEX}{p;q}" ../re-sample_list`
+
+# Tried using /mapping in /project directory but the sam files took up lots of space (disk quota exceeded). Put output files into /scratch instead.
+
+# map the reads, with a separate mapping job for each sample
+bwa mem reference_di_wol_dog.fa \
+-t $NCPUS \
+../trimmomatic/${sample_name}_1_trimpaired.fq.gz \
+../trimmomatic/${sample_name}_2_trimpaired.fq.gz \
+> /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/${sample_name}.tmp.sam
+
+# Set the num_threads param to directly scale with the number of cpus using the PBS environment variable "${NCPUS}).
+```
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N re-mapping_sort
+#PBS -l select=1:ncpus=2:mem=20GB
+#PBS -l walltime=00:30:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o re-mapping_sort.txt
+#PBS -J 1-4
+#PBS -M rosemonde.power@sydney.edu.au
+
+# qsub ../re-mapping_sort.pbs
+
+# Set working directory
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/
+
+# Load modules
+module load samtools/1.9
+
+#Set the filename based on the PBS Array Index
+sample_name=`sed -n "${PBS_ARRAY_INDEX}{p;q}" /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/re-sample_list`
+
+# Mapping stats
+samtools flagstat ${sample_name}.tmp.sam > flagstat1/${sample_name}_flagstat1.txt
+	
+# convert the sam to bam format
+samtools view -q 15 -b -o ${sample_name}.tmp.bam ${sample_name}.tmp.sam
+
+# sort the mapped reads in the bam file
+samtools sort ${sample_name}.tmp.bam -o ${sample_name}.sorted.bam
+ 
+# index the sorted bam
+samtools index ${sample_name}.sorted.bam
+
+# Mapping stats after filtering
+samtools flagstat ${sample_name}.sorted.bam > flagstat2/${sample_name}_flagstat2.txt
+```
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N re-mapping_extract
+#PBS -l select=1:ncpus=1:mem=2GB
+#PBS -l walltime=00:10:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o re-mapping_extract.txt
+#PBS -J 1-4
+
+# qsub ../re-mapping_extract.pbs
+
+# Set working directory
+cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping
+
+# Load modules
+module load samtools/1.9
+
+#Set the filename based on the PBS Array Index
+sample_name=`sed -n "${PBS_ARRAY_INDEX}{p;q}" ../re-sample_list`
+
+# Extract reads that only mapped to D. immitis.
+samtools view -b -h -L dimmitis_WSI_2.2.bed /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/${sample_name}.sorted.bam > /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/${sample_name}_extract.bam
+# Should still be in sorted form
+# -b flag makes sure the output is bam
+# -h flag includes the header in SAM output
+
+samtools view /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/${sample_name}_extract.bam | head
+
+# I do not have to sort the bam file again, it should still be sorted.
+
+## QC
+# How many D. immitis reads were extracted?
+
+samtools flagstat /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/${sample_name}_extract.bam > /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extract_flagstat/${sample_name}_extract_flagstat.txt
+```
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ## SNPs (raw)
