@@ -1193,11 +1193,13 @@ sample_name=`sed -n "${PBS_ARRAY_INDEX}{p;q}" /project/RDS-FSC-Heartworm_MLR-RW/
 samtools index ${sample_name}_extract.bam
 ```
 
+
+
 ## Re-map and re-extract samples that had errors with the EOF marker.
 
 Samples JS6360, 68, 69 & 70 bam files had the EOF marker absent. Re-run these 4 samples (generate the sam, bam files again and extract the D. immitis reads again). After this, I can re-submit the SNP calling and re-do the coverage analysis.
 
-``bash
+```bash
 #!/bin/bash
 
 # PBS directives 
@@ -1277,14 +1279,54 @@ samtools index ${sample_name}.sorted.bam
 samtools flagstat ${sample_name}.sorted.bam > flagstat2/${sample_name}_flagstat2.txt
 ```
 
+
+Sample JS6360 still didn't work. Run this sample again.
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N re-mapping_sort_JS6360
+#PBS -l select=3:ncpus=1:mem=35GB
+#PBS -l walltime=02:00:00
+#PBS -m abe
+#PBS -q defaultQ
+#PBS -o re-mapping_sort_JS6360.txt
+#PBS -M rosemonde.power@sydney.edu.au
+
+# qsub ../re-mapping_sort_JS6360.pbs
+
+# Set working directory
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/
+
+# Load modules
+module load samtools/1.9
+
+# Mapping stats
+samtools flagstat JS6360.tmp.sam > flagstat1/JS6360_flagstat1.txt
+	
+# convert the sam to bam format
+samtools view -q 15 -b -o JS6360.tmp.bam JS6360.tmp.sam
+
+# sort the mapped reads in the bam file
+samtools sort JS6360.tmp.bam -o JS6360.sorted.bam
+ 
+# index the sorted bam
+samtools index JS6360.sorted.bam
+
+# Mapping stats after filtering
+samtools flagstat JS6360.sorted.bam > flagstat2/JS6360_flagstat2.txt
+```
+
 ```bash
 #!/bin/bash
 
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N re-mapping_extract
-#PBS -l select=1:ncpus=1:mem=2GB
-#PBS -l walltime=00:10:00
+#PBS -l select=1:ncpus=2:mem=15GB
+#PBS -l walltime=01:00:00
 #PBS -m e
 #PBS -q defaultQ
 #PBS -o re-mapping_extract.txt
@@ -1317,7 +1359,32 @@ samtools view /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/${sample_name}_extract.b
 samtools flagstat /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/${sample_name}_extract.bam > /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extract_flagstat/${sample_name}_extract_flagstat.txt
 ```
 
+```bash
+#!/bin/bash
 
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N re-mapping_extract_index
+#PBS -l select=1:ncpus=1:mem=1GB
+#PBS -l walltime=00:10:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o re-mapping_extract_index.txt
+#PBS -J 1-4
+
+#qsub ../re-mapping_extract_index.pbs
+
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/mapping
+
+# Load modules
+module load samtools/1.9
+
+#Set the filename based on the PBS Array Index
+sample_name=`sed -n "${PBS_ARRAY_INDEX}{p;q}" /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/re-sample_list`
+
+samtools index ${sample_name}_extract.bam
+```
+Re-ran multiqc_flagstat1, multiqc_flagstat2 & multiqc_extract_flagstat scripts to obtain updated mapping statistics.
 
 
 
@@ -1603,16 +1670,6 @@ tree_plot
 
 
 *********************************************
-
-```bash
-# Prepare the data
-cd ~/Module_6_Genetic_Variation/R_analysis
-cp ../multi_sample_analysis/all_samples.filtered.recode.vcf .
-cp ../sample_metadata.txt .
-
-# Open Rstudio. Alternatively, you can load R on the command line simply by typing:
-R
-```
 
 
 
