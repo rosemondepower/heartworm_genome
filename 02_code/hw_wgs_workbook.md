@@ -1763,11 +1763,7 @@ Extract the 42 (or more) SNPs in all samples and compare. Can use grep? Artemis?
 
 
 
-
-
-
-## Coverage on extracted D. immitis reads
-
+## Coverage on original sorted bam files (D. immitis, Wolbachia and dog)
 Adopted the code from Javier's paper.
 
 ```bash
@@ -1775,17 +1771,17 @@ Adopted the code from Javier's paper.
 
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
-#PBS -N coverage
-#PBS -l select=1:ncpus=16:mem=40GB
+#PBS -N coverage_di_wol_dog
+#PBS -l select=3:ncpus=1:mem=50GB
 #PBS -l walltime=24:00:00
 #PBS -m abe
 #PBS -q defaultQ
-#PBS -o coverage.txt
+#PBS -o coverage_di_wol_dog.txt
 #PBS -M rosemonde.power@sydney.edu.au
 
-# qsub ../coverage.pbs
+# qsub ../coverage_di_wol_dog.pbs
 
-WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/coverage
+WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/coverage_di_wol_dog
 cd ${WORKING_DIR}
 
 WINDOW='100000'
@@ -1794,7 +1790,7 @@ module load bamtools/2.5.1
 module load bedtools/2.29.2
 module load samtools/1.9
 
-for i in /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/*extract.bam; do
+for i in /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/*sorted.bam; do
 
 bamtools header -in ${i} | grep "^@SQ" | awk -F'[:\t]' '{printf $3"\t"1"\t"$5"\n"}' OFS="\t" > ${i%.bam}.chr.bed
 bamtools header -in ${i} | grep "^@SQ" | awk -F'[:\t]' '{printf $3"\t"$5"\n"}' OFS="\t" > ${i%.bam}.chr.genome
@@ -1821,6 +1817,9 @@ mkdir COV_STATS
 mv *.chr.cov *_window.cov *.cov coverage_stats.summary /COV_STATS/
 cd COV_STATS
 ```
+Some errors popped up towards the end (because it was in the wrong directory). The .cov files seemed to generate so I did the last few lines of code in the command line afterwards.
+
+
 
 ### Generate quantitative stats on coverage for supplementary tables etc
 Extract mtDNA, Wb and nuclear (mean & stddev) data
@@ -1835,21 +1834,20 @@ For nuclear, we will select only the defined Chr (chrX and chr1 to chr4)
 #PBS -N mtDNA_nuclear
 #PBS -l select=1:ncpus=1:mem=1GB
 #PBS -l walltime=00:04:00
-#PBS -m abe
+#PBS -m e
 #PBS -q defaultQ
 #PBS -o mtDNA_nuclear.txt
-#PBS -M rosemonde.power@sydney.edu.au
 #PBS -J 1-31
 
 # qsub ../mtDNA_nuclear.pbs
 
-cd /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/coverage/COV_STATS
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/coverage_di_wol_dog/COV_STATS
 
 # Merge the 100000_windows.cov and .chr.cov files together for each sample?
 #Set the filename based on the PBS Array Index
 sample_name=`sed -n "${PBS_ARRAY_INDEX}{p;q}" /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/sample_list_v2`
 
-cat ${sample_name}_extract.100000_window.cov ${sample_name}_extract.chr.cov > ${sample_name}_extract.chr.cov.merged.100000_window.cov
+cat ${sample_name}.sorted.100000_window.cov ${sample_name}.sorted.chr.cov > ${sample_name}.sorted.chr.cov.merged.100000_window.cov
 ```
 
 ```bash
@@ -1860,14 +1858,13 @@ cat ${sample_name}_extract.100000_window.cov ${sample_name}_extract.chr.cov > ${
 #PBS -N mtDNA_nuclear2
 #PBS -l select=1:ncpus=1:mem=4GB
 #PBS -l walltime=00:10:00
-#PBS -m abe
+#PBS -m e
 #PBS -q defaultQ
 #PBS -o mtDNA_nuclear2.txt
-#PBS -M rosemonde.power@sydney.edu.au
 
 # qsub ../mtDNA_nuclear2.pbs
 
-cd /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/coverage/COV_STATS
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/coverage_di_wol_dog/COV_STATS
 # Load modules
 module load datamash/1.7
 
@@ -1881,6 +1878,7 @@ for i in *.chr.cov; do
 done > 'mito_wolb_cov.stats'
 ```
 Transferred all the relevant files into the R_analysis folder on my computer for further analysis in R. Now we'll generate some plots and stats.
+
 
 ### Coverage in R
 
@@ -1924,7 +1922,6 @@ m_wb <- ggplot(nuc_mito_wb_cov, aes(x=ID, y=mito_cov/wb_cov)) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
   labs(title = "Mito. to Wolb. genome coverage ratio", y = "Coverage Ratio")
 m_wb
-# This is where 3 rows had missing values
 
 ggarrange(n_m, n_wb, m_wb, ncol = 3)
 ggsave("cov_ratios.png", height=6, width=20)
@@ -1946,10 +1943,14 @@ data <- purrr::map_df(file_names.window, function(x) {
 })
 colnames(data) <- c("ID", "NUM", "CHR", "START", "END", 
                     "RAW_COVERAGE", "PROPORTION_COVERAGE")
+```
 
+D. immitis coverage:
+
+```R
 # remove scaffolds, mitochondrial and wolbachia genome
 data_nuc <- dplyr::filter(data, !grepl("scaffold|MtDNA|Wb|JAAUVH|CM025",CHR))
-# Also remove chromosomes called JAAUVH010000344 and CM025130.1 etc. - they are part of the dog genome because they are still in the header of the extracted bam files (even though the dog reads aren't there anymore). Removing these dog chromosomes made the plot below work!! Removing them here is totally fine.
+# Also remove chromosomes called JAAUVH010000344 and CM025130.1 etc. - they are part of the dog genome. Removing them here is totally fine.
 
 # data$SEX <- str_detect(data$SCAF,"Trichuris_trichiura_1_")
 
@@ -2010,62 +2011,76 @@ ggsave("chrXtochr1_genomewide_coverage_allsamples_v2.png", height=11.25, width=1
 ```
 ![](output/images/chrXtochr1_genomewide_coverage_allsamples_v2.png)
 
-Now analyse the coverage on the original sorted bam files to get some coverage statistics on D. immitis, Wolbachia and dog.
 
 
+Wolbachia coverage:
 
+```R
+###### Wolbachia coverage
 
+# remove D. immitis and dog genome
+data_wb <- dplyr::filter(data, !grepl("scaffold|MtDNA|chrX|chr1|chr2|chr3|chr4|JAAUVH|CM025",CHR))
 
-## Coverage on original sorted bam files (D. immitis, Wolbachia and dog)
+# plot cov for each sample
+ggplot(data_wb, aes(NUM, PROPORTION_COVERAGE/(median(PROPORTION_COVERAGE)), group = ID, col = CHR)) +
+  geom_point(size=0.5) +
+  labs( x = "Genome position" , y = "Relative coverage per 100kb window") +
+  theme_bw() + theme(strip.text.x = element_text(size = 6)) +
+  facet_wrap(~ID, scales = "free_y")
 
-```bash
-#!/bin/bash
-
-# PBS directives 
-#PBS -P RDS-FSC-Heartworm_MLR-RW
-#PBS -N coverage_di_wol_dog
-#PBS -l select=3:ncpus=1:mem=50GB
-#PBS -l walltime=24:00:00
-#PBS -m abe
-#PBS -q defaultQ
-#PBS -o coverage_di_wol_dog.txt
-#PBS -M rosemonde.power@sydney.edu.au
-
-# qsub ../coverage_di_wol_dog.pbs
-
-WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/coverage_di_wol_dog
-cd ${WORKING_DIR}
-
-WINDOW='100000'
-
-module load bamtools/2.5.1
-module load bedtools/2.29.2
-module load samtools/1.9
-
-for i in /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/*sorted.bam; do
-
-bamtools header -in ${i} | grep "^@SQ" | awk -F'[:\t]' '{printf $3"\t"1"\t"$5"\n"}' OFS="\t" > ${i%.bam}.chr.bed
-bamtools header -in ${i} | grep "^@SQ" | awk -F'[:\t]' '{printf $3"\t"$5"\n"}' OFS="\t" > ${i%.bam}.chr.genome
-
-bedtools makewindows -g ${i%.bam}.chr.genome -w ${WINDOW} > ${i%.bam}.${WINDOW}_window.bed
-
-samtools bedcov -Q 20 ${i%.bam}.chr.bed ${i} | awk -F'\t' '{printf $1"\t"$2"\t"$3"\t"$4"\t"$4/($3-$2)"\n"}' OFS="\t" > ${i%.bam}.chr.cov
-samtools bedcov -Q 20 ${i%.bam}.${WINDOW}_window.bed ${i} | awk -F'\t' '{printf $1"\t"$2"\t"$3"\t"$4"\t"$4/($3-$2)"\n"}' OFS="\t" > ${i%.bam}.${WINDOW}_window.cov
-
-rm ${i%.bam}.chr.bed ${i%.bam}.${WINDOW}_window.bed ${i%.bam}.chr.genome;
-
-done
-
-for i in *.chr.cov; do 
-
-printf "${i}\n" > ${i}.tmp | awk '{print $5}' OFS="\t" ${i} >> ${i}.tmp;
-
-done
-
-paste *.tmp > coverage_stats.summary
-rm *.tmp
-
-mkdir COV_STATS
-mv *.chr.cov *_window.cov *.cov coverage_stats.summary /COV_STATS/
-cd COV_STATS
+ggsave("wb_coverage_allsamples.png", height=11.25, width=15)
 ```
+![](output/images/wb_coverage_allsamples.png)
+
+```R
+# Let's set some x and y limits to see the data a bit better.
+ggplot(data_wb, aes(NUM, PROPORTION_COVERAGE/(median(PROPORTION_COVERAGE)), group = ID, col = CHR)) +
+  geom_point(size=0.5) +
+  labs( x = "Genome position" , y = "Relative coverage per 100kb window") +
+  theme_bw() + theme(strip.text.x = element_text(size = 6)) +
+  facet_wrap(~ID, scales = "free_y") +
+  xlim(0,3000)
+
+ggsave("wb_coverage_allsamples_v2.png", height=11.25, width=15)
+```
+![](output/images/wb_coverage_allsamples_v2.png)
+
+
+
+Dog coverage:
+
+```R
+######## Dog coverage
+# remove D. immitis and Wolbachia
+data_dog <- dplyr::filter(data, !grepl("scaffold|MtDNA|Wb|chrX|chr1|chr2|chr3|chr4",CHR))
+
+# plot cov for each sample
+ggplot(data_dog, aes(NUM, PROPORTION_COVERAGE/(median(PROPORTION_COVERAGE)), group = ID, col = CHR)) +
+  geom_point(size=0.5) +
+  labs( x = "Genome position" , y = "Relative coverage per 100kb window") +
+  theme_bw() + theme(strip.text.x = element_text(size = 6)) +
+  facet_wrap(~ID, scales = "free_y")
+
+ggsave("dog_coverage_allsamples.png", height=11.25, width=15)
+
+# Let's set some x and y limits to see the data a bit better.
+ggplot(data_dog, aes(NUM, PROPORTION_COVERAGE/(median(PROPORTION_COVERAGE)), group = ID, col = CHR)) +
+  geom_point(size=0.5) +
+  labs( x = "Genome position" , y = "Relative coverage per 100kb window") +
+  theme_bw() + theme(strip.text.x = element_text(size = 6)) +
+  facet_wrap(~ID, scales = "free_y") +
+  xlim(0,3000)
+
+ggsave("dog_coverage_allsamples_v2.png", height=11.25, width=15)
+```
+
+Too many JAAU etc chromosomes, it couldn't generate a plot.
+
+
+
+
+
+
+
+
+
