@@ -1450,7 +1450,147 @@ bcftools stats all_samples.vcf.gz > all_samples_vcf_stats.txt
 ```
 
 Both of these outputs seem to be the same. Can just get stats on the compressed vcf file.
+The above script is taking a really long time to run. Steve had his own script (which was a lot faster, however it needed to be run on the Sanger system). He ran his script with my sorted bam files and I can now download the VCF produced.
 
+```bash
+# Download VCF and index from Steve
+wget ftp://ngs.sanger.ac.uk//production/pathogens/sd21/dimmitis_australia/*
+```
+
+
+
+
+## Querying SNP and INDEL QC profiles to determine thresholds for filters
+
+Adopted from Javier's paper.
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N snps_qc
+#PBS -l select=1:ncpus=12:mem=20GB
+#PBS -l walltime=06:00:00
+#PBS -m abe
+#PBS -q defaultQ
+#PBS -o snps_qc.txt
+#PBS -M rosemonde.power@sydney.edu.au
+
+# qsub ../snps_qc.pbs
+
+
+# load gatk
+module load gatk/4.1.4.1
+module load picard/2.18.23
+
+java -jar /usr/local/picard/2.18.23/picard.jar CreateSequenceDictionary \ 
+R=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/dimmitis_WSI_2.2.fa \ 
+O=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/dimmitis_WSI_2.2.dict
+
+WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/filter
+
+cd ${WORKING_DIR}
+
+# set reference, vcf, and mitochondrial and Wb contig
+REFERENCE=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/dimmitis_WSI_2.2.fa
+VCF=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/dirofilaria_australia.cohort.2023-05-16.vcf.gz
+MIT_CONTIG=dirofilaria_immitis_chrMtDNA
+WB_CONTIG=dirofilaria_immitis_chrWb
+
+
+# select nuclear SNPs
+gatk SelectVariants \
+--reference ${REFERENCE} \
+--variant ${VCF} \
+--select-type-to-include SNP \
+--exclude-intervals ${MIT_CONTIG} \
+--exclude-intervals ${WB_CONTIG} \
+--output ${VCF%.vcf.gz}.nuclearSNPs.vcf
+
+# select nuclear INDELs
+gatk SelectVariants \
+--reference ${REFERENCE} \
+--variant ${VCF} \
+--select-type-to-include INDEL \
+--exclude-intervals ${MIT_CONTIG} \
+--exclude-intervals ${WB_CONTIG} \
+--output ${VCF%.vcf.gz}.nuclearINDELs.vcf
+
+# select mitochondrial SNPs
+gatk SelectVariants \
+--reference ${REFERENCE} \
+--variant ${VCF} \
+--select-type-to-include SNP \
+--intervals ${MIT_CONTIG} \
+--output ${VCF%.vcf.gz}.mitoSNPs.vcf
+
+# select mitochondrial INDELs
+gatk SelectVariants \
+--reference ${REFERENCE} \
+--variant ${VCF} \
+--select-type-to-include INDEL \
+--intervals ${MIT_CONTIG} \
+--output ${VCF%.vcf.gz}.mitoINDELs.vcf
+
+# select WB SNPs
+gatk SelectVariants \
+--reference ${REFERENCE} \
+--variant ${VCF} \
+--select-type-to-include SNP \
+--intervals ${WB_CONTIG} \
+--output ${VCF%.vcf.gz}.WbSNPs.vcf
+
+# select WB INDELs
+gatk SelectVariants \
+--reference ${REFERENCE} \
+--variant ${VCF} \
+--select-type-to-include INDEL \
+--intervals ${WB_CONTIG} \
+--output ${VCF%.vcf.gz}.WbINDELs.vcf
+
+# make a table of nuclear SNP data
+gatk VariantsToTable \
+--reference ${REFERENCE} \
+--variant dirofilaria_australia.cohort.2023-05-16.nuclearSNPs.vcf \
+--fields CHROM --fields POS --fields QUAL --fields QD --fields DP --fields MQ --fields MQRankSum --fields FS --fields ReadPosRankSum --fields SOR \
+--output GVCFall_nuclearSNPs.table
+
+# make a table of nuclear INDEL data data
+gatk VariantsToTable \
+--reference ${REFERENCE} \
+--variant dirofilaria_australia.cohort.2023-05-16.nuclearINDELs.vcf \
+--fields CHROM --fields POS --fields QUAL --fields QD --fields DP --fields MQ --fields MQRankSum --fields FS --fields ReadPosRankSum --fields SOR \
+--output GVCFall_nuclearINDELs.table
+
+# make a table of mito SNP data
+gatk VariantsToTable \
+--reference ${REFERENCE} \
+--variant dirofilaria_australia.cohort.2023-05-16.mitoSNPs.vcf \
+--fields CHROM --fields POS --fields QUAL --fields QD --fields DP --fields MQ --fields MQRankSum --fields FS --fields ReadPosRankSum --fields SOR \
+--output GVCFall_mitoSNPs.table
+
+# make a table of mito INDEL data data
+gatk VariantsToTable \
+--reference ${REFERENCE} \
+--variant dirofilaria_australia.cohort.2023-05-16.mitoINDELs.vcf \
+--fields CHROM --fields POS --fields QUAL --fields QD --fields DP --fields MQ --fields MQRankSum --fields FS --fields ReadPosRankSum --fields SOR \
+--output GVCFall_mitoINDELs.table
+
+# make a table of Wb SNP data
+gatk VariantsToTable \
+--reference ${REFERENCE} \
+--variant dirofilaria_australia.cohort.2023-05-16.WbSNPs.vcf \
+--fields CHROM --fields POS --fields QUAL --fields QD --fields DP --fields MQ --fields MQRankSum --fields FS --fields ReadPosRankSum --fields SOR \
+--output GVCFall_WbSNPs.table
+
+# make a table of Wb INDEL data data
+gatk VariantsToTable \
+--reference ${REFERENCE} \
+--variant dirofilaria_australia.cohort.2023-05-16.WbINDELs.vcf \
+--fields CHROM --fields POS --fields QUAL --fields QD --fields DP --fields MQ --fields MQRankSum --fields FS --fields ReadPosRankSum --fields SOR \
+--output GVCFall_WbINDELs.table
+```
 
 
 
@@ -1484,7 +1624,7 @@ cd /scratch/RDS-FSC-Heartworm_MLR-RW/mapping
 # Load modules
 module load vcftools/0.1.14
 
-vcftools --gzvcf all_samples.vcf.gz --maf 0.05 --min-alleles 2 --max-alleles 2 --recode --out all_samples.filtered
+vcftools --gzvcf dirofilaria_australia.cohort.2023-05-16.vcf.gz --maf 0.05 --min-alleles 2 --max-alleles 2 --recode --out dirofilaria_australia.cohort.2023-05-16.filtered
 
 # --gzvcf options reads compressed VCF files directly
 # --maf 0.05 includes only sites with a minor allele frequency greater than or equal to 0.05. Allele frequency is the number of times an allele appears over all individuals at that site, divided by the total number of non-missing alleles at that site.
@@ -1498,16 +1638,58 @@ vcftools --gzvcf all_samples.vcf.gz --maf 0.05 --min-alleles 2 --max-alleles 2 -
 module load bcftools/1.11
 
 # How many SNPs remain after this filtering step?
-bcftools stats all_samples.filtered.recode.vcf > all_samples_filtered_stats.txt
+bcftools stats dirofilaria_australia.cohort.2023-05-16.filtered.recode.vcf > dirofilaria_australia.cohort.2023-05-16_filtered_stats.txt
 ```
 
+## SNPs: nuclear, mtDNA and Wolbachia subsets
+
+Count the nuclear, mtDNA and Wolbachia SNPs and make subset VCFs of each for PCA.
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N snps_filter_subsets
+#PBS -l select=1:ncpus=2:mem=2GB
+#PBS -l walltime=00:15:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o snps_filter_subsets.txt
+
+# qsub ../snps_filter_subsets.pbs
+
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/mapping
+
+# Extract autosomal variants
+
+# Load modules
+module load vcftools/0.1.14
+module load bcftools/1.11
+
+vcftools --gzvcf dirofilaria_australia.cohort.2023-05-16.vcf.gz --chr dirofilaria_immitis_chr1 --chr dirofilaria_immitis_chr2 --chr dirofilaria_immitis_chr3 --chr dirofilaria_immitis_chr4 --maf 0.05 --min-alleles 2 --max-alleles 2 --recode --out dirofilaria_australia.cohort.2023-05-16.filtered_nuclear
+
+# How many SNPs remain after this filtering step?
+bcftools stats dirofilaria_australia.cohort.2023-05-16.filtered_nuclear.recode.vcf > dirofilaria_australia.cohort.2023-05-16_filtered_nuclear_stats.txt
 
 
 
 
+# Extract mtDNA variants
+vcftools --gzvcf dirofilaria_australia.cohort.2023-05-16.vcf.gz --chr dirofilaria_immitis_chrMtDNA --maf 0.05 --min-alleles 2 --max-alleles 2 --recode --out dirofilaria_australia.cohort.2023-05-16.filtered_mtDNA
+
+# How many SNPs remain after this filtering step?
+bcftools stats dirofilaria_australia.cohort.2023-05-16.filtered_mtDNA.recode.vcf > dirofilaria_australia.cohort.2023-05-16_filtered_mtDNA_stats.txt
 
 
 
+
+# Extract Wolbachia variants
+vcftools --gzvcf dirofilaria_australia.cohort.2023-05-16.vcf.gz --chr dirofilaria_immitis_chrWb --maf 0.05 --min-alleles 2 --max-alleles 2 --recode --out dirofilaria_australia.cohort.2023-05-16.filtered_Wb
+
+# How many SNPs remain after this filtering step?
+bcftools stats dirofilaria_australia.cohort.2023-05-16.filtered_Wb.recode.vcf > dirofilaria_australia.cohort.2023-05-16_filtered_Wb_stats.txt
+```
 
 
 
@@ -1761,6 +1943,16 @@ Extract the 42 (or more) SNPs in all samples and compare. Can use grep? Artemis?
 
 
 
+
+
+
+
+
+
+
+
+
+*************************
 
 
 ## Coverage on original sorted bam files (D. immitis, Wolbachia and dog)
