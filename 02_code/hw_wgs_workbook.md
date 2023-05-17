@@ -1470,34 +1470,32 @@ Adopted from Javier's paper.
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N snps_qc
-#PBS -l select=1:ncpus=12:mem=20GB
-#PBS -l walltime=06:00:00
-#PBS -m abe
+#PBS -l select=1:ncpus=1:mem=2GB
+#PBS -l walltime=00:05:00
+#PBS -m e
 #PBS -q defaultQ
 #PBS -o snps_qc.txt
-#PBS -M rosemonde.power@sydney.edu.au
 
 # qsub ../snps_qc.pbs
 
 
 # load gatk
 module load gatk/4.1.4.1
-module load picard/2.18.23
-
-java -jar /usr/local/picard/2.18.23/picard.jar CreateSequenceDictionary \ 
-R=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/dimmitis_WSI_2.2.fa \ 
-O=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/dimmitis_WSI_2.2.dict
 
 WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/filter
 
-cd ${WORKING_DIR}
-
 # set reference, vcf, and mitochondrial and Wb contig
 REFERENCE=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/dimmitis_WSI_2.2.fa
-VCF=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/dirofilaria_australia.cohort.2023-05-16.vcf.gz
+VCF=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/filter/dirofilaria_australia.cohort.2023-05-16.vcf.gz
 MIT_CONTIG=dirofilaria_immitis_chrMtDNA
 WB_CONTIG=dirofilaria_immitis_chrWb
 
+cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping
+
+# Make .dict file for reference sequence
+gatk CreateSequenceDictionary -R ${REFERENCE} -O /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/dimmitis_WSI_2.2.dict
+
+cd ${WORKING_DIR}
 
 # select nuclear SNPs
 gatk SelectVariants \
@@ -1592,6 +1590,281 @@ gatk VariantsToTable \
 --output GVCFall_WbINDELs.table
 ```
 
+## Make some density plots of the data and get quantiles in R
+
+```R
+# load libraries
+library(patchwork)
+require(data.table)
+library(tidyverse)
+library(gridExtra)
+
+setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/snps_qc")
+
+# Import data
+## Nuclear SNPs & indels
+VCF_nuclear_snps <- fread('GVCFall_nuclearSNPs.table', header = TRUE, fill=TRUE, na.strings=c("","NA"), sep = "\t")
+VCF_nuclear_snps <- sample_frac(VCF_nuclear_snps, 0.2) # select fraction of rows
+VCF_nuclear_indels <- fread('GVCFall_nuclearINDELs.table', header = TRUE, fill=TRUE, na.strings=c("","NA"), sep = "\t")
+VCF_nuclear_indels <- sample_frac(VCF_nuclear_indels, 0.2)
+dim(VCF_nuclear_snps) # returns the dimensions of the data frame
+dim(VCF_nuclear_indels)
+VCF_nuclear <- rbind(VCF_nuclear_snps, VCF_nuclear_indels) # joins multiple rows to form a single batch
+VCF_nuclear$Variant <- factor(c(rep("SNPs", dim(VCF_nuclear_snps)[1]), rep("Indels", dim(VCF_nuclear_indels)[1]))) # make a new column saying whether it's a SNP or indel
+
+## Mitochondrial SNPs & indels
+VCF_mito_snps <- fread('GVCFall_mitoSNPs.table', header = TRUE, fill=TRUE, na.strings=c("","NA"), sep = "\t")
+VCF_mito_indels <- fread('GVCFall_mitoINDELs.table', header = TRUE, fill=TRUE, na.strings=c("","NA"), sep = "\t")
+dim(VCF_mito_snps)
+dim(VCF_mito_indels)
+VCF_mito <- rbind(VCF_mito_snps, VCF_mito_indels)
+VCF_mito$Variant <- factor(c(rep("SNPs", dim(VCF_mito_snps)[1]), rep("Indels", dim(VCF_mito_indels)[1])))
+
+## Wolbachia SNPs & indels
+VCF_wb_snps <- fread('GVCFall_WbSNPs.table', header = TRUE, fill=TRUE, na.strings=c("","NA"), sep = "\t")
+VCF_wb_indels <- fread('GVCFall_WbINDELs.table', header = TRUE, fill=TRUE, na.strings=c("","NA"), sep = "\t")
+dim(VCF_wb_snps)
+dim(VCF_wb_indels)
+VCF_wb <- rbind(VCF_wb_snps, VCF_wb_indels)
+VCF_wb$Variant <- factor(c(rep("SNPs", dim(VCF_wb_snps)[1]), rep("Indels", dim(VCF_wb_indels)[1])))
+
+# Set colours for the plots
+snps <- '#A9E2E4'
+indels <- '#F4CCCA'
+
+# make function which makes plots
+fun_variant_summaries <- function(data, title){
+  # gatk hardfilter: SNP & INDEL QUAL < 0
+  QUAL_quant <- quantile(data$QUAL, c(.01,.99), na.rm=T)
+  
+  QUAL <-
+    ggplot(data, aes(x=log10(QUAL), fill=Variant)) +
+    geom_density(alpha=.3) +
+    geom_vline(xintercept=0, size=0.7, col="red") +
+    geom_vline(xintercept=c(log10(QUAL_quant[2]), log10(QUAL_quant[3])), size=0.7, col="blue") +
+    #xlim(0,10000) +
+    theme_bw() +
+    labs(title=paste0(title,": QUAL"))
+  
+  
+  # DP doesnt have a hardfilter
+  DP_quant <- quantile(data$DP, c(.01,.99), na.rm=T)
+  
+  DP <-
+    ggplot(data, aes(x=log10(DP), fill=Variant)) +
+    geom_density(alpha=0.3) +
+    geom_vline(xintercept=log10(DP_quant), col="blue") +
+    theme_bw() +
+    labs(title=paste0(title,": DP"))
+  
+  # gatk hardfilter: SNP & INDEL QD < 2
+  QD_quant <- quantile(data$QD, c(.01,.99), na.rm=T)
+  
+  QD <-
+    ggplot(data, aes(x=QD, fill=Variant)) +
+    geom_density(alpha=.3) +
+    geom_vline(xintercept=2, size=0.7, col="red") +
+    geom_vline(xintercept=QD_quant, size=0.7, col="blue") +
+    theme_bw() +
+    labs(title=paste0(title,": QD"))
+  
+  # gatk hardfilter: SNP FS > 60, INDEL FS > 200
+  FS_quant <- quantile(data$FS, c(.01,.99), na.rm=T)
+  
+  FS <-
+    ggplot(data, aes(x=log10(FS), fill=Variant)) +
+    geom_density(alpha=.3) +
+    geom_vline(xintercept=c(log10(60), log10(200)), size=0.7, col="red") +
+    geom_vline(xintercept=log10(FS_quant), size=0.7, col="blue") +
+    #xlim(0,250) +
+    theme_bw() +
+    labs(title=paste0(title,": FS"))
+  
+  # gatk hardfilter: SNP & INDEL MQ < 30
+  MQ_quant <- quantile(data$MQ, c(.01,.99), na.rm=T)
+  
+  MQ <-
+    ggplot(data, aes(x=MQ, fill=Variant)) + geom_density(alpha=.3) +
+    geom_vline(xintercept=40, size=0.7, col="red") +
+    geom_vline(xintercept=MQ_quant, size=0.7, col="blue") +
+    theme_bw() +
+    labs(title=paste0(title,": MQ"))
+  
+  # gatk hardfilter: SNP MQRankSum < -20
+  MQRankSum_quant <- quantile(data$MQRankSum, c(.01,.99), na.rm=T)
+  
+  MQRankSum <-
+    ggplot(data, aes(x=log10(MQRankSum), fill=Variant)) + geom_density(alpha=.3) +
+    geom_vline(xintercept=log10(-20), size=0.7, col="red") +
+    geom_vline(xintercept=log10(MQRankSum_quant), size=0.7, col="blue") +
+    theme_bw() +
+    labs(title=paste0(title,": MQRankSum"))
+  
+  
+  # gatk hardfilter: SNP SOR < 4 , INDEL SOR > 10
+  SOR_quant <- quantile(data$SOR, c(.01, .99), na.rm=T)
+  
+  SOR <-
+    ggplot(data, aes(x=SOR, fill=Variant)) +
+    geom_density(alpha=.3) +
+    geom_vline(xintercept=c(4, 10), size=1, colour = c(snps,indels)) +
+    geom_vline(xintercept=SOR_quant, size=0.7, col="blue") +
+    theme_bw() +
+    labs(title=paste0(title,": SOR"))
+  
+  # gatk hardfilter: SNP ReadPosRankSum <-10 , INDEL ReadPosRankSum < -20
+  ReadPosRankSum_quant <- quantile(data$ReadPosRankSum, c(.01,.99), na.rm=T)
+  
+  ReadPosRankSum <-
+    ggplot(data, aes(x=ReadPosRankSum, fill=Variant)) +
+    geom_density(alpha=.3) +
+    geom_vline(xintercept=c(-10,10,-20,20), size=1, colour = c(snps,snps,indels,indels)) +
+    xlim(-10, 10) +
+    geom_vline(xintercept=ReadPosRankSum_quant, size=0.7, col="blue") +
+    theme_bw() +
+    labs(title=paste0(title,": ReadPosRankSum"))
+  
+  
+  plot <- QUAL + DP + QD + FS + MQ + MQRankSum + SOR + ReadPosRankSum + plot_layout(ncol=2)
+  
+  print(plot)
+  
+  ggsave(paste0("plot_",title,"_variant_summaries.png"), height=20, width=15, type="cairo")
+  
+  
+  # generate a table of quantiles for each variant feature
+  QUAL_quant <- data %>% group_by(Variant) %>% summarise(quants = list(quantile(QUAL, probs = c(0.01,0.05,0.95,0.99),na.rm=T))) %>% unnest_wider(quants)
+  QUAL_quant$name <- "QUAL"
+  DP_quant <- data %>% group_by(Variant) %>% summarise(quants = list(quantile(DP, probs = c(0.01,0.05,0.95,0.99),na.rm=T))) %>% unnest_wider(quants)
+  DP_quant$name <- "DP"
+  QD_quant <- data %>% group_by(Variant) %>% summarise(quants = list(quantile(QD, probs = c(0.01,0.05,0.95,0.99),na.rm=T))) %>% unnest_wider(quants)
+  QD_quant$name <- "QD"
+  FS_quant <- data %>% group_by(Variant) %>% summarise(quants = list(quantile(FS, probs = c(0.01,0.05,0.95,0.99),na.rm=T))) %>% unnest_wider(quants)
+  FS_quant$name <- "FS"
+  MQ_quant <- data %>% group_by(Variant) %>% summarise(quants = list(quantile(MQ, probs = c(0.01,0.05,0.95,0.99),na.rm=T))) %>% unnest_wider(quants)
+  MQ_quant$name <- "MQ"
+  MQRankSum_quant <- data %>% group_by(Variant) %>% summarise(quants = list(quantile(MQRankSum, probs = c(0.01,0.05,0.95,0.99),na.rm=T))) %>% unnest_wider(quants)
+  MQRankSum_quant$name <- "MQRankSum"
+  SOR_quant <- data %>% group_by(Variant) %>% summarise(quants = list(quantile(SOR, probs = c(0.01,0.05,0.95,0.99),na.rm=T))) %>% unnest_wider(quants)
+  SOR_quant$name <- "SOR"
+  ReadPosRankSum_quant <- data %>% group_by(Variant) %>% summarise(quants = list(quantile(ReadPosRankSum, probs = c(0.01,0.05,0.95,0.99),na.rm=T))) %>% unnest_wider(quants)
+  ReadPosRankSum_quant$name <- "ReadPosRankSum"
+  
+  quantiles <- bind_rows(QUAL_quant,DP_quant, QD_quant, FS_quant, MQ_quant, MQRankSum_quant, SOR_quant, ReadPosRankSum_quant)
+  quantiles$name <- c("QUAL_Indels","QUAL_SNPs","DP_indels","DP_SNPs", "QD_indels","QD_SNPs", "FS_indels","FS_SNPs", "MQ_indels","MQ_SNPs", "MQRankSum_indels","MQRankSum_SNPs", "SOR_indels","SOR_SNPs","ReadPosRankSum_indels","ReadPosRankSum_SNPs")
+  
+  png(paste0("table_",title,"_variant_quantiles.png"), width=1000,height=500,bg = "white")
+  print(quantiles)
+  grid.table(quantiles)
+  dev.off()
+  
+}
+```
+```R
+# run nuclear variants
+fun_variant_summaries(VCF_nuclear,"nuclear")
+```
+![](output/images/plot_nuclear_variant_summaries.png)
+![](output/images/table_nuclear_variant_quantiles.png)
+
+```R
+# run mitochondrial variants
+fun_variant_summaries(VCF_mito,"mitochondrial")
+```
+![](output/images/plot_mitochondrial_variant_summaries.png)
+![](output/images/table_mitochondrial_variant_quantiles.png)
+
+```R
+# run wolbachia variants
+fun_variant_summaries(VCF_wb,"wolbachia")
+```
+![](output/images/plot_wolbachia_variant_summaries.png)
+![](output/images/table_wolbachia_variant_quantiles.png)
+
+
+## Attending to the quantiles, thresholds for specific parameters are established
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N snps_qc2
+#PBS -l select=1:ncpus=1:mem=2GB
+#PBS -l walltime=00:10:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o snps_qc2.txt
+
+# qsub ../snps_qc2.pbs
+
+
+# load gatk
+module load gatk/4.1.4.1
+
+WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/filter
+
+# set reference, vcf, and mitochondrial and Wb contig
+REFERENCE=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/dimmitis_WSI_2.2.fa
+VCF=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/filter/dirofilaria_australia.cohort.2023-05-16.vcf.gz
+MIT_CONTIG=dirofilaria_immitis_chrMtDNA
+WB_CONTIG=dirofilaria_immitis_chrWb
+
+cd ${WORKING_DIR}
+
+#Nuclear
+gatk VariantFiltration \
+--reference ${REFERENCE} \
+--variant dirofilaria_australia.cohort.2023-05-16.nuclearSNPs.vcf \
+--filter-expression 'QUAL < 34 || DP < 119 || DP > 8569 || MQ < 28.00 || SOR > 8.59 || QD < 0.4 || FS > 63 || MQRankSum < -9.3 || ReadPosRankSum < -3.900 || ReadPosRankSum > 2.800' \
+--filter-name "SNP_filtered" \
+--output dirofilaria_australia.cohort.2023-05-16.nuclearSNPs.filtered.vcf
+
+gatk VariantFiltration \
+--reference ${REFERENCE} \
+--variant dirofilaria_australia.cohort.2023-05-16.nuclearINDELs.vcf \
+--filter-expression 'QUAL < 68 || DP < 344 || DP > 4444 || MQ < 36.00 || SOR > 5.200 || QD < 1.17 || FS > 5.000 || MQRankSum < -3.800 || ReadPosRankSum < -2.800 || ReadPosRankSum > 2.400' \
+--filter-name "INDEL_filtered" \
+--output dirofilaria_australia.cohort.2023-05-16.nuclearINDELs.filtered.vcf
+
+#Mitochondrial
+gatk VariantFiltration \
+--reference ${REFERENCE} \
+--variant dirofilaria_australia.cohort.2023-05-16.cohort.mitoSNPs.vcf \
+--filter-expression ' QUAL < 281 || DP < 42483 || DP > 180000 || MQ < 43.00 || SOR > 8.800 || QD < 0.400 || FS > 78 || MQRankSum < -1.600 || ReadPosRankSum < -16.500 || ReadPosRankSum > 2.800 ' \
+--filter-name "SNP_filtered" \
+--output dirofilaria_australia.cohort.2023-05-16.mitoSNPs.filtered.vcf
+
+gatk VariantFiltration \
+--reference ${REFERENCE} \
+--variant dirofilaria_australia.cohort.2023-05-16.mitoINDELs.vcf \
+--filter-expression 'QUAL < 158 || DP < 48740 || DP > 150000 || MQ < 48.00 || SOR > 8.300 || QD < 0.03 || FS > 128 || ReadPosRankSum < -12.5 || ReadPosRankSum > 4.7' \
+--filter-name "INDEL_filtered" \
+--output dirofilaria_australia.cohort.2023-05-16.mitoINDELs.filtered.vcf
+
+#Wolbachia
+gatk VariantFiltration \
+--reference ${REFERENCE} \
+--variant dirofilaria_australia.cohort.2023-05-16.WbSNPs.vcf \
+--filter-expression ' QUAL < 31 || DP < 13753 || DP > 24000 || MQ < 49.00 || SOR > 8.100 || QD < 0.45 || FS > 24 || MQRankSum < -9.3 || ReadPosRankSum < -5.6 || ReadPosRankSum > 3.1 ' \
+--filter-name "SNP_filtered" \
+--output dirofilaria_australia.cohort.2023-05-16.WbSNPs.filtered.vcf
+
+gatk VariantFiltration \
+--reference ${REFERENCE} \
+--variant dirofilaria_australia.cohort.2023-05-16.WbINDELs.vcf \
+--filter-expression 'QUAL < 50 || DP < 16665 || DP > 25000 || MQ < 47 || SOR > 4.00 || QD < 1.6 || FS > 2.3 || ReadPosRankSum < -2.7 || ReadPosRankSum > 1.9' \
+--filter-name "INDEL_filtered" \
+--output dirofilaria_australia.cohort.2023-05-16.WbINDELs.filtered.vcf
+
+# once done, count the filtered sites - funny use of "|" allows direct markdown table format
+echo -e "| Filtered_VCF | Variants_PASS | Variants_FILTERED |\n| -- | -- | -- | " > filter.stats
+
+for i in *filtered.vcf; do
+     name=${i}; pass=$( grep -E 'PASS' ${i} | wc -l ); filter=$( grep -E 'filter' ${i} | wc -l );
+     echo -e "| ${name} | ${pass} | ${filter} |" >> filter.stats
+done
+```
 
 
 ## SNPs (filter)
