@@ -1997,14 +1997,14 @@ cd ${WORKING_DIR}
 gatk VariantFiltration \
 --reference ${REFERENCE} \
 --variant dirofilaria_australia.cohort.2023-05-16.nuclearSNPs.vcf \
---filter-expression 'QUAL < 34 || DP < 119 || DP > 8569 || MQ < 28 || SOR > 8.5 || QD < 0.4 || FS > 63 || MQRankSum < -9.3 || ReadPosRankSum < -3.900 || ReadPosRankSum > 2.800' \
+--filter-expression 'QUAL < 34 || DP < 119 || DP > 8569 || MQ < 28.76 || SOR > 8.592 || QD < 0.450 || FS > 63.394 || MQRankSum < -9.383 || ReadPosRankSum < -3.914 || ReadPosRankSum > 2.871' \
 --filter-name "SNP_filtered" \
 --output dirofilaria_australia.cohort.2023-05-16.nuclearSNPs.filtered.vcf
 
 gatk VariantFiltration \
 --reference ${REFERENCE} \
 --variant dirofilaria_australia.cohort.2023-05-16.nuclearINDELs.vcf \
---filter-expression 'QUAL < 68 || DP < 344 || DP > 4444 || MQ < 36.00 || SOR > 5.200 || QD < 1.17 || FS > 5.000 || MQRankSum < -3.800 || ReadPosRankSum < -2.800 || ReadPosRankSum > 2.400' \
+--filter-expression 'QUAL < 68 || DP < 344 || DP > 4444 || MQ < 36.50 || SOR > 5.282 || QD < 1.175 || FS > 5.159 || MQRankSum < -3.820 || ReadPosRankSum < -2.859 || ReadPosRankSum > 2.470' \
 --filter-name "INDEL_filtered" \
 --output dirofilaria_australia.cohort.2023-05-16.nuclearINDELs.filtered.vcf
 
@@ -2012,14 +2012,14 @@ gatk VariantFiltration \
 gatk VariantFiltration \
 --reference ${REFERENCE} \
 --variant dirofilaria_australia.cohort.2023-05-16.mitoSNPs.vcf \
---filter-expression ' QUAL < 281 || DP < 42483 || DP > 180000 || MQ < 43.00 || SOR > 8.800 || QD < 0.400 || FS > 78 || MQRankSum < -1.600 || ReadPosRankSum < -16.500 || ReadPosRankSum > 2.800 ' \
+--filter-expression ' QUAL < 281 || DP < 42483 || DP > 180573 || MQ < 43.74 || SOR > 8.817 || QD < 0.407 || FS > 78.730 || MQRankSum < -1.621 || ReadPosRankSum < -16.583 || ReadPosRankSum > 2.843 ' \
 --filter-name "SNP_filtered" \
 --output dirofilaria_australia.cohort.2023-05-16.mitoSNPs.filtered.vcf
 
 gatk VariantFiltration \
 --reference ${REFERENCE} \
 --variant dirofilaria_australia.cohort.2023-05-16.mitoINDELs.vcf \
---filter-expression 'QUAL < 158 || DP < 48740 || DP > 150000 || MQ < 48.00 || SOR > 8.300 || QD < 0.03 || FS > 128 || ReadPosRankSum < -12.5 || ReadPosRankSum > 4.7' \
+--filter-expression 'QUAL < 158 || DP < 48740 || DP > 150482 || MQ < 48.26 || SOR > 8.328 || QD < 0.039 || FS > 128.666 || MQRankSum < -7.096 || ReadPosRankSum < -12.517 || ReadPosRankSum > 4.800' \
 --filter-name "INDEL_filtered" \
 --output dirofilaria_australia.cohort.2023-05-16.mitoINDELs.filtered.vcf
 
@@ -2027,14 +2027,14 @@ gatk VariantFiltration \
 gatk VariantFiltration \
 --reference ${REFERENCE} \
 --variant dirofilaria_australia.cohort.2023-05-16.WbSNPs.vcf \
---filter-expression ' QUAL < 31 || DP < 13753 || DP > 24000 || MQ < 49.00 || SOR > 8.100 || QD < 0.45 || FS > 24 || MQRankSum < -9.3 || ReadPosRankSum < -5.6 || ReadPosRankSum > 3.1 ' \
+--filter-expression ' QUAL < 31 || DP < 13753 || DP > 24876 || MQ < 49.33 || SOR > 8.162 || QD < 0.450 || FS > 24.869 || MQRankSum < -9.328 || ReadPosRankSum < -5.619 || ReadPosRankSum > 3.195 ' \
 --filter-name "SNP_filtered" \
 --output dirofilaria_australia.cohort.2023-05-16.WbSNPs.filtered.vcf
 
 gatk VariantFiltration \
 --reference ${REFERENCE} \
 --variant dirofilaria_australia.cohort.2023-05-16.WbINDELs.vcf \
---filter-expression 'QUAL < 50 || DP < 16665 || DP > 25000 || MQ < 47 || SOR > 4.00 || QD < 1.6 || FS > 2.3 || ReadPosRankSum < -2.7 || ReadPosRankSum > 1.9' \
+--filter-expression 'QUAL < 50 || DP < 16665 || DP > 25631 || MQ < 47.29 || SOR > 4.050 || QD < 1.600 || FS > 2.395 || MQRankSum < -1.834 || ReadPosRankSum < -2.799 || ReadPosRankSum > 1.930' \
 --filter-name "INDEL_filtered" \
 --output dirofilaria_australia.cohort.2023-05-16.WbINDELs.filtered.vcf
 
@@ -2049,44 +2049,11 @@ done
 This is the summary of the filtered variants ('filter.stats'):
 ![](output/images/filter_stats.PNG)
 
+Filtering looks ok. Didn't lose too many SNPs.
 
-```bash
-#!/bin/bash
-
-# PBS directives 
-#PBS -P RDS-FSC-Heartworm_MLR-RW
-#PBS -N snps_qc3
-#PBS -l select=1:ncpus=1:mem=1GB
-#PBS -l walltime=00:10:00
-#PBS -m e
-#PBS -q defaultQ
-#PBS -o snps_qc3.txt
-
-# qsub ../snps_qc3.pbs
+Usually we would merge the SNP and INDEL files togehter to make a joined VCF. However, I want to disregard the indels moving forward and only focus on the SNPs. Some downstream tools don't like having indels in there.
 
 
-# load gatk
-module load gatk/4.1.4.1
-
-WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/filter
-cd ${WORKING_DIR}
-
-#Now merging all the files
-gatk MergeVcfs \
---INPUT dirofilaria_australia.cohort.2023-05-16.nuclearSNPs.filtered.vcf \
---INPUT dirofilaria_australia.cohort.2023-05-16.nuclearINDELs.filtered.vcf \
---OUTPUT dirofilaria_australia.cohort.2023-05-16.nuclearALL.filtered.vcf
-
-gatk MergeVcfs \
---INPUT dirofilaria_australia.cohort.2023-05-16.mitoSNPs.filtered.vcf \
---INPUT dirofilaria_australia.cohort.2023-05-16.mitoINDELs.filtered.vcf \
---OUTPUT dirofilaria_australia.cohort.2023-05-16.mitoALL.filtered.vcf
-
-gatk MergeVcfs \
---INPUT dirofilaria_australia.cohort.2023-05-16.WbSNPs.filtered.vcf \
---INPUT dirofilaria_australia.cohort.2023-05-16.WbINDELs.filtered.vcf \
---OUTPUT dirofilaria_australia.cohort.2023-05-16.WbALL.filtered.vcf
-```
 
 ### Filter genotypes based on x3 depth per genotype
 
@@ -2095,14 +2062,14 @@ gatk MergeVcfs \
 
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
-#PBS -N snps_qc4
-#PBS -l select=1:ncpus=1:mem=1GB
+#PBS -N snps_qc3
+#PBS -l select=1:ncpus=1:mem=10GB
 #PBS -l walltime=00:10:00
 #PBS -m e
 #PBS -q defaultQ
-#PBS -o snps_qc4.txt
+#PBS -o snps_qc3.txt
 
-# qsub ../snps_qc4.pbs
+# qsub ../snps_qc3.pbs
 
 # load gatk
 module load gatk/4.1.4.1
@@ -2118,47 +2085,145 @@ cd ${WORKING_DIR}
 #Nuclear 
 gatk VariantFiltration \
 --reference ${REFERENCE} \
---variant ${VCF%.vcf.gz}.nuclearALL.filtered.vcf \
+--variant ${VCF%.vcf.gz}.nuclearSNPs.filtered.vcf \
 --genotype-filter-expression ' DP < 3 '  \
 --genotype-filter-name "DP_lt3" \
---output ${VCF%.vcf.gz}.nuclearALL.DPfiltered.vcf
+--output ${VCF%.vcf.gz}.nuclearSNPs.DPfiltered.vcf
 
 gatk SelectVariants \
 --reference ${REFERENCE} \
---variant ${VCF%.vcf.gz}.nuclearALL.DPfiltered.vcf \
+--variant ${VCF%.vcf.gz}.nuclearSNPs.DPfiltered.vcf \
 --set-filtered-gt-to-nocall \
---output ${VCF%.vcf.gz}.nuclearALL.DPfilterNoCall.vcf
+--output ${VCF%.vcf.gz}.nuclearSNPs.DPfilterNoCall.vcf
 
 #Mito
 gatk VariantFiltration \
 --reference ${REFERENCE} \
---variant ${VCF%.vcf.gz}.mitoALL.filtered.vcf \
+--variant ${VCF%.vcf.gz}.mitoSNPs.filtered.vcf \
 --genotype-filter-expression ' DP < 3 '  \
 --genotype-filter-name "DP_lt3" \
---output ${VCF%.vcf.gz}.mitoALL.DPfiltered.vcf
+--output ${VCF%.vcf.gz}.mitoSNPs.DPfiltered.vcf
 
 gatk SelectVariants \
 --reference ${REFERENCE} \
---variant ${VCF%.vcf.gz}.mitoALL.DPfiltered.vcf \
+--variant ${VCF%.vcf.gz}.mitoSNPs.DPfiltered.vcf \
 --set-filtered-gt-to-nocall \
---output ${VCF%.vcf.gz}.mitoALL.DPfilterNoCall.vcf
+--output ${VCF%.vcf.gz}.mitoSNPs.DPfilterNoCall.vcf
 
 #wolbachia
 gatk VariantFiltration \
 --reference ${REFERENCE} \
---variant ${VCF%.vcf.gz}.WbALL.filtered.vcf \
+--variant ${VCF%.vcf.gz}.WbSNPs.filtered.vcf \
 --genotype-filter-expression ' DP < 3 '  \
 --genotype-filter-name "DP_lt3" \
---output ${VCF%.vcf.gz}.WbALL.DPfiltered.vcf
+--output ${VCF%.vcf.gz}.WbSNPs.DPfiltered.vcf
 
 gatk SelectVariants \
 --reference ${REFERENCE} \
---variant ${VCF%.vcf.gz}.WbALL.DPfiltered.vcf \
+--variant ${VCF%.vcf.gz}.WbSNPs.DPfiltered.vcf \
 --set-filtered-gt-to-nocall \
---output ${VCF%.vcf.gz}.WbALL.DPfilterNoCall.vcf
+--output ${VCF%.vcf.gz}.WbSNPs.DPfilterNoCall.vcf
 ```
 
 ### Now we apply a set of standard filters for population genomics
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N snps_qc4
+#PBS -l select=1:ncpus=1:mem=1GB
+#PBS -l walltime=00:03:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o snps_qc4.txt
+
+# qsub ../snps_qc4.pbs
+
+# load gatk
+module load gatk/4.1.4.1
+module load vcftools/0.1.14
+
+WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/filter
+
+# set vcf
+VCF=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/filter/dirofilaria_australia.cohort.2023-05-16.vcf.gz
+
+cd ${WORKING_DIR}
+
+#Nuclear variants
+vcftools \
+--vcf ${VCF%.vcf.gz}.nuclearSNPs.DPfilterNoCall.vcf \
+--remove-filtered-geno-all \
+--remove-filtered-all \
+--min-alleles 2 \
+--max-alleles 2 \
+--hwe 1e-06 \
+--maf 0.05 \
+--recode \
+--recode-INFO-all \
+--out ${VCF%.vcf.gz}.nuclear_SNPs.final
+# After filtering, kept 31 out of 31 Individuals
+# After filtering, kept 177288 out of a possible 278838 Sites
+#--- nuclear SNPs
+vcftools --vcf dirofilaria_australia.cohort.2023-05-16.nuclear_SNPs.final.recode.vcf --remove-indels
+#> After filtering, kept 31 out of 31 Individuals
+# After filtering, kept 177288 out of a possible 177288 Sites
+#--- nuclear  INDELs
+vcftools --vcf dirofilaria_australia.cohort.2023-05-16.nuclear_SNPs.final.recode.vcf --keep-only-indels
+#> After filtering, kept 31 out of 31 Individuals
+# After filtering, kept 0 out of a possible 177288 Sites
+
+
+#Mitochondrial variants
+vcftools \
+--vcf ${VCF%.vcf.gz}.mitoSNPs.DPfilterNoCall.vcf \
+--remove-filtered-geno-all \
+--remove-filtered-all \
+--min-alleles 2 \
+--max-alleles 2 \
+--maf 0.05 \
+--recode \
+--recode-INFO-all \
+--out ${VCF%.vcf.gz}.mito_SNPs.final
+#> After filtering, kept 31 out of 31 Individuals
+#> After filtering, kept 6 out of a possible 28 Sites
+#--- mito SNPs
+vcftools --vcf dirofilaria_australia.cohort.2023-05-16.mito_SNPs.final.recode.vcf --remove-indels
+#> After filtering, kept 31 out of 31 Individuals
+# After filtering, kept 6 out of a possible 6 Sites
+#--- mito INDELs
+vcftools --vcf dirofilaria_australia.cohort.2023-05-16.mito_SNPs.final.recode.vcf --keep-only-indels
+#> After filtering, kept 31 out of 31 Individuals
+# After filtering, kept 0 out of a possible 6 Sites
+
+
+#wolbachia variants
+vcftools \
+--vcf ${VCF%.vcf.gz}.WbSNPs.DPfilterNoCall.vcf \
+--remove-filtered-geno-all \
+--remove-filtered-all \
+--min-alleles 2 \
+--max-alleles 2 \
+--maf 0.05 \
+--recode \
+--recode-INFO-all \
+--out ${VCF%.vcf.gz}.Wb_SNPs.final
+#> After filtering, kept 31 out of 31 Individuals
+# After filtering, kept 18 out of a possible 1497 Sites
+#--- Wb SNPs
+vcftools --vcf dirofilaria_australia.cohort.2023-05-16.Wb_SNPs.final.recode.vcf --remove-indels
+# After filtering, kept 31 out of 31 Individuals
+# After filtering, kept 18 out of a possible 18 Sites
+#--- Wb INDELs
+vcftools --vcf dirofilaria_australia.cohort.2023-05-16.Wb_SNPs.final.recode.vcf --keep-only-indels
+# After filtering, kept 31 out of 31 Individuals
+# After filtering, kept 0 out of a possible 18 Sites
+
+```
+
+### Now, we are filtering by missingness
 
 ```bash
 #!/bin/bash
@@ -2174,96 +2239,9 @@ gatk SelectVariants \
 
 # qsub ../snps_qc5.pbs
 
-# load gatk
+# load modules
 module load gatk/4.1.4.1
-
-WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/filter
-
-# set vcf
-VCF=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/filter/dirofilaria_australia.cohort.2023-05-16.vcf.gz
-
-cd ${WORKING_DIR}
-
-#Nuclear variants
-vcftools \
---vcf ${VCF%.vcf.gz}.nuclearALL.DPfilterNoCall.vcf \
---remove-filtered-geno-all \
---remove-filtered-all \
---min-alleles 2 \
---max-alleles 2 \
---hwe 1e-06 \
---maf 0.05 \
---recode \
---recode-INFO-all \
---out ${VCF%.vcf.gz}.nuclear_variants.final
-#> After filtering, kept _ out of 31 Individuals
-#> After filtering, kept _ out of a possible _ Sites
-#--- nuclear SNPs
-vcftools --vcf dirofilaria_immitis.cohort.nuclear_variants.final.recode.vcf --remove-indels
-#> After filtering, kept _ out of a possible _ Sites
-#--- nuclear  INDELs
-vcftools --vcf dirofilaria_immitis.cohort.nuclear_variants.final.recode.vcf --keep-only-indels
-#> After filtering, kept _ out of a possible _ Sites
-
-#Mitochondrial variants
-vcftools \
---vcf ${VCF%.vcf.gz}.mitoALL.DPfilterNoCall.vcf \
---remove-filtered-geno-all \
---remove-filtered-all \
---min-alleles 2 \
---max-alleles 2 \
---maf 0.05 \
---recode \
---recode-INFO-all \
---out ${VCF%.vcf.gz}.mito_variants.final
-#> After filtering, kept _ out of 31 Individuals
-#> After filtering, kept _ out of a possible _ Sites
-#--- mito SNPs
-vcftools --vcf dirofilaria_immitis.cohort.mito_variants.final.recode.vcf --remove-indels
-#> After filtering, kept _ out of a possible _ Sites
-#--- mito INDELs
-vcftools --vcf dirofilaria_immitis.cohort.mito_variants.final.recode.vcf --keep-only-indels
-#> After filtering, kept _ out of a possible _ Sites
-
-#wolbachia variants
-vcftools \
---vcf ${VCF%.vcf.gz}.WbALL.DPfilterNoCall.vcf \
---remove-filtered-geno-all \
---remove-filtered-all \
---min-alleles 2 \
---max-alleles 2 \
---maf 0.05 \
---recode \
---recode-INFO-all \
---out ${VCF%.vcf.gz}.Wb_variants.final
-#> After filtering, kept _ out of 31 Individuals
-#> After filtering, kept _ out of a possible _ Sites
-#--- Wb SNPs
-vcftools --vcf dirofilaria_immitis.cohort.Wb_variants.final.recode.vcf --remove-indels
-#> After filtering, kept _ out of a possible _ Sites
-#--- Wb INDELs
-vcftools --vcf dirofilaria_immitis.cohort.Wb_variants.final.recode.vcf --keep-only-indels
-#> After filtering, kept _ out of a possible _ Sites
-```
-
-### Now, we are filtering by missingness
-
-```bash
-#!/bin/bash
-
-# PBS directives 
-#PBS -P RDS-FSC-Heartworm_MLR-RW
-#PBS -N snps_qc6
-#PBS -l select=1:ncpus=1:mem=1GB
-#PBS -l walltime=00:10:00
-#PBS -m e
-#PBS -q defaultQ
-#PBS -o snps_qc6.txt
-
-# qsub ../snps_qc6.pbs
-
-# load gatk
-module load gatk/4.1.4.1
+module load vcftools/0.1.14
 
 WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/filter
 
@@ -2273,64 +2251,56 @@ VCF=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/filter/dirofilaria_australia.cohor
 cd ${WORKING_DIR}
 
 #determine missingness per individual
-vcftools --vcf ${VCF%.vcf.gz}.nuclear_variants.final.recode.vcf --out nuclear --missing-indv
-vcftools --vcf ${VCF%.vcf.gz}.mito_variants.final.recode.vcf --out mito --missing-indv
-vcftools --vcf ${VCF%.vcf.gz}.Wb_variants.final.recode.vcf --out wb --missing-indv
+vcftools --vcf ${VCF%.vcf.gz}.nuclear_SNPs.final.recode.vcf --out nuclear --missing-indv
+vcftools --vcf ${VCF%.vcf.gz}.mito_SNPs.final.recode.vcf --out mito --missing-indv
+vcftools --vcf ${VCF%.vcf.gz}.Wb_SNPs.final.recode.vcf --out wb --missing-indv
 ```
 
 ### Check the missingess in R
 
 ```R
-# Check missingness
-data_nuclear <- read.delim("nuclear.imiss", header=T)
-data_mito <- read.delim("mito.imiss", header=T)
-data_wb <- read.delim("wb.imiss", header=T)
-
-#creating the function - per sample
-fun_plot_missingness <- function(data,title) {
+ # Check missingness
+  data_nuclear <- read.delim("nuclear.imiss", header=T)
+  data_mito <- read.delim("mito.imiss", header=T)
+  data_wb <- read.delim("wb.imiss", header=T)
   
-  data <- data %>% separate(INDV, c("country","population","sampletype","sampleID"))
-  count <- data[1,5]
+  #creating the function - per sample
+  fun_plot_missingness <- function(data,title) {
+    
+    plot <- ggplot(data, aes(INDV, 1-F_MISS)) +
+      geom_boxplot(color = 'brown') +
+      geom_point(size = 1, color = 'brown4') +
+      theme_bw() +
+      labs(x="Sample ID", y="Proportion of total variants present (1-missingness)")+
+      ggtitle(title) +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1))
+    print(plot)
+    ggsave(paste0("plot_missingness_figure",title,".png"))
+  }
   
-  plot <- ggplot(data, aes(population, 1-F_MISS)) +
-    geom_boxplot(color = 'brown') +
-    geom_point(size = 1, color = 'brown4') +
-    theme_bw() +
-    labs(x="Region", y="Proportion of total variants present (1-missingness)")+
-    ggtitle(title)
-  print(plot)
-  ggsave(paste0("plot_missingness_figure",title,".png"))
-}
-
-# plotting for each dataset
-fun_plot_missingness(data_nuclear, "nuclear_variants")
-fun_plot_missingness(data_mito,"mitochondrial_variants")
-fun_plot_missingness(data_wb, "wb_variants")
-
-#And now per sample type
-fun_plot_missingness_sampletype <- function(data,title) {
-  
-  data <- data %>% separate(INDV, c("country","population","sampletype","sampleID"))
-  data$sampletype <- gsub('ADF', 'AD', data$sampletype)
-  count <- data[1,5]
-  
-  plot <- ggplot(data, aes(sampletype, 1-F_MISS)) +
-    geom_boxplot(color = 'royalblue') +
-    geom_point(size = 1, color = 'royalblue') +
-    theme_bw() +
-    labs(x="Country", y="Proportion of total variants present (1-missingness)", title=paste0("Variants per sample: ",title, " (n = ", count,")"))
-  print(plot)
-  ggsave(paste0("plot_missingness_sampletype_",title,".png"))
-}
-
-# plotting for each dataset
-fun_plot_missingness_sampletype(data_nuclear, "nuclear_variants")
-fun_plot_missingness_sampletype(data_mito,"mitochondrial_variants")
-fun_plot_missingness_sampletype(data_wb, "wb_variants")
+  # plotting for each dataset
+  fun_plot_missingness(data_nuclear, "nuclear_variants")
 ```
+![](output/images/plot_missingness_figurenuclear_variants.png)
+JS6346 and JS6359 both only had ~1G of data sequences which might explain the missingness.
+
+```R
+  fun_plot_missingness(data_mito,"mitochondrial_variants")
+```
+![](output/images/plot_missingness_figuremitochondrial_variants.png)
+
+```R
+  fun_plot_missingness(data_wb, "wb_variants")
+```
+![](output/images/plot_missingness_figurewb_variants.png)
+Not sure about the missingness here.
+
 
 Now we will generate a different sample list for each database and evaluate the max missingness.
 
+
+
+**************** up to here!!!!
 ```bash
 ?
 ```
