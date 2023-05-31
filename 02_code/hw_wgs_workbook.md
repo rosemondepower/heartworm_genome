@@ -2295,17 +2295,200 @@ JS6346 and JS6359 both only had ~1G of data sequences which might explain the mi
 ![](output/images/plot_missingness_figurewb_variants.png)
 Not sure about the missingness here.
 
+In Javier's code, he generated a different sample list for each database and evaluated the max missingness. For now, I will just keep all the samples.
 
-Now we will generate a different sample list for each database and evaluate the max missingness.
-
-
-
-**************** up to here!!!!
 ```bash
-?
+# For nuclear (n=31) - nuclear_samplelist.keep
+JS6277
+JS6278
+JS6279
+JS6280
+JS6281
+JS6342
+JS6343
+JS6344
+JS6345
+JS6346
+JS6347
+JS6349
+JS6350
+JS6351
+JS6352
+JS6353
+JS6354
+JS6355
+JS6356
+JS6357
+JS6358
+JS6359
+JS6360
+JS6368
+JS6369
+JS6370
+SRR13154013
+SRR13154014
+SRR13154015
+SRR13154016
+SRR13154017
+# For mithochondiral (n=31) - mito_samplelist.keep
+JS6277
+JS6278
+JS6279
+JS6280
+JS6281
+JS6342
+JS6343
+JS6344
+JS6345
+JS6346
+JS6347
+JS6349
+JS6350
+JS6351
+JS6352
+JS6353
+JS6354
+JS6355
+JS6356
+JS6357
+JS6358
+JS6359
+JS6360
+JS6368
+JS6369
+JS6370
+SRR13154013
+SRR13154014
+SRR13154015
+SRR13154016
+SRR13154017
+# For wb (n=31) - wb_samplelist.keep
+JS6277
+JS6278
+JS6279
+JS6280
+JS6281
+JS6342
+JS6343
+JS6344
+JS6345
+JS6346
+JS6347
+JS6349
+JS6350
+JS6351
+JS6352
+JS6353
+JS6354
+JS6355
+JS6356
+JS6357
+JS6358
+JS6359
+JS6360
+JS6368
+JS6369
+JS6370
+SRR13154013
+SRR13154014
+SRR13154015
+SRR13154016
+SRR13154017
 ```
 
-### Once we selected those samples with low missingness, let's check different thresholds for each dataset
+
+### Let's check different thresholds for each dataset
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N snps_qc6
+#PBS -l select=1:ncpus=1:mem=1GB
+#PBS -l walltime=00:10:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o snps_qc6.txt
+
+# qsub ../snps_qc6.pbs
+
+# load gatk
+module load gatk/4.1.4.1
+module load vcftools/0.1.14
+
+WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/filter
+
+# set vcf
+VCF=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/filter/dirofilaria_australia.cohort.2023-05-16.vcf.gz
+
+cd ${WORKING_DIR}
+
+# For nuclear variants
+for i in 0.7 0.8 0.9 1; do
+     vcftools --vcf ${VCF%.vcf.gz}.nuclear_SNPs.final.recode.vcf --keep nuclear_samplelist.keep --max-missing ${i} ;
+done
+
+# max-missing = 0.7
+# After filtering, kept 31 out of 31 Individuals
+# After filtering, kept 174594 out of a possible 177288 Sites
+
+# max-missing = 0.8
+# After filtering, kept 31 out of 31 Individuals
+# After filtering, kept 173103 out of a possible 177288 Sites
+
+# max-missing = 0.9
+# After filtering, kept 31 out of 31 Individuals
+# After filtering, kept 168978 out of a possible 177288 Sites
+
+# max-missing = 1
+# After filtering, kept 31 out of 31 Individuals
+# After filtering, kept 22953 out of a possible 177288 Sites
+
+# For mito variants
+for i in 0.7 0.8 0.9 1; do
+     vcftools --vcf ${VCF%.vcf.gz}.mito_SNPs.final.recode.vcf --keep mito_samplelist.keep --max-missing ${i} ;
+done
+
+# max-missing = 0.7
+# After filtering, kept 31 out of 31 Individuals
+# After filtering, kept 6 out of a possible 6 Sites
+
+# max-missing = 0.8
+# After filtering, kept 31 out of 31 Individuals
+# After filtering, kept 6 out of a possible 6 Sites
+
+# max-missing = 0.9
+# After filtering, kept 31 out of 31 Individuals
+# After filtering, kept 6 out of a possible 6 Sites
+
+# max-missing = 1
+# After filtering, kept 31 out of 31 Individuals
+# After filtering, kept 6 out of a possible 6 Sites
+
+# For Wb variants
+for i in 0.7 0.8 0.9 1; do
+     vcftools --vcf ${VCF%.vcf.gz}.Wb_SNPs.final.recode.vcf --keep wb_samplelist.keep --max-missing ${i} ;
+done
+
+# max-missing = 0.7
+# After filtering, kept 31 out of 31 Individuals
+# After filtering, kept 18 out of a possible 18 Sites
+
+# max-missing = 0.8
+# After filtering, kept 31 out of 31 Individuals
+# After filtering, kept 18 out of a possible 18 Sites
+
+# max-missing = 0.9
+# After filtering, kept 31 out of 31 Individuals
+# After filtering, kept 18 out of a possible 18 Sites
+
+# max-missing = 1
+# After filtering, kept 31 out of 31 Individuals
+# After filtering, kept 9 out of a possible 18 Sites
+```
+
+Selecting a max missingness of 0.8 for nuclear, 0.8 for mito and 0.9 for Wb is sensible.
 
 ```bash
 #!/bin/bash
@@ -2323,6 +2506,7 @@ Now we will generate a different sample list for each database and evaluate the 
 
 # load gatk
 module load gatk/4.1.4.1
+module load vcftools/0.1.14
 
 WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/filter
 
@@ -2331,71 +2515,29 @@ VCF=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/filter/dirofilaria_australia.cohor
 
 cd ${WORKING_DIR}
 
-# For nuclear variants
-for i in 0.7 0.8 0.9 1; do
-     vcftools --vcf ${VCF%.vcf.gz}.nuclear_variants.final.recode.vcf --keep nuclear_samplelist.keep --max-missing ${i} ;
-done
+# For nuclear
+vcftools --vcf ${VCF%.vcf.gz}.nuclear_SNPs.final.recode.vcf \
+     --keep nuclear_samplelist.keep \
+     --max-missing 0.8 \
+     --recode --recode-INFO-all \
+     --out FINAL_SETS/nuclear_samples3x_missing0.8
 
-# max-missing = 0.7
-#After filtering, kept _ out of _ Individuals
-#After filtering, kept _ out of a possible _ Sites
+# For mito
+vcftools --vcf ${VCF%.vcf.gz}.mito_SNPs.final.recode.vcf \
+     --keep mito_samplelist.keep \
+     --max-missing 0.8 \
+     --recode --recode-INFO-all \
+     --out FINAL_SETS/mito_samples3x_missing0.8
 
-# max-missing = 0.8
-#After filtering, kept _ out of _ Individuals
-#After filtering, kept _ out of a possible _ Sites
-
-# max-missing = 0.9
-#After filtering, kept _ out of _ Individuals
-#After filtering, kept _ out of a possible _ Sites
-
-# max-missing = 1
-#After filtering, kept _ out of _ Individuals
-#After filtering, kept _ out of a possible _Sites
-
-# For mito variants
-for i in 0.7 0.8 0.9 1; do
-     vcftools --vcf ${VCF%.vcf.gz}.mito_variants.final.recode.vcf --keep mito_samplelist.keep --max-missing ${i} ;
-done
-
-# max-missing = 0.7
-#After filtering, kept _ out of _ Individuals
-#After filtering, kept _ out of a possible _ Sites
-
-# max-missing = 0.8
-#After filtering, kept _ out of _ Individuals
-#After filtering, kept _ out of a possible _ Sites
-
-# max-missing = 0.9
-#After filtering, kept _ out of _ Individuals
-#After filtering, kept _ out of a possible _ Sites
-
-# max-missing = 1
-#After filtering, kept _ out of _ Individuals
-#After filtering, kept _ out of a possible _Sites
-
-# For Wb variants
-for i in 0.7 0.8 0.9 1; do
-     vcftools --vcf ${VCF%.vcf.gz}.Wb_variants.final.recode.vcf --keep wb_samplelist.keep --max-missing ${i} ;
-done
-
-# max-missing = 0.7
-#After filtering, kept _ out of _ Individuals
-#After filtering, kept _ out of a possible _ Sites
-
-# max-missing = 0.8
-#After filtering, kept _ out of _ Individuals
-#After filtering, kept _ out of a possible _ Sites
-
-# max-missing = 0.9
-#After filtering, kept _ out of _ Individuals
-#After filtering, kept _ out of a possible _ Sites
-
-# max-missing = 1
-#After filtering, kept _ out of _ Individuals
-#After filtering, kept _ out of a possible _Sites
+# For wb
+vcftools --vcf ${VCF%.vcf.gz}.Wb_SNPs.final.recode.vcf \
+     --keep wb_samplelist.keep \
+     --max-missing 0.9 \
+     --recode --recode-INFO-all \
+     --out FINAL_SETS/wb_samples3x_missing0.9
 ```
 
-Selecting a max missingness of __ for nuclear, __ for mito and __ for Wb is sensible.
+### Also, we will select only the variants in the chr 1 to chr4, avoiding the chrX and the scaffolds
 
 ```bash
 #!/bin/bash
@@ -2412,66 +2554,44 @@ Selecting a max missingness of __ for nuclear, __ for mito and __ for Wb is sens
 # qsub ../snps_qc8.pbs
 
 # load gatk
-module load gatk/4.1.4.1
+module load vcftools/0.1.14
 
-WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/filter
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/filter
 
-# set vcf
-VCF=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/filter/dirofilaria_australia.cohort.2023-05-16.vcf.gz
-
-cd ${WORKING_DIR}
-
-mkdir /FINAL_SETS/
-
-# For nuclear
-vcftools --vcf ${VCF%.vcf.gz}.nuclear_variants.final.recode.vcf \
-     --keep nuclear_samplelist.keep \
-     --max-missing 0.8 \
-     --recode --recode-INFO-all \
-     --out /FINAL_SETS/nuclear_samples3x_missing0.8
-
-# For mito
-vcftools --vcf ${VCF%.vcf.gz}.mito_variants.final.recode.vcf \
-     --keep mito_samplelist.keep \
-     --max-missing 0.8 \
-     --recode --recode-INFO-all \
-     --out /FINAL_SETS/mito_samples3x_missing0.8
-
-# For wb
-vcftools --vcf ${VCF%.vcf.gz}.Wb_variants.final.recode.vcf \
-     --keep wb_samplelist.keep \
-     --max-missing 0.7 \
-     --recode --recode-INFO-all \
-     --out /FINAL_SETS/wb_samples3x_missing0.7
-```
-
-### Also, we will select only the variants in the chr 1 to chr4, avoiding the chrX and the scaffolds
-
-```bash
-vcftools --vcf /FINAL_SETS/nuclear_samples3x_missing0.8.recode.vcf \
+vcftools --vcf FINAL_SETS/nuclear_samples3x_missing0.8.recode.vcf \
 --chr dirofilaria_immitis_chr1 \
 --chr dirofilaria_immitis_chr2 \
 --chr dirofilaria_immitis_chr3 \
 --chr dirofilaria_immitis_chr4 \
---recode --out ../FINAL_SETS/nuclear_samples3x_missing0.8.chr1to4
-#After filtering, kept _ out of _ Individuals
-#After filtering, kept _ out of a possible _ Sites
+--recode --out FINAL_SETS/nuclear_samples3x_missing0.8.chr1to4
+# After filtering, kept 31 out of 31 Individuals
+# After filtering, kept 128517 out of a possible 173103 Sites
 
-vcftools --vcf nuclear_samples3x_missing0.8.chr1to4.recode.vcf --remove-indels
-#> After filtering, kept _ out of a possible _ Sites
-vcftools --vcf nuclear_samples3x_missing0.8.chr1to4.recode.vcf --keep-only-indels
-#> After filtering, kept _ out of a possible _ Sites
+vcftools --vcf FINAL_SETS/nuclear_samples3x_missing0.8.chr1to4.recode.vcf --remove-indels
+# After filtering, kept 31 out of 31 Individuals
+# After filtering, kept 128517 out of a possible 128517 Sites
+
+vcftools --vcf FINAL_SETS/nuclear_samples3x_missing0.8.chr1to4.recode.vcf --keep-only-indels
+# After filtering, kept 31 out of 31 Individuals
+# After filtering, kept 0 out of a possible 128517 Sites - this makes sense because I removed the indels earlier and only focused on the SNPs.
 ```
 
-### Let's do also a file with no indels for PCA using variant freq
+************************** up to here!!!
 
-```bash
-vcftools --vcf nuclear_samples3x_missing0.8.chr1to4.recode.vcf \
---remove-indels \
---recode --out nuclear_samples3x_missing0.8.chr1to4.NOindels
-#> After filtering, kept _ out of a possible _ Sites
-```
 
+
+
+
+
+
+
+
+
+
+
+
+
+# Scratch stuff
 
 ## SNPs (filter)
 
@@ -3050,6 +3170,42 @@ ggplot(data_nuc, aes(NUM, PROPORTION_COVERAGE/(median(PROPORTION_COVERAGE)), gro
 ggsave("ALL_genomewide_coverage_allsamples_v2.png", height=11.25, width=15)
 ```
 ![](output/images/ALL_genomewide_coverage_allsamples_v2.png)
+
+```R
+# this shows the proportion of coverage relative to the median coverage of all samples. Let's also just look at the raw coverage by itself (not in relation to anything else).
+ggplot(data_nuc, aes(NUM, RAW_COVERAGE, group = ID, col = CHR)) +
+  geom_point(size=0.5) +
+  labs( x = "Genome position" , y = "Raw coverage per 100kb window") +
+  theme_bw() + theme(strip.text.x = element_text(size = 6)) +
+  facet_wrap(~ID, scales = "free_y")
+
+ggsave("ALL_genomewide_rawcoverage_allsamples.png", height=11.25, width=15)
+```
+![](output/images/ALL_genomewide_rawcoverage_allsamples.png)
+
+```R
+# Let's set some x and y limits to see the data a bit better.
+ggplot(data_nuc, aes(NUM, RAW_COVERAGE, group = ID, col = CHR)) +
+  geom_point(size=0.5) +
+  labs( x = "Genome position" , y = "Raw coverage per 100kb window") +
+  theme_bw() + theme(strip.text.x = element_text(size = 6)) +
+  facet_wrap(~ID, scales = "free_y") +
+  xlim(0,5000) +
+  ylim(0,30000000)
+
+ggsave("ALL_genomewide_rawcoverage_allsamples_v2.png", height=11.25, width=15)
+```
+![](output/images/ALL_genomewide_rawcoverage_allsamples_v2.png)
+
+Naming system of Daisy's samples:
+- SRR13154013 = JS5877 # sequenced at 1G
+- SRR13154014	= JS5876 # sequenced at 1G
+- SRR13154015	= JS5875
+- SRR13154016	= JS5874
+- SRR13154017	= JS5873
+
+SRR13154013 and SRR13154014 were sequenced at only 1G which explains the low coverage. The other samples were sampled at 10G so their coverage is comparable to my samples.
+
 
 ```R
 # Let's see only the chrX to explore the sex of the sample
