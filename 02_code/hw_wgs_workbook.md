@@ -2397,7 +2397,7 @@ This is the summary of the filtered variants ('filter.stats'):
 
 Filtering looks ok. Didn't lose too many SNPs.
 
-Usually we would merge the SNP and INDEL files togehter to make a joined VCF. However, I want to disregard the indels moving forward and only focus on the SNPs. Some downstream tools don't like having indels in there.
+Usually we would merge the SNP and INDEL files together to make a joined VCF. However, I want to disregard the indels moving forward and only focus on the SNPs. Some downstream tools don't like having indels in there.
 
 
 
