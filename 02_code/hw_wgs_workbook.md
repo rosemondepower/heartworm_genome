@@ -3694,7 +3694,17 @@ Extract the 42 (or more) SNPs in all samples and compare. Can use grep? Artemis?
 
 
 
+# Back up Artemis folders onto my RDS
 
+```bash
+dt-script -P RDS-FSC-Heartworm_MLR-RW \
+--from /scratch/RDS-FSC-Heartworm_MLR-RW \
+--to /rds/PRJ-Heartworm_MLR/scratch
+
+dt-script -P RDS-FSC-Heartworm_MLR-RW \
+--from /project/RDS-FSC-Heartworm_MLR-RW \
+--to /rds/PRJ-Heartworm_MLR/project
+```
 
 
 
