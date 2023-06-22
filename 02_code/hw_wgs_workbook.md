@@ -915,7 +915,7 @@ Map the reads:
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N mapping
-#PBS -l select=1:ncpus=24:mem=80GB
+#PBS -l select=1:ncpus=24:mem=50GB
 #PBS -l walltime=01:00:00
 #PBS -m abe
 #PBS -q defaultQ
@@ -955,7 +955,7 @@ Convert to bam & sort the mapped reads:
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N mapping_sort
-#PBS -l select=1:ncpus=8:mem=80GB
+#PBS -l select=1:ncpus=2:mem=50GB
 #PBS -l walltime=02:00:00
 #PBS -m e
 #PBS -q defaultQ
@@ -977,7 +977,7 @@ sample_name=`sed -n "${PBS_ARRAY_INDEX}{p;q}" /project/RDS-FSC-Heartworm_MLR-RW/
 samtools flagstat ${sample_name}.tmp.sam > flagstat1/${sample_name}_flagstat1.txt
 	
 # convert the sam to bam format
-samtools view -h -q 15 -b -o ${sample_name}.tmp.bam ${sample_name}.tmp.sam
+samtools view -q 15 -b -o ${sample_name}.tmp.bam ${sample_name}.tmp.sam
 
 # sort the mapped reads in the bam file
 samtools sort ${sample_name}.tmp.bam -o ${sample_name}.sorted.bam
@@ -987,12 +987,6 @@ samtools index ${sample_name}.sorted.bam
 
 # Mapping stats after filtering
 samtools flagstat ${sample_name}.sorted.bam > flagstat2/${sample_name}_flagstat2.txt
-```
-
-
-```bash
-# lets clean up and remove files we don’t need
-rm *tmp*
 ```
 
 
@@ -3708,6 +3702,10 @@ dt-script -P RDS-FSC-Heartworm_MLR-RW \
 dt-script -P RDS-FSC-Heartworm_MLR-RW \
 --from /scratch/RDS-FSC-Heartworm_MLR-RW/filter_test3 \
 --to /rds/PRJ-Heartworm_MLR/scratch/RDS-FSC-Heartworm_MLR-RW/filter_test3
+
+dt-script -P RDS-FSC-Heartworm_MLR-RW \
+--from /rds/PRJ-Heartworm_MLR/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/move \
+--to /scratch/RDS-FSC-Heartworm_MLR-RW/mapping
 ```
 
 
