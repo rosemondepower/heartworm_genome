@@ -1797,6 +1797,90 @@ The above script is taking a really long time to run. Steve had his own script (
 wget ftp://ngs.sanger.ac.uk//production/pathogens/sd21/dimmitis_australia/*
 ```
 
+I need to figure out a way to run this myself on the Artemis HPC in a shorter timeframe.
+
+
+
+## Adding read groups to bam files
+
+I didn't add read groups during the mapping step, but luckily I can use samtools addreplacerg to add them in after mapping.
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N read_groups
+#PBS -l select=1:ncpus=2:mem=20GB
+#PBS -l walltime=02:00:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o read_groups.txt
+#PBS -J 1-31
+
+# qsub ../read_groups.pbs
+
+WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping
+cd "${WORKING_DIR}"
+
+config=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/info.txt
+SAMPLE_NAME=$(awk -v taskID=$PBS_ARRAY_INDEX '$1==taskID {print $2}' $config)
+
+# Load modules
+module load samtools/1.9
+
+samtools addreplacerg -r "@RG\tRG:${SAMPLE_NAME}\tID:${SAMPLE_NAME}\tSM:${SAMPLE_NAME}" -o /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/bams/${SAMPLE_NAME}_rg.bam  /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/bams/${SAMPLE_NAME}_extract.bam
+```
+
+## Calling variants in a faster way using arrays
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N variant_calling
+#PBS -l select=1:ncpus=16:mem=80GB
+#PBS -l walltime=24:00:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o variant_calling.txt
+#PBS -J 1-31
+
+# qsub ../variant_calling.pbs
+
+
+WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/bams
+cd "${WORKING_DIR}"
+
+config=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/info.txt
+ref=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/dimmitis_WSI_2.2.fa
+
+sample=$(awk -v taskID=$PBS_ARRAY_INDEX '$1==taskID {print $2}' $config) 
+bam=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/bams/${sample}_rg.bam
+vcf=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/vcf/${sample}.g.vcf.gz
+
+echo "sample is: $sample"
+echo "bam is: $bam"
+
+# Load modules
+#module load gatk/4.2.1.0
+module load gatk/4.1.4.1
+module load samtools/1.9
+
+# index bam files
+samtools index ${bam}
+
+# make gvcf per sample
+gatk --java-options "-Xmx8g -DGATK_STACKTRACE_ON_USER_EXCEPTION=true" \
+HaplotypeCaller \
+-R ${ref} \
+-I ${bam} \
+-O ${vcf} \
+--native-pair-hmm-threads ${NCPUS} \
+-ERC GVCF
+#--native-pair-hmm-threads ${NCPUS} # can maybe try using this to multithread and speed things up
+```
 
 
 ## SNPs QC
@@ -3327,6 +3411,8 @@ ggsave("chr1-4_PC1.1.png", height=8, width=10)
 ```
 
 ![](output/images/chr1-4_PC1.1.png)
+
+
 
 
 
