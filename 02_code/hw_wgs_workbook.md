@@ -1832,6 +1832,47 @@ module load samtools/1.9
 samtools addreplacerg -r "@RG\tRG:${SAMPLE_NAME}\tID:${SAMPLE_NAME}\tSM:${SAMPLE_NAME}" -o /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/bams/${SAMPLE_NAME}_rg.bam  /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/bams/${SAMPLE_NAME}_extract.bam
 ```
 
+
+## Index the read group bam files
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N rg_index
+#PBS -l select=1:ncpus=2:mem=10GB
+#PBS -l walltime=00:10:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o rg_index.txt
+#PBS -J 1-31
+
+# qsub ../rg_index.pbs
+
+
+WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/bams
+cd "${WORKING_DIR}"
+
+config=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/info.txt
+
+sample=$(awk -v taskID=$PBS_ARRAY_INDEX '$1==taskID {print $2}' $config) 
+bam=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/bams/${sample}_rg.bam
+
+echo "sample is: $sample"
+echo "bam is: $bam"
+
+# Load modules
+module load samtools/1.9
+
+# index bam files
+samtools index ${bam}
+```
+######### need to run this
+
+
+
+
 ## Calling variants in a faster way using arrays
 
 ```bash
@@ -1841,7 +1882,7 @@ samtools addreplacerg -r "@RG\tRG:${SAMPLE_NAME}\tID:${SAMPLE_NAME}\tSM:${SAMPLE
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N variant_calling
 #PBS -l select=1:ncpus=16:mem=80GB
-#PBS -l walltime=24:00:00
+#PBS -l walltime=72:00:00
 #PBS -m e
 #PBS -q defaultQ
 #PBS -o variant_calling.txt
@@ -1880,6 +1921,65 @@ HaplotypeCaller \
 --native-pair-hmm-threads ${NCPUS} \
 -ERC GVCF
 #--native-pair-hmm-threads ${NCPUS} # can maybe try using this to multithread and speed things up
+```
+########### need to figure out how to run this
+
+## Joint call variants
+
+Merge the GVCF files we generated with HaplotypeCaller into a single GVCF file.
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N jointcall_variants.pbs
+#PBS -l select=1:ncpus=48:mem=80GB
+#PBS -l walltime=48:00:00
+#PBS -m abe
+#PBS -q defaultQ
+#PBS -o jointcall_variants.txt
+#PBS -M rosemonde.power@sydney.edu.au
+
+# qsub ../jointcall_variants.pbs
+
+# Perform joint genotyping on one or more samples pre-called with HaplotypeCaller
+
+WORKING_DIR=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis
+cd "${WORKING_DIR}"
+
+cohort=Dirofilaria_immitis_June2023
+config=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/info.txt
+ref=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/dimmitis_WSI_2.2.fa
+
+sample=$(awk -v taskID=$PBS_ARRAY_INDEX '$1==taskID {print $2}' $config)
+gvcf=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/vcf/${cohort}.g.vcf.gz
+vcf=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/vcf/${cohort}.vcf.gz
+
+# Load modules
+module load gatk/4.2.1.0
+
+# collect all sample g.vcfs in /scratch/VCFs/ to make input for CombineGVCFs
+ls /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/vcf/*.g.vcf.gz > /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/gvcf.list
+
+while read gvcf; do
+	echo -V "${gvcf} " >> ${args}
+done < gvcf.list
+
+# create cohort gvcf
+gatk --java-options "-Xmx28g -DGATK_STACKTRACE_ON_USER_EXCEPTION=true" \
+        CombineGVCFs \
+        -R ${ref} \
+        ${args} \
+        -O ${gvcf}
+
+
+# Genotype cohort vcf
+gatk --java-options "-Xmx28g -DGATK_STACKTRACE_ON_USER_EXCEPTION=true" \
+        GenotypeGVCFs \
+        -R ${ref} \
+        -V ${gvcf} \
+        -O ${vcf}
 ```
 
 
