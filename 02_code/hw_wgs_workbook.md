@@ -1875,13 +1875,59 @@ samtools index ${bam}
 
 ## Calling variants in a faster way using arrays
 
+- The format for the GVCF file is similar to a VCF file. The key difference is that the GVCF file contains records for each sequenced genomic coordinate. 
+- The key difference between a regular VCF and a GVCF is that the GVCF has records for all sites, whether there is a variant call there or not. The goal is to have every site represented in the file in order to do joint analysis of a cohort in subsequent steps.
+- The --emit-ref-confidence or -ERC parameter lets you select a method to summarise confidence in the genomic site being homozygous-reference. The option -ERC GVCF is more efficient and recommended for large samples and therefore more scalable.
+
+Test using 1 sample:
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N variant_calling3
+#PBS -l select=1:ncpus=24:mem=80GB
+#PBS -l walltime=72:00:00
+#PBS -m abe
+#PBS -q defaultQ
+#PBS -o variant_calling3.txt
+#PBS -M rosemonde.power@sydney.edu.au
+
+# qsub ../variant_calling3.pbs
+
+
+WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/vcf
+cd "${WORKING_DIR}"
+
+
+# Load modules
+module load gatk/4.2.1.0
+module load samtools/1.17
+
+# index reference file
+samtools faidx /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/reference_di_wol_dog.fa
+
+# make gvcf per sample
+gatk --java-options "-Xmx4g" HaplotypeCaller \
+-R /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/reference_di_wol_dog.fa \
+-I /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/bams/SRR13154013_rg.bam \
+-O /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/vcf/SRR13154013_v3.g.vcf.gz \
+-ERC GVCF
+
+## Got error mapping to dimmitis_WSI_2.2 reference (it was saying a dog scaffold was missing and that I needed to check if I had the correct reference). So I will use the merged  “dimmitis_WSI_2.2 + dog” reference genome instead.
+```
+This had exit status=0 and seemed to work! 
+
+Now run on all samples:
+
 ```bash
 #!/bin/bash
 
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N variant_calling
-#PBS -l select=1:ncpus=16:mem=80GB
+#PBS -l select=1:ncpus=24:mem=80GB
 #PBS -l walltime=72:00:00
 #PBS -m e
 #PBS -q defaultQ
@@ -1895,7 +1941,7 @@ WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/bams
 cd "${WORKING_DIR}"
 
 config=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/info.txt
-ref=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/dimmitis_WSI_2.2.fa
+ref=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/reference_di_wol_dog.fa
 
 sample=$(awk -v taskID=$PBS_ARRAY_INDEX '$1==taskID {print $2}' $config) 
 bam=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/bams/${sample}_rg.bam
@@ -1918,15 +1964,18 @@ HaplotypeCaller \
 -R ${ref} \
 -I ${bam} \
 -O ${vcf} \
---native-pair-hmm-threads ${NCPUS} \
 -ERC GVCF
 #--native-pair-hmm-threads ${NCPUS} # can maybe try using this to multithread and speed things up
 ```
-########### need to figure out how to run this
+
+
+
 
 ## Joint call variants
 
 Merge the GVCF files we generated with HaplotypeCaller into a single GVCF file.
+
+Test using 1 sample:
 
 ```bash
 #!/bin/bash
@@ -1934,8 +1983,8 @@ Merge the GVCF files we generated with HaplotypeCaller into a single GVCF file.
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N jointcall_variants.pbs
-#PBS -l select=1:ncpus=48:mem=80GB
-#PBS -l walltime=48:00:00
+#PBS -l select=1:ncpus=6:mem=6GB
+#PBS -l walltime=00:10:00
 #PBS -m abe
 #PBS -q defaultQ
 #PBS -o jointcall_variants.txt
@@ -1950,21 +1999,78 @@ cd "${WORKING_DIR}"
 
 cohort=Dirofilaria_immitis_June2023
 config=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/info.txt
-ref=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/dimmitis_WSI_2.2.fa
+ref=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/reference_di_wol_dog.fa
 
-sample=$(awk -v taskID=$PBS_ARRAY_INDEX '$1==taskID {print $2}' $config)
 gvcf=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/vcf/${cohort}.g.vcf.gz
 vcf=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/vcf/${cohort}.vcf.gz
 
 # Load modules
 module load gatk/4.2.1.0
 
-# collect all sample g.vcfs in /scratch/VCFs/ to make input for CombineGVCFs
+# collect all sample g.vcfs in /scratch/<project>/mapping/vcf to make input for CombineGVCFs
 ls /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/vcf/*.g.vcf.gz > /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/gvcf.list
 
-while read gvcf; do
-	echo -V "${gvcf} " >> ${args}
-done < gvcf.list
+args=$(while read line; do
+  echo "-V ${line}"
+done < /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/gvcf.list)
+
+echo $args
+
+# create cohort gvcf
+gatk --java-options "-Xmx28g -DGATK_STACKTRACE_ON_USER_EXCEPTION=true" \
+        CombineGVCFs \
+        -R ${ref} \
+        ${args} \
+        -O ${gvcf}
+
+
+# Genotype cohort vcf
+gatk --java-options "-Xmx28g -DGATK_STACKTRACE_ON_USER_EXCEPTION=true" \
+        GenotypeGVCFs \
+        -R ${ref} \
+        -V ${gvcf} \
+        -O ${vcf}
+```
+
+Now run on all samples:
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N jointcall_variants.pbs
+#PBS -l select=1:ncpus=24:mem=80GB
+#PBS -l walltime=72:00:00
+#PBS -m abe
+#PBS -q defaultQ
+#PBS -o jointcall_variants.txt
+#PBS -M rosemonde.power@sydney.edu.au
+
+# qsub ../jointcall_variants.pbs
+
+# Perform joint genotyping on one or more samples pre-called with HaplotypeCaller
+
+WORKING_DIR=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis
+cd "${WORKING_DIR}"
+
+cohort=Dirofilaria_immitis_June2023
+config=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/info.txt
+ref=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/reference_di_wol_dog.fa
+
+gvcf=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/vcf/${cohort}.g.vcf.gz
+vcf=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/vcf/${cohort}.vcf.gz
+
+# Load modules
+module load gatk/4.2.1.0
+
+# collect all sample g.vcfs in /scratch/<project>/mapping/vcf to make input for CombineGVCFs
+ls /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/vcf/*.g.vcf.gz > /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/gvcf.list
+
+args=$(while read line; do
+  echo "-V ${line}"
+done < /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/gvcf.list)
+
+echo $args
 
 # create cohort gvcf
 gatk --java-options "-Xmx28g -DGATK_STACKTRACE_ON_USER_EXCEPTION=true" \
