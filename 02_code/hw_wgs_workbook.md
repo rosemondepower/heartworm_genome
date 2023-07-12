@@ -1968,6 +1968,7 @@ HaplotypeCaller \
 #--native-pair-hmm-threads ${NCPUS} # can maybe try using this to multithread and speed things up
 ```
 
+Having problems with this - it's taking a super long time to run.
 
 
 
@@ -1975,7 +1976,7 @@ HaplotypeCaller \
 
 Merge the GVCF files we generated with HaplotypeCaller into a single GVCF file.
 
-Test using 1 sample:
+Test using 2 samples:
 
 ```bash
 #!/bin/bash
@@ -1983,8 +1984,8 @@ Test using 1 sample:
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N jointcall_variants.pbs
-#PBS -l select=1:ncpus=6:mem=6GB
-#PBS -l walltime=00:10:00
+#PBS -l select=1:ncpus=1:mem=10GB
+#PBS -l walltime=01:00:00
 #PBS -m abe
 #PBS -q defaultQ
 #PBS -o jointcall_variants.txt
@@ -1997,8 +1998,7 @@ Test using 1 sample:
 WORKING_DIR=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis
 cd "${WORKING_DIR}"
 
-cohort=Dirofilaria_immitis_June2023
-config=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/info.txt
+cohort=Dirofilaria_immitis_test
 ref=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/reference_di_wol_dog.fa
 
 gvcf=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/vcf/${cohort}.g.vcf.gz
@@ -2007,20 +2007,12 @@ vcf=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/vcf/${cohort}.vcf.gz
 # Load modules
 module load gatk/4.2.1.0
 
-# collect all sample g.vcfs in /scratch/<project>/mapping/vcf to make input for CombineGVCFs
-ls /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/vcf/*.g.vcf.gz > /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/gvcf.list
-
-args=$(while read line; do
-  echo "-V ${line}"
-done < /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/gvcf.list)
-
-echo $args
-
 # create cohort gvcf
 gatk --java-options "-Xmx28g -DGATK_STACKTRACE_ON_USER_EXCEPTION=true" \
         CombineGVCFs \
         -R ${ref} \
-        ${args} \
+        -V /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/vcf/JS6277.g.vcf.gz \
+        -V /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/vcf/JS6278.g.vcf.gz \
         -O ${gvcf}
 
 
@@ -2031,6 +2023,9 @@ gatk --java-options "-Xmx28g -DGATK_STACKTRACE_ON_USER_EXCEPTION=true" \
         -V ${gvcf} \
         -O ${vcf}
 ```
+
+This worked super quick and produced a cohort 'g.vcf.gz' and 'vcf.gz'.
+
 
 Now run on all samples:
 ```bash
@@ -3621,8 +3616,7 @@ ggsave("chr1-4_PC1.1.png", height=8, width=10)
 
 
 
-
-
+#####################################################################################################################################################################################################
 
 
 
