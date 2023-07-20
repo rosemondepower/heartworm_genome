@@ -1,3 +1,7 @@
+# Dirofilaria immitis WGS Lab Book - Coverage
+
+### Rose Power USYD 2023
+
 ## Coverage on original sorted bam files (D. immitis, Wolbachia and dog)
 Adopted the code from Javier's paper.
 

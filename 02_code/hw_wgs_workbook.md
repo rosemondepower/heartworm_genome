@@ -67,28 +67,6 @@ points(location$longitude, location$latitude, cex = 1.5, pch = 20, col = cols)
 
 
 
-## Map samples (Australia)
-
-```R
-# Get map
-aus <- ozmap("states")
-
-# Plot sampling sites
-location %>% 
-  ggplot() + 
-  geom_sf(data = aus) +
-  geom_point(aes(x = longitude, y = latitude, color = city), size = 4) +
-  xlim(112, 155) +
-  labs() +
-  theme_bw() +
-  theme(panel.background = element_rect(fill = "lightgray"))
-```
-
-![](output/images/map_aus.png)
-
-
-
-
 ## FastQC & Multi-QC
 
 We want to get some stats on the raw data.

@@ -1,3 +1,8 @@
+# Dirofilaria immitis WGS Lab Book - PCA
+
+### Rose Power USYD 2023
+
+
 ### Preliminary PCA plots for chr 1 to chr4 data
 
 This analysis was conducted in the R file called 'hw_wgs_vcf.R'.
