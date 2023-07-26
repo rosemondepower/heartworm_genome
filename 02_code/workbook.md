@@ -20,7 +20,51 @@ fastq-dump --split-files --origfmt --gzip SRR13154016
 fastq-dump --split-files --origfmt --gzip SRR13154015
 fastq-dump --split-files --origfmt --gzip SRR13154014
 fastq-dump --split-files --origfmt --gzip SRR13154013
+
 ```
+
+
+## Map samples (world map)
+
+Map of where samples were collected from in Australia. Size of dots can correspond to number of samples collected in that area.
+
+```R
+# Load packages
+library(ggplot2)
+library(dplyr)
+library(purrr)
+library(stats)
+library(graphics)
+library(grDevices)
+library(utils)
+library(datasets)
+library(methods)
+library(base)
+require(maps)
+library(tidyverse)
+library(readxl)
+library(ozmaps) 
+library(grid)
+
+# Set working directory
+setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS")
+
+#-- metadata that describes information about the samples, such as country of origin, and GPS coordinates
+location_file <- "location.csv"
+
+# Read the actual data into R
+location <- read.csv(location_file, header = TRUE)
+
+# Make world map
+cols <- colorRampPalette(brewer.pal(8, "Set1"))(17)
+par(fg = "black")
+map("world", col = "grey85", fill = TRUE, border = FALSE)
+map.axes()
+# Plot coordinates
+points(location$longitude, location$latitude, cex = 1.5, pch = 20, col = cols)
+```
+![](output/images/map_world.png)
+
 
 
 ## FastQC & Multi-QC
@@ -720,7 +764,6 @@ SLIDINGWINDOW:10:20 MINLEN:50
 
 # Instead of SLIDINGWINDOW, in my previous practice code I used 'AVGQUAL:30 MINLEN:150'.
 ```
-
 ## FastQC & Multi-QC on the merged files AFTER TRIMMING
 
 Check to see how the data looks after trimming.
