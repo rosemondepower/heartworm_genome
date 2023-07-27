@@ -122,8 +122,8 @@ multiqc /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/steve_data/analysis/fastqc/raw
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N trimmomatic
-#PBS -l select=1:ncpus=2:mem=20GB
-#PBS -l walltime=00:45:00
+#PBS -l select=1:ncpus=2:mem=25GB
+#PBS -l walltime=02:00:00
 #PBS -m e
 #PBS -q defaultQ
 #PBS -o trimmomatic.txt
@@ -158,3 +158,64 @@ SLIDINGWINDOW:10:20 MINLEN:50
 ```
 Assume all files are phred33 quality encoded? The SRR files have '????' in the quality scores so I'll have to check this somehow..
 
+
+
+## FastQC & Multi-QC AFTER TRIMMING
+
+Check to see how the data looks after trimming.
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N fastQC_trimmed
+#PBS -l select=2:ncpus=2:mem=30GB
+#PBS -l walltime=05:00:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o fastQC_trimmed.txt
+#PBS -J 1-18
+
+# Submit job
+## qsub ../fastqc_trimmed.pbs
+
+# Load modules
+module load fastqc/0.11.8
+
+# FastQC
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/steve_data/analysis
+NCPU=2
+OUTDIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/steve_data/analysis/fastqc/trimmed
+
+config=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/steve_data/analysis/fastqc/raw/info.txt
+sample=$(awk -v taskID=$PBS_ARRAY_INDEX '$1==taskID {print $2}' $config) 
+
+fastqc -t $NCPU -o ${OUTDIR} /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/steve_data/analysis/trimmomatic/${sample}_trimpaired.fq.gz
+```
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N multiqc_trimmed
+#PBS -l select=1:ncpus=1:mem=2GB
+#PBS -l walltime=00:10:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o multiqc_trimmed.txt
+
+# Submit job
+# qsub ../multiqc_trimmed.pbs
+
+# Run MultiQC to combine all of the FastQC reports for the trimmed fastq files
+
+cd /project/RDS-FSC-Heartworm_MLR-RW/MultiQC
+
+# Load modules
+module load git/2.25.0
+module load python/3.9.15
+
+multiqc /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/fastqc/trimmed -o /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/fastqc/trimmed
+```
