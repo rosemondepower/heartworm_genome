@@ -3160,6 +3160,15 @@ dt-script -P RDS-FSC-Heartworm_MLR-RW \
 dt-script -P RDS-FSC-Heartworm_MLR-RW \
 --from /rds/PRJ-Heartworm_MLR/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/move \
 --to /scratch/RDS-FSC-Heartworm_MLR-RW/mapping
+
+dt-script -P RDS-FSC-Heartworm_MLR-RW \
+--from /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/steve_data \
+--to /rds/PRJ-Heartworm_MLR/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/
+
+dt-script -P RDS-FSC-Heartworm_MLR-RW \
+-m 20GB \
+--from /rds/PRJ-Heartworm_MLR/HW_WGS_5/X201SC23061100-Z01-F002_01/X201SC23061100-Z01-F002_01/01.RawData \
+--to /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/fastq/raw_2
 ```
 
 
