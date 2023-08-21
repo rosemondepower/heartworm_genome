@@ -2,7 +2,7 @@
 
 ### Rose Power USYD 2023
 
-In this workbook, I will obtain the additional public data from Javier's paper and analyse this data to get the GVCF files. Then I will do joint variant calling using my original 31 samples and this extra data.
+In this workbook, I will use the new batch of data I got and I will obtain the additional public data from Javier's paper. I will analyse this data to get the GVCF files. Then I will do joint variant calling using this data as well as my original 31 samples.
 
 
 ## Get public data mentioned in Javier's paper
@@ -47,6 +47,11 @@ wget -nc ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR034/ERR034941/ERR034941_2.fastq.g
 wget -nc ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR034/ERR034943/ERR034943_1.fastq.gz
 ```
 
+
+Script files are in /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/extra_data
+Scratch stuff will be in /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data
+
+
 ## FastQC & Multi-QC
 
 We want to get some stats on the raw data.
@@ -58,7 +63,7 @@ We want to get some stats on the raw data.
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N fastqc
 #PBS -l select=1:ncpus=1:mem=10GB
-#PBS -l walltime=00:20:00
+#PBS -l walltime=00:30:00
 #PBS -m e
 #PBS -q defaultQ
 #PBS -o fastqc.txt
@@ -72,17 +77,51 @@ We want to get some stats on the raw data.
 module load fastqc/0.11.8
 
 # FastQC
-cd /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/steve_data/analysis
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis
 
 NCPU=2
-OUTDIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/steve_data/analysis/fastqc/raw
+OUTDIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/fastqc/raw
 
-config=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/steve_data/analysis/fastqc/raw/info.txt
+config=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/info.txt
 sample=$(awk -v taskID=$PBS_ARRAY_INDEX '$1==taskID {print $2}' $config) 
 
 echo "sample is: $sample"
 
-fastqc -t $NCPU -o ${OUTDIR} /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/steve_data/fastq/${sample}.fastq.gz
+fastqc -t $NCPU -o ${OUTDIR} /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/extra_data/fastq/${sample}.fastq.gz
+```
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N fastqc2
+#PBS -l select=1:ncpus=1:mem=10GB
+#PBS -l walltime=00:30:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o fastqc2.txt
+#PBS -M rosemonde.power@sydney.edu.au
+#PBS -J 1-42
+
+# Submit job
+## qsub ../fastqc2.pbs
+
+# Load modules
+module load fastqc/0.11.8
+
+# FastQC
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis
+
+NCPU=2
+OUTDIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/fastqc/raw
+
+config=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/info2.txt
+sample=$(awk -v taskID=$PBS_ARRAY_INDEX '$1==taskID {print $2}' $config) 
+
+echo "sample is: $sample"
+
+fastqc -t $NCPU -o ${OUTDIR} /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/extra_data/fastq/${sample}.fq.gz
 ```
 
 ## MultiQC
@@ -93,8 +132,8 @@ fastqc -t $NCPU -o ${OUTDIR} /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/steve_dat
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N multiqc
-#PBS -l select=1:ncpus=1:mem=4GB
-#PBS -l walltime=00:10:00
+#PBS -l select=1:ncpus=1:mem=10GB
+#PBS -l walltime=00:20:00
 #PBS -m e
 #PBS -q defaultQ
 #PBS -o multiqc.txt
@@ -108,7 +147,7 @@ module load git
 module load python/3.9.15
 
 # Run MultiQC to combine all of the FastQC reports for the raw fastq files
-multiqc /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/steve_data/analysis/fastqc/raw -o /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/steve_data/analysis/fastqc/raw
+multiqc /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/fastqc/raw -o //scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/fastqc/raw
 ```
 
 
@@ -131,13 +170,13 @@ multiqc /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/steve_data/analysis/fastqc/raw
 
 # qsub ../trimmomatic.pbs
 
-config=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/steve_data/analysis/info.txt
+config=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/trimmomatic/info.txt
 sample=$(awk -v taskID=$PBS_ARRAY_INDEX '$1==taskID {print $2}' $config) 
 NCPU=2
 
 echo "sample is: $sample"
 
-cd /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/steve_data/analysis/trimmomatic
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/trimmomatic
 
 # Load modules
 module load trimmomatic/0.38
@@ -146,8 +185,8 @@ module load trimmomatic/0.38
 java -jar /usr/local/trimmomatic/0.38/trimmomatic-0.38.jar PE \
 -threads $NCPU \
 -phred33 \
-/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/steve_data/fastq/${sample}_1.fastq.gz \
-/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/steve_data/fastq/${sample}_2.fastq.gz \
+/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/extra_data/fastq/${sample}_1.fastq.gz \
+/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/extra_data/fastq/${sample}_2.fastq.gz \
 ${sample}_1_trimpaired.fq.gz ${sample}_1_trimunpaired.fq.gz \
 ${sample}_2_trimpaired.fq.gz ${sample}_2_trimunpaired.fq.gz \
 SLIDINGWINDOW:10:20 MINLEN:50
@@ -157,6 +196,49 @@ SLIDINGWINDOW:10:20 MINLEN:50
 # Instead of SLIDINGWINDOW, in my previous practice code I used 'AVGQUAL:30 MINLEN:150'.
 ```
 Assume all files are phred33 quality encoded? The SRR files have '????' in the quality scores so I'll have to check this somehow..
+
+
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N trimmomatic2
+#PBS -l select=1:ncpus=2:mem=25GB
+#PBS -l walltime=02:00:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o trimmomatic2.txt
+#PBS -J 1-21
+
+# qsub ../trimmomatic2.pbs
+
+config=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/trimmomatic/info2.txt
+sample=$(awk -v taskID=$PBS_ARRAY_INDEX '$1==taskID {print $2}' $config) 
+NCPU=2
+
+echo "sample is: $sample"
+
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/trimmomatic
+
+# Load modules
+module load trimmomatic/0.38
+
+# Run Trimmomatic
+java -jar /usr/local/trimmomatic/0.38/trimmomatic-0.38.jar PE \
+-threads $NCPU \
+-phred33 \
+/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/extra_data/fastq/${sample}_1.fq.gz \
+/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/extra_data/fastq/${sample}_2.fq.gz \
+${sample}_1_trimpaired.fq.gz ${sample}_1_trimunpaired.fq.gz \
+${sample}_2_trimpaired.fq.gz ${sample}_2_trimunpaired.fq.gz \
+SLIDINGWINDOW:10:20 MINLEN:50
+
+# SLIDINGWINDOW:10:20 means it will scan the read with a 10-base wide sliding window, cutting when the average quality per base drops below 20.
+
+# Instead of SLIDINGWINDOW, in my previous practice code I used 'AVGQUAL:30 MINLEN:150'.
+```
 
 
 
@@ -219,3 +301,5 @@ module load python/3.9.15
 
 multiqc /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/fastqc/trimmed -o /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/fastqc/trimmed
 ```
+
+
