@@ -252,12 +252,12 @@ Check to see how the data looks after trimming.
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N fastQC_trimmed
-#PBS -l select=2:ncpus=2:mem=30GB
-#PBS -l walltime=05:00:00
+#PBS -l select=1:ncpus=1:mem=10GB
+#PBS -l walltime=00:20:00
 #PBS -m e
 #PBS -q defaultQ
 #PBS -o fastQC_trimmed.txt
-#PBS -J 1-18
+#PBS -J 1-60
 
 # Submit job
 ## qsub ../fastqc_trimmed.pbs
@@ -266,14 +266,14 @@ Check to see how the data looks after trimming.
 module load fastqc/0.11.8
 
 # FastQC
-cd /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/steve_data/analysis
-NCPU=2
-OUTDIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/steve_data/analysis/fastqc/trimmed
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis
+NCPU=1
+OUTDIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/fastqc/trimmed
 
-config=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/steve_data/analysis/fastqc/raw/info.txt
+config=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/fastqc/trimmed/info.txt
 sample=$(awk -v taskID=$PBS_ARRAY_INDEX '$1==taskID {print $2}' $config) 
 
-fastqc -t $NCPU -o ${OUTDIR} /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/steve_data/analysis/trimmomatic/${sample}_trimpaired.fq.gz
+fastqc -t $NCPU -o ${OUTDIR} /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/trimmomatic/${sample}_trimpaired.fq.gz
 ```
 
 ```bash
@@ -299,7 +299,142 @@ cd /project/RDS-FSC-Heartworm_MLR-RW/MultiQC
 module load git/2.25.0
 module load python/3.9.15
 
-multiqc /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/fastqc/trimmed -o /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/fastqc/trimmed
+multiqc /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/fastqc/trimmed -o //scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/fastqc/trimmed
+```
+
+
+### Map trimmed reads to combined D. immitis & Wol & dog genome
+
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N mapping
+#PBS -l select=1:ncpus=16:mem=50GB
+#PBS -l walltime=01:00:00
+#PBS -m abe
+#PBS -q defaultQ
+#PBS -o mapping.txt
+#PBS -J 1-30
+
+# qsub ../mapping.pbs
+
+config=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/info.txt
+sample=$(awk -v taskID=$PBS_ARRAY_INDEX '$1==taskID {print $2}' $config) 
+NCPU=16
+
+# Set working directory
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping
+
+# Load modules
+module load bwa/0.7.17
+
+# map the reads, with a separate mapping job for each sample
+bwa mem /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/reference_di_wol_dog.fa \
+-t $NCPUS \
+../trimmomatic/${sample}_1_trimpaired.fq.gz \
+../trimmomatic/${sample}_2_trimpaired.fq.gz \
+> /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/${sample}.tmp.sam
+
+# Set the num_threads param to directly scale with the number of cpus using the PBS environment variable "${NCPUS}).
+
+```
+
+
+Convert to bam & sort the mapped reads:
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N mapping_sort
+#PBS -l select=1:ncpus=1:mem=70GB
+#PBS -l walltime=02:00:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o mapping_sort.txt
+#PBS -J 1-30
+
+# qsub ../mapping_sort.pbs
+
+config=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/info.txt
+sample=$(awk -v taskID=$PBS_ARRAY_INDEX '$1==taskID {print $2}' $config) 
+NCPU=1
+
+# Set working directory
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping
+
+# Load modules
+module load samtools/1.9
+
+# Mapping stats
+samtools flagstat ${sample}.tmp.sam > flagstat1/${sample}_flagstat1.txt
+	
+# convert the sam to bam format
+samtools view -q 15 -b -o ${sample}.tmp.bam ${sample}.tmp.sam
+
+# sort the mapped reads in the bam file
+samtools sort ${sample}.tmp.bam -o ${sample}.sorted.bam
+ 
+# index the sorted bam
+samtools index ${sample}.sorted.bam
+
+# Mapping stats after filtering
+samtools flagstat ${sample}.sorted.bam > flagstat2/${sample}_flagstat2.txt
+```
+
+
+Combine flagstat files for all samples so it's easier to read.
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N multiqc_flagstat1
+#PBS -l select=1:ncpus=1:mem=1GB
+#PBS -l walltime=00:02:30
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o multiqc_flagstat1.txt
+
+# Submit job
+# qsub ../multiqc_flagstat1.pbs
+
+cd /project/RDS-FSC-Heartworm_MLR-RW/MultiQC
+
+# Load modules
+module load git/2.25.0
+module load python/3.9.15
+
+multiqc /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/flagstat1/*_flagstat1.txt -o /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/flagstat1
+```
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N multiqc_flagstat2
+#PBS -l select=1:ncpus=1:mem=1GB
+#PBS -l walltime=00:03:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o multiqc_flagstat2.txt
+
+# Submit job
+# qsub ../multiqc_flagstat2.pbs
+
+cd /project/RDS-FSC-Heartworm_MLR-RW/MultiQC
+
+# Load modules
+module load git/2.25.0
+module load python/3.9.15
+
+multiqc /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/flagstat2/*_flagstat2.txt -o /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/flagstat2
 ```
 
 
