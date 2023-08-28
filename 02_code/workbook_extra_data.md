@@ -351,8 +351,8 @@ Convert to bam & sort the mapped reads:
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N mapping_sort
-#PBS -l select=1:ncpus=1:mem=70GB
-#PBS -l walltime=02:00:00
+#PBS -l select=1:ncpus=1:mem=100GB
+#PBS -l walltime=04:00:00
 #PBS -m e
 #PBS -q defaultQ
 #PBS -o mapping_sort.txt
@@ -363,6 +363,8 @@ Convert to bam & sort the mapped reads:
 config=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/info.txt
 sample=$(awk -v taskID=$PBS_ARRAY_INDEX '$1==taskID {print $2}' $config) 
 NCPU=1
+
+echo "sample is: $sample"
 
 # Set working directory
 cd /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping
@@ -385,6 +387,7 @@ samtools index ${sample}.sorted.bam
 # Mapping stats after filtering
 samtools flagstat ${sample}.sorted.bam > flagstat2/${sample}_flagstat2.txt
 ```
+
 
 
 Combine flagstat files for all samples so it's easier to read.
@@ -410,7 +413,7 @@ cd /project/RDS-FSC-Heartworm_MLR-RW/MultiQC
 module load git/2.25.0
 module load python/3.9.15
 
-multiqc /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/flagstat1/*_flagstat1.txt -o /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/flagstat1
+multiqc /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/flagstat1/*_flagstat1.txt -o /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/flagstat1
 ```
 
 ```bash
@@ -434,7 +437,256 @@ cd /project/RDS-FSC-Heartworm_MLR-RW/MultiQC
 module load git/2.25.0
 module load python/3.9.15
 
-multiqc /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/flagstat2/*_flagstat2.txt -o /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/flagstat2
+multiqc /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/flagstat2/*_flagstat2.txt -o /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/flagstat2
 ```
+
+
+
+## Extract reads that mapped to the *D. immitis* genome
+
+If I mapped to the *D. immitis* and dog genomes separately, there could be reads that mapped to both genomes. To avoid this, I mapped to the combined D. immitis/dog genome. I can now extract the reads that mapped to only the *D. immitis* genome and use this for downstream analyses.
+
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N mapping_extract
+#PBS -l select=1:ncpus=1:mem=20GB
+#PBS -l walltime=02:00:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o mapping_extract.txt
+#PBS -J 1-30
+
+# qsub ../mapping_extract.pbs
+
+# Set working directory
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping
+
+# Load modules
+module load samtools/1.9
+
+config=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/info.txt
+sample=$(awk -v taskID=$PBS_ARRAY_INDEX '$1==taskID {print $2}' $config) 
+NCPU=1
+
+# Extract reads that only mapped to D. immitis.
+samtools view -b -h -L /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/dimmitis_WSI_2.2.bed /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/${sample}.sorted.bam > /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/${sample}_extract.bam
+# Should still be in sorted form
+# -b flag makes sure the output is bam
+# -h flag includes the header in SAM output
+
+samtools view /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/${sample}_extract.bam | head
+
+# I do not have to sort the bam file again, it should still be sorted.
+
+## QC
+# How many D. immitis reads were extracted?
+
+samtools flagstat /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/${sample}_extract.bam > /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/extract_flagstat/${sample}_extract_flagstat.txt
+```
+
+Combine flagstat files for all samples so it's easier to read.
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N multiqc_extract_flagstat
+#PBS -l select=1:ncpus=1:mem=1GB
+#PBS -l walltime=00:02:30
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o multiqc_extract_flagstat.txt
+
+# Submit job
+# qsub ../multiqc_extract_flagstat.pbs
+
+cd /project/RDS-FSC-Heartworm_MLR-RW/MultiQC
+
+# Load modules
+module load git/2.25.0
+module load python/3.9.15
+
+multiqc /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/extract_flagstat/*_extract_flagstat.txt -o /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/extract_flagstat
+```
+
+
+
+## Index the extracted bam files
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N mapping_extract_index
+#PBS -l select=1:ncpus=1:mem=10GB
+#PBS -l walltime=00:10:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o mapping_extract_index.txt
+#PBS -J 1-30
+
+#qsub ../mapping_extract_index.pbs
+
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping
+
+# Load modules
+module load samtools/1.9
+
+config=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/info.txt
+sample=$(awk -v taskID=$PBS_ARRAY_INDEX '$1==taskID {print $2}' $config) 
+NCPU=1
+
+samtools index ${sample}_extract.bam
+```
+
+
+
+
+
+## SNPs (raw)
+
+
+## Adding read groups to bam files
+
+I didn't add read groups during the mapping step, but luckily I can use samtools addreplacerg to add them in after mapping.
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N read_groups
+#PBS -l select=1:ncpus=1:mem=20GB
+#PBS -l walltime=00:40:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o read_groups.txt
+#PBS -J 1-30
+
+# qsub ../read_groups.pbs
+
+WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping
+cd "${WORKING_DIR}"
+
+config=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/info.txt
+SAMPLE_NAME=$(awk -v taskID=$PBS_ARRAY_INDEX '$1==taskID {print $2}' $config)
+
+# Load modules
+module load samtools/1.9
+
+samtools addreplacerg -r "@RG\tRG:${SAMPLE_NAME}\tID:${SAMPLE_NAME}\tSM:${SAMPLE_NAME}" -o /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/bams/${SAMPLE_NAME}_rg.bam  /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/${SAMPLE_NAME}_extract.bam
+```
+
+
+## Index the read group bam files
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N rg_index
+#PBS -l select=1:ncpus=2:mem=10GB
+#PBS -l walltime=00:10:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o rg_index.txt
+#PBS -J 1-30
+
+# qsub ../rg_index.pbs
+
+
+WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/bams
+cd "${WORKING_DIR}"
+
+config=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/info.txt
+
+sample=$(awk -v taskID=$PBS_ARRAY_INDEX '$1==taskID {print $2}' $config) 
+bam=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/bams/${sample}_rg.bam
+
+echo "sample is: $sample"
+echo "bam is: $bam"
+
+# Load modules
+module load samtools/1.9
+
+# index bam files
+samtools index ${bam}
+```
+
+Transferring final bam files from Artemis -> RDS
+```bash
+dt-script -P RDS-FSC-Heartworm_MLR-RW \
+-m 20GB \
+--from /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data \
+--to /rds/PRJ-Heartworm_MLR/scratch/RDS-FSC-Heartworm_MLR-RW/mapping
+```
+
+Transferring final bam files from RDS -> Nimbus
+```bash
+scp -r -i heartworm.pem Z:/PRJ-Heartworm_MLR/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/bams ubuntu@###.###.###.###:data/
+```
+
+
+
+## Calling variants in a faster way using arrays
+
+Now run on all samples:
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N variant_calling
+#PBS -l select=1:ncpus=2:mem=20GB
+#PBS -l walltime=250:00:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o variant_calling.txt
+#PBS -J 1-30
+
+# qsub ../variant_calling.pbs
+
+
+WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/bams
+cd "${WORKING_DIR}"
+
+config=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/info.txt
+ref=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/reference_di_wol_dog.fa
+
+sample=$(awk -v taskID=$PBS_ARRAY_INDEX '$1==taskID {print $2}' $config) 
+bam=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/bams/${sample}_rg.bam
+vcf=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/vcf/${sample}.g.vcf.gz
+
+# Load modules
+#module load gatk/4.2.1.0
+module load gatk/4.1.4.1
+module load samtools/1.9
+
+
+# make gvcf per sample
+gatk --java-options "-Xmx8g -DGATK_STACKTRACE_ON_USER_EXCEPTION=true" \
+HaplotypeCaller \
+-R ${ref} \
+-I ${bam} \
+-O ${vcf} \
+-ERC GVCF
+```
+
+
+
+
+
+## Variant calling with ALL POSITIONS
+
+
+
 
 
