@@ -680,13 +680,202 @@ HaplotypeCaller \
 -ERC GVCF
 ```
 
+This worked! Now I can proceed with joint variant calling using these new samples AND the old samples.
 
 
 
 
 ## Variant calling with ALL POSITIONS
 
+## Joint call variants
+
+Merge the GVCF files we generated with HaplotypeCaller into a single GVCF file.
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N jointcall_variants.pbs
+#PBS -l select=1:ncpus=1:mem=80GB
+#PBS -l walltime=14:00:00
+#PBS -m abe
+#PBS -q defaultQ
+#PBS -o jointcall_variants.txt
+#PBS -M rosemonde.power@sydney.edu.au
+
+# qsub ../jointcall_variants.pbs
+
+# Perform joint genotyping on one or more samples pre-called with HaplotypeCaller
+
+WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/vcf
+cd "${WORKING_DIR}"
+
+cohort=Dirofilaria_immitis_Sep2023
+config=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/info.txt
+ref=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/reference_di_wol_dog.fa
+
+gvcf=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/vcf/${cohort}.g.vcf.gz
+vcf=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/vcf/${cohort}.vcf.gz
+
+# Load modules
+module load gatk/4.2.1.0
+
+# collect all sample g.vcfs in /scratch/<project>/mapping/extra_data/analysis/mapping/vcf to make input for CombineGVCFs
+ls /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/vcf/*.g.vcf.gz /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/vcf/*.g.vcf.gz > /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/vcf/gvcf.list
+
+args=$(while read line; do
+  echo "-V ${line}"
+done < /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/vcf/gvcf.list)
+
+echo $args
+
+# create cohort gvcf
+gatk --java-options "-Xmx28g -DGATK_STACKTRACE_ON_USER_EXCEPTION=true" \
+        CombineGVCFs \
+        -R ${ref} \
+        ${args} \
+        -O ${gvcf}
 
 
+# Genotype cohort vcf
+gatk --java-options "-Xmx28g -DGATK_STACKTRACE_ON_USER_EXCEPTION=true" \
+        GenotypeGVCFs \
+        -R ${ref} \
+        -V ${gvcf} \
+        -O ${vcf}
+```
+
+
+## SNPs QC
+
+### Querying SNP and INDEL QC profiles to determine thresholds for filters
+
+Adopted from Javier's paper.
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N snps_qc
+#PBS -l select=1:ncpus=1:mem=4GB
+#PBS -l walltime=00:10:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o snps_qc.txt
+
+# qsub ../snps_qc.pbs
+
+
+# load gatk
+module load gatk/4.1.4.1
+
+WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/filter
+
+# set reference, vcf, and mitochondrial and Wb contig
+REFERENCE=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/dimmitis_WSI_2.2.fa
+VCF=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/filter/Dirofilaria_immitis_Sep2023.vcf.gz
+MIT_CONTIG=dirofilaria_immitis_chrMtDNA
+WB_CONTIG=dirofilaria_immitis_chrWb
+
+
+# Make .dict file for reference sequence
+## gatk CreateSequenceDictionary -R ${REFERENCE} -O /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/dimmitis_WSI_2.2.dict # already did this previously
+
+cd ${WORKING_DIR}
+
+# select nuclear SNPs
+gatk SelectVariants \
+--reference ${REFERENCE} \
+--variant ${VCF} \
+--select-type-to-include SNP \
+--exclude-intervals ${MIT_CONTIG} \
+--exclude-intervals ${WB_CONTIG} \
+--output ${VCF%.vcf.gz}.nuclearSNPs.vcf
+
+# select nuclear INDELs
+gatk SelectVariants \
+--reference ${REFERENCE} \
+--variant ${VCF} \
+--select-type-to-include INDEL \
+--exclude-intervals ${MIT_CONTIG} \
+--exclude-intervals ${WB_CONTIG} \
+--output ${VCF%.vcf.gz}.nuclearINDELs.vcf
+
+# select mitochondrial SNPs
+gatk SelectVariants \
+--reference ${REFERENCE} \
+--variant ${VCF} \
+--select-type-to-include SNP \
+--intervals ${MIT_CONTIG} \
+--output ${VCF%.vcf.gz}.mitoSNPs.vcf
+
+# select mitochondrial INDELs
+gatk SelectVariants \
+--reference ${REFERENCE} \
+--variant ${VCF} \
+--select-type-to-include INDEL \
+--intervals ${MIT_CONTIG} \
+--output ${VCF%.vcf.gz}.mitoINDELs.vcf
+
+# select WB SNPs
+gatk SelectVariants \
+--reference ${REFERENCE} \
+--variant ${VCF} \
+--select-type-to-include SNP \
+--intervals ${WB_CONTIG} \
+--output ${VCF%.vcf.gz}.WbSNPs.vcf
+
+# select WB INDELs
+gatk SelectVariants \
+--reference ${REFERENCE} \
+--variant ${VCF} \
+--select-type-to-include INDEL \
+--intervals ${WB_CONTIG} \
+--output ${VCF%.vcf.gz}.WbINDELs.vcf
+
+# make a table of nuclear SNP data
+gatk VariantsToTable \
+--reference ${REFERENCE} \
+--variant Dirofilaria_immitis_Sep2023.nuclearSNPs.vcf \
+--fields CHROM --fields POS --fields QUAL --fields QD --fields DP --fields MQ --fields MQRankSum --fields FS --fields ReadPosRankSum --fields SOR \
+--output GVCFall_nuclearSNPs.table
+
+# make a table of nuclear INDEL data
+gatk VariantsToTable \
+--reference ${REFERENCE} \
+--variant Dirofilaria_immitis_Sep2023.nuclearINDELs.vcf \
+--fields CHROM --fields POS --fields QUAL --fields QD --fields DP --fields MQ --fields MQRankSum --fields FS --fields ReadPosRankSum --fields SOR \
+--output GVCFall_nuclearINDELs.table
+
+# make a table of mito SNP data
+gatk VariantsToTable \
+--reference ${REFERENCE} \
+--variant Dirofilaria_immitis_Sep2023.mitoSNPs.vcf \
+--fields CHROM --fields POS --fields QUAL --fields QD --fields DP --fields MQ --fields MQRankSum --fields FS --fields ReadPosRankSum --fields SOR \
+--output GVCFall_mitoSNPs.table
+
+# make a table of mito INDEL data
+gatk VariantsToTable \
+--reference ${REFERENCE} \
+--variant Dirofilaria_immitis_Sep2023.mitoINDELs.vcf \
+--fields CHROM --fields POS --fields QUAL --fields QD --fields DP --fields MQ --fields MQRankSum --fields FS --fields ReadPosRankSum --fields SOR \
+--output GVCFall_mitoINDELs.table
+
+# make a table of Wb SNP data
+gatk VariantsToTable \
+--reference ${REFERENCE} \
+--variant Dirofilaria_immitis_Sep2023.WbSNPs.vcf \
+--fields CHROM --fields POS --fields QUAL --fields QD --fields DP --fields MQ --fields MQRankSum --fields FS --fields ReadPosRankSum --fields SOR \
+--output GVCFall_WbSNPs.table
+
+# make a table of Wb INDEL data
+gatk VariantsToTable \
+--reference ${REFERENCE} \
+--variant Dirofilaria_immitis_Sep2023.WbINDELs.vcf \
+--fields CHROM --fields POS --fields QUAL --fields QD --fields DP --fields MQ --fields MQRankSum --fields FS --fields ReadPosRankSum --fields SOR \
+--output GVCFall_WbINDELs.table
+```
 
 
