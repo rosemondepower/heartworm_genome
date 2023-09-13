@@ -685,7 +685,6 @@ This worked! Now I can proceed with joint variant calling using these new sample
 
 
 
-## Variant calling with ALL POSITIONS
 
 ## Joint call variants
 
@@ -745,7 +744,7 @@ gatk --java-options "-Xmx28g -DGATK_STACKTRACE_ON_USER_EXCEPTION=true" \
         -V ${gvcf} \
         -O ${vcf}
 ```
-
+Moved the cohort vcf file to the /filter folder and then moved it back.
 
 ## SNPs QC
 
@@ -759,11 +758,12 @@ Adopted from Javier's paper.
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N snps_qc
-#PBS -l select=1:ncpus=1:mem=4GB
-#PBS -l walltime=00:10:00
-#PBS -m e
+#PBS -l select=1:ncpus=1:mem=10GB
+#PBS -l walltime=02:00:00
+#PBS -m abe
 #PBS -q defaultQ
 #PBS -o snps_qc.txt
+#PBS -M rosemonde.power@sydney.edu.au
 
 # qsub ../snps_qc.pbs
 
@@ -879,3 +879,963 @@ gatk VariantsToTable \
 ```
 
 
+### Make some density plots of the data and get quantiles in R
+
+```R
+# load libraries
+library(patchwork)
+require(data.table)
+library(tidyverse)
+library(gridExtra)
+
+setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/snps_qc")
+
+# Import data
+## Nuclear SNPs & indels
+VCF_nuclear_snps <- fread('GVCFall_nuclearSNPs.table', header = TRUE, fill=TRUE, na.strings=c("","NA"), sep = "\t")
+VCF_nuclear_snps <- sample_frac(VCF_nuclear_snps, 0.2) # select fraction of rows
+VCF_nuclear_indels <- fread('GVCFall_nuclearINDELs.table', header = TRUE, fill=TRUE, na.strings=c("","NA"), sep = "\t")
+VCF_nuclear_indels <- sample_frac(VCF_nuclear_indels, 0.2)
+dim(VCF_nuclear_snps) # returns the dimensions of the data frame
+dim(VCF_nuclear_indels)
+VCF_nuclear <- rbind(VCF_nuclear_snps, VCF_nuclear_indels) # joins multiple rows to form a single batch
+VCF_nuclear$Variant <- factor(c(rep("SNPs", dim(VCF_nuclear_snps)[1]), rep("Indels", dim(VCF_nuclear_indels)[1]))) # make a new column saying whether it's a SNP or indel
+
+## Mitochondrial SNPs & indels
+VCF_mito_snps <- fread('GVCFall_mitoSNPs.table', header = TRUE, fill=TRUE, na.strings=c("","NA"), sep = "\t")
+VCF_mito_indels <- fread('GVCFall_mitoINDELs.table', header = TRUE, fill=TRUE, na.strings=c("","NA"), sep = "\t")
+dim(VCF_mito_snps)
+dim(VCF_mito_indels)
+VCF_mito <- rbind(VCF_mito_snps, VCF_mito_indels)
+VCF_mito$Variant <- factor(c(rep("SNPs", dim(VCF_mito_snps)[1]), rep("Indels", dim(VCF_mito_indels)[1])))
+
+## Wolbachia SNPs & indels
+VCF_wb_snps <- fread('GVCFall_WbSNPs.table', header = TRUE, fill=TRUE, na.strings=c("","NA"), sep = "\t")
+VCF_wb_indels <- fread('GVCFall_WbINDELs.table', header = TRUE, fill=TRUE, na.strings=c("","NA"), sep = "\t")
+dim(VCF_wb_snps)
+dim(VCF_wb_indels)
+VCF_wb <- rbind(VCF_wb_snps, VCF_wb_indels)
+VCF_wb$Variant <- factor(c(rep("SNPs", dim(VCF_wb_snps)[1]), rep("Indels", dim(VCF_wb_indels)[1])))
+
+# Set colours for the plots
+snps <- '#A9E2E4'
+indels <- '#F4CCCA'
+
+# make function which makes plots
+fun_variant_summaries <- function(data, title){
+  # gatk hardfilter: SNP & INDEL QUAL < 0
+  QUAL_quant <- quantile(data$QUAL, c(.01,.99), na.rm=T)
+  
+  QUAL <-
+    ggplot(data, aes(x=log10(QUAL), fill=Variant)) +
+    geom_density(alpha=.3) +
+    geom_vline(xintercept=0, size=0.7, col="red") +
+    geom_vline(xintercept=c(log10(QUAL_quant[2]), log10(QUAL_quant[3])), size=0.7, col="blue") +
+    #xlim(0,10000) +
+    theme_bw() +
+    labs(title=paste0(title,": QUAL"))
+  
+  
+  # DP doesnt have a hardfilter
+  DP_quant <- quantile(data$DP, c(.01,.99), na.rm=T)
+  
+  DP <-
+    ggplot(data, aes(x=log10(DP), fill=Variant)) +
+    geom_density(alpha=0.3) +
+    geom_vline(xintercept=log10(DP_quant), col="blue") +
+    theme_bw() +
+    labs(title=paste0(title,": DP"))
+  
+  # gatk hardfilter: SNP & INDEL QD < 2
+  QD_quant <- quantile(data$QD, c(.01,.99), na.rm=T)
+  
+  QD <-
+    ggplot(data, aes(x=QD, fill=Variant)) +
+    geom_density(alpha=.3) +
+    geom_vline(xintercept=2, size=0.7, col="red") +
+    geom_vline(xintercept=QD_quant, size=0.7, col="blue") +
+    theme_bw() +
+    labs(title=paste0(title,": QD"))
+  
+  # gatk hardfilter: SNP FS > 60, INDEL FS > 200
+  FS_quant <- quantile(data$FS, c(.01,.99), na.rm=T)
+  
+  FS <-
+    ggplot(data, aes(x=log10(FS), fill=Variant)) +
+    geom_density(alpha=.3) +
+    geom_vline(xintercept=c(log10(60), log10(200)), size=0.7, col="red") +
+    geom_vline(xintercept=log10(FS_quant), size=0.7, col="blue") +
+    #xlim(0,250) +
+    theme_bw() +
+    labs(title=paste0(title,": FS"))
+  
+  # gatk hardfilter: SNP & INDEL MQ < 30
+  MQ_quant <- quantile(data$MQ, c(.01,.99), na.rm=T)
+  
+  MQ <-
+    ggplot(data, aes(x=MQ, fill=Variant)) + geom_density(alpha=.3) +
+    geom_vline(xintercept=40, size=0.7, col="red") +
+    geom_vline(xintercept=MQ_quant, size=0.7, col="blue") +
+    theme_bw() +
+    labs(title=paste0(title,": MQ"))
+  
+  # gatk hardfilter: SNP MQRankSum < -20
+  MQRankSum_quant <- quantile(data$MQRankSum, c(.01,.99), na.rm=T)
+  
+  MQRankSum <-
+    ggplot(data, aes(x=log10(MQRankSum), fill=Variant)) + geom_density(alpha=.3) +
+    geom_vline(xintercept=log10(-20), size=0.7, col="red") +
+    geom_vline(xintercept=log10(MQRankSum_quant), size=0.7, col="blue") +
+    theme_bw() +
+    labs(title=paste0(title,": MQRankSum"))
+  
+  
+  # gatk hardfilter: SNP SOR < 4 , INDEL SOR > 10
+  SOR_quant <- quantile(data$SOR, c(.01, .99), na.rm=T)
+  
+  SOR <-
+    ggplot(data, aes(x=SOR, fill=Variant)) +
+    geom_density(alpha=.3) +
+    geom_vline(xintercept=c(4, 10), size=1, colour = c(snps,indels)) +
+    geom_vline(xintercept=SOR_quant, size=0.7, col="blue") +
+    theme_bw() +
+    labs(title=paste0(title,": SOR"))
+  
+  # gatk hardfilter: SNP ReadPosRankSum <-10 , INDEL ReadPosRankSum < -20
+  ReadPosRankSum_quant <- quantile(data$ReadPosRankSum, c(.01,.99), na.rm=T)
+  
+  ReadPosRankSum <-
+    ggplot(data, aes(x=ReadPosRankSum, fill=Variant)) +
+    geom_density(alpha=.3) +
+    geom_vline(xintercept=c(-10,10,-20,20), size=1, colour = c(snps,snps,indels,indels)) +
+    xlim(-10, 10) +
+    geom_vline(xintercept=ReadPosRankSum_quant, size=0.7, col="blue") +
+    theme_bw() +
+    labs(title=paste0(title,": ReadPosRankSum"))
+  
+  
+  plot <- QUAL + DP + QD + FS + MQ + MQRankSum + SOR + ReadPosRankSum + plot_layout(ncol=2)
+  
+  print(plot)
+  
+  ggsave(paste0("plot_",title,"_variant_summaries.png"), height=20, width=15, type="cairo")
+  
+  
+  # generate a table of quantiles for each variant feature
+  QUAL_quant <- data %>% group_by(Variant) %>% summarise(quants = list(quantile(QUAL, probs = c(0.01,0.05,0.95,0.99),na.rm=T))) %>% unnest_wider(quants)
+  QUAL_quant$name <- "QUAL"
+  DP_quant <- data %>% group_by(Variant) %>% summarise(quants = list(quantile(DP, probs = c(0.01,0.05,0.95,0.99),na.rm=T))) %>% unnest_wider(quants)
+  DP_quant$name <- "DP"
+  QD_quant <- data %>% group_by(Variant) %>% summarise(quants = list(quantile(QD, probs = c(0.01,0.05,0.95,0.99),na.rm=T))) %>% unnest_wider(quants)
+  QD_quant$name <- "QD"
+  FS_quant <- data %>% group_by(Variant) %>% summarise(quants = list(quantile(FS, probs = c(0.01,0.05,0.95,0.99),na.rm=T))) %>% unnest_wider(quants)
+  FS_quant$name <- "FS"
+  MQ_quant <- data %>% group_by(Variant) %>% summarise(quants = list(quantile(MQ, probs = c(0.01,0.05,0.95,0.99),na.rm=T))) %>% unnest_wider(quants)
+  MQ_quant$name <- "MQ"
+  MQRankSum_quant <- data %>% group_by(Variant) %>% summarise(quants = list(quantile(MQRankSum, probs = c(0.01,0.05,0.95,0.99),na.rm=T))) %>% unnest_wider(quants)
+  MQRankSum_quant$name <- "MQRankSum"
+  SOR_quant <- data %>% group_by(Variant) %>% summarise(quants = list(quantile(SOR, probs = c(0.01,0.05,0.95,0.99),na.rm=T))) %>% unnest_wider(quants)
+  SOR_quant$name <- "SOR"
+  ReadPosRankSum_quant <- data %>% group_by(Variant) %>% summarise(quants = list(quantile(ReadPosRankSum, probs = c(0.01,0.05,0.95,0.99),na.rm=T))) %>% unnest_wider(quants)
+  ReadPosRankSum_quant$name <- "ReadPosRankSum"
+  
+  quantiles <- bind_rows(QUAL_quant,DP_quant, QD_quant, FS_quant, MQ_quant, MQRankSum_quant, SOR_quant, ReadPosRankSum_quant)
+  quantiles$name <- c("QUAL_Indels","QUAL_SNPs","DP_indels","DP_SNPs", "QD_indels","QD_SNPs", "FS_indels","FS_SNPs", "MQ_indels","MQ_SNPs", "MQRankSum_indels","MQRankSum_SNPs", "SOR_indels","SOR_SNPs","ReadPosRankSum_indels","ReadPosRankSum_SNPs")
+  
+  png(paste0("table_",title,"_variant_quantiles.png"), width=1000,height=500,bg = "white")
+  print(quantiles)
+  grid.table(quantiles)
+  dev.off()
+  
+}
+```
+```R
+# run nuclear variants
+fun_variant_summaries(VCF_nuclear,"nuclear")
+```
+![](output/images/plot_nuclear_variant_summaries.png)
+![](output/images/table_nuclear_variant_quantiles.png)
+
+```R
+# run mitochondrial variants
+fun_variant_summaries(VCF_mito,"mitochondrial")
+```
+![](output/images/plot_mitochondrial_variant_summaries.png)
+![](output/images/table_mitochondrial_variant_quantiles.png)
+
+```R
+# run wolbachia variants
+fun_variant_summaries(VCF_wb,"wolbachia")
+```
+![](output/images/plot_wolbachia_variant_summaries.png)
+![](output/images/table_wolbachia_variant_quantiles.png)
+
+```R
+# Plot for mtDNA
+##The mitochondrial genome has fewer SNPs so we might want to plot the individual points instead of density. This will give us a better idea of how to filter this data.
+
+  # gatk hardfilter: SNP & INDEL QUAL < 0
+  QUAL <-
+    ggplot(VCF_mito) +
+    geom_point( aes(x=log10(QUAL), y=Variant, colour=Variant)) +
+    #xlim(0,10000) +
+    theme_bw() +
+    labs(title=paste0("mitochondrial",": QUAL"))
+  QUAL
+  
+  # DP doesnt have a hardfilter
+  DP <-
+    ggplot(VCF_mito) +
+    geom_point( aes(x=log10(DP), y=Variant, colour=Variant)) +
+    theme_bw() +
+    labs(title=paste0("mitochondrial",": DP"))
+  DP
+  
+  # gatk hardfilter: SNP & INDEL QD < 2
+  QD <-
+    ggplot(VCF_mito) +
+    geom_point( aes(x=QD, y=Variant, colour=Variant)) +
+    theme_bw() +
+    labs(title=paste0("mitochondrial",": QD"))
+  QD
+  # Removed 1 rows containing missing values (`geom_point()`). 
+  
+  # gatk hardfilter: SNP FS > 60, INDEL FS > 200
+  FS <-
+    ggplot(VCF_mito) +
+    geom_point( aes(x=log10(FS), y=Variant, colour=Variant)) +
+    #xlim(0,250) +
+    theme_bw() +
+    labs(title=paste0("mitochondrial",": FS"))
+  FS
+  
+  # gatk hardfilter: SNP & INDEL MQ < 30
+  MQ <-
+    ggplot(VCF_mito) +
+    geom_point( aes(x=MQ, y=Variant, colour=Variant)) +
+    theme_bw() +
+    labs(title=paste0("mitochondrial",": MQ"))
+  MQ
+  
+  # gatk hardfilter: SNP MQRankSum < -20
+  MQRankSum <-
+    ggplot(VCF_mito) +
+    geom_point( aes(x=log10(MQRankSum), y=Variant, colour=Variant)) +
+    theme_bw() +
+    labs(title=paste0("mitochondrial",": MQRankSum"))
+  MQRankSum
+  # Removed 86 rows containing missing values (`geom_point()`). 
+  
+  
+  # gatk hardfilter: SNP SOR < 4 , INDEL SOR > 10
+  SOR <-
+    ggplot(VCF_mito) +
+    geom_point( aes(x=SOR, y=Variant, colour=Variant)) +
+    theme_bw() +
+    labs(title=paste0("mitochondrial",": SOR"))
+  SOR
+  
+  # gatk hardfilter: SNP ReadPosRankSum <-10 , INDEL ReadPosRankSum < -20
+  ReadPosRankSum <-
+    ggplot(VCF_mito) +
+    geom_point( aes(x=ReadPosRankSum, y=Variant, colour=Variant)) +
+    theme_bw() +
+    labs(title=paste0("mitochondrial",": ReadPosRankSum"))
+  ReadPosRankSum
+  # Removed 6 rows containing missing values (`geom_point()`). 
+  
+  
+  plot <- QUAL + DP + QD + FS + MQ + MQRankSum + SOR + ReadPosRankSum + plot_layout(ncol=2)
+  
+  print(plot)
+  
+  ggsave(paste0("plot_mitochondrial_indiv_variant_summaries.png"), height=20, width=15, type="cairo")
+```
+![](output/images/plot_mitochondrial_indiv_variant_summaries.png)
+Notice how everything is in 1 line on the y-axis because I used geom_point(). What if there are thousands of points voerlapping one another and I just can't see them? To combat this, I can use geom_jitter() which spreads things out so I can see them properly (but the y-axis doesn't really mean anything, it is simply to help visualise things).
+
+
+Using geom_jitter():
+
+```R
+ # Repeat the same thing as above but use geom_jitter instead of geom_point.
+  # gatk hardfilter: SNP & INDEL QUAL < 0
+  QUAL <-
+    ggplot(VCF_mito) +
+    geom_jitter( aes(x=log10(QUAL), y=Variant, colour=Variant)) +
+    #xlim(0,10000) +
+    theme_bw() +
+    labs(title=paste0("mitochondrial",": QUAL"))
+  QUAL
+  
+  # DP doesnt have a hardfilter
+  DP <-
+    ggplot(VCF_mito) +
+    geom_jitter( aes(x=log10(DP), y=Variant, colour=Variant)) +
+    theme_bw() +
+    labs(title=paste0("mitochondrial",": DP"))
+  DP
+  
+  # gatk hardfilter: SNP & INDEL QD < 2
+  QD <-
+    ggplot(VCF_mito) +
+    geom_jitter( aes(x=QD, y=Variant, colour=Variant)) +
+    theme_bw() +
+    labs(title=paste0("mitochondrial",": QD"))
+  QD
+  # Removed 1 rows containing missing values (`geom_point()`). 
+  
+  # gatk hardfilter: SNP FS > 60, INDEL FS > 200
+  FS <-
+    ggplot(VCF_mito) +
+    geom_jitter( aes(x=log10(FS), y=Variant, colour=Variant)) +
+    #xlim(0,250) +
+    theme_bw() +
+    labs(title=paste0("mitochondrial",": FS"))
+  FS
+  
+  # gatk hardfilter: SNP & INDEL MQ < 30
+  MQ <-
+    ggplot(VCF_mito) +
+    geom_jitter( aes(x=MQ, y=Variant, colour=Variant)) +
+    theme_bw() +
+    labs(title=paste0("mitochondrial",": MQ"))
+  MQ
+  
+  # gatk hardfilter: SNP MQRankSum < -20
+  MQRankSum <-
+    ggplot(VCF_mito) +
+    geom_jitter( aes(x=log10(MQRankSum), y=Variant, colour=Variant)) +
+    theme_bw() +
+    labs(title=paste0("mitochondrial",": MQRankSum"))
+  MQRankSum
+  # Removed 86 rows containing missing values (`geom_point()`). 
+  
+  
+  # gatk hardfilter: SNP SOR < 4 , INDEL SOR > 10
+  SOR <-
+    ggplot(VCF_mito) +
+    geom_jitter( aes(x=SOR, y=Variant, colour=Variant)) +
+    theme_bw() +
+    labs(title=paste0("mitochondrial",": SOR"))
+  SOR
+  
+  # gatk hardfilter: SNP ReadPosRankSum <-10 , INDEL ReadPosRankSum < -20
+  ReadPosRankSum <-
+    ggplot(VCF_mito) +
+    geom_jitter( aes(x=ReadPosRankSum, y=Variant, colour=Variant)) +
+    theme_bw() +
+    labs(title=paste0("mitochondrial",": ReadPosRankSum"))
+  ReadPosRankSum
+  # Removed 6 rows containing missing values (`geom_point()`). 
+  
+  
+  plot <- QUAL + DP + QD + FS + MQ + MQRankSum + SOR + ReadPosRankSum + plot_layout(ncol=2)
+  
+  print(plot)
+  
+  ggsave(paste0("plot_mitochondrial_indiv_variant_summaries_jitter.png"), height=20, width=15, type="cairo")
+```
+![](output/images/plot_mitochondrial_indiv_variant_summaries_jitter.png)
+You can now visualise the points much better.
+
+
+
+### Attending to the quantiles, thresholds for specific parameters are established
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N snps_qc2
+#PBS -l select=1:ncpus=1:mem=10GB
+#PBS -l walltime=00:10:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o snps_qc2.txt
+
+# qsub ../snps_qc2.pbs
+
+
+# load gatk
+module load gatk/4.1.4.1
+
+WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/filter
+
+# set reference, vcf
+REFERENCE=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/dimmitis_WSI_2.2.fa
+
+cd ${WORKING_DIR}
+
+#Nuclear
+gatk VariantFiltration \
+--reference ${REFERENCE} \
+--variant Dirofilaria_immitis_Sep2023.nuclearSNPs.vcf \
+--filter-expression 'QUAL < 32 || DP < 242 || DP > 12121 || MQ < 29.72 || SOR > 8.439 || QD < 0.340 || FS > 109.583 || MQRankSum < -7.893 || ReadPosRankSum < -10.220 || ReadPosRankSum > 4.110' \
+--filter-name "SNP_filtered" \
+--output Dirofilaria_immitis_Sep2023.nuclearSNPs.filtered.vcf
+
+gatk VariantFiltration \
+--reference ${REFERENCE} \
+--variant Dirofilaria_immitis_Sep2023.nuclearINDELs.vcf \
+--filter-expression 'QUAL < 40 || DP < 503 || DP > 9138 || MQ < 36.69 || SOR > 8.155 || QD < 0.450 || FS > 102.876 || MQRankSum < -4.191 || ReadPosRankSum < -11.070 || ReadPosRankSum > 3.450' \
+--filter-name "INDEL_filtered" \
+--output Dirofilaria_immitis_Sep2023.nuclearINDELs.filtered.vcf
+
+#Mitochondrial
+gatk VariantFiltration \
+--reference ${REFERENCE} \
+--variant Dirofilaria_immitis_Sep2023.mitoSNPs.vcf \
+--filter-expression ' QUAL < 73 || DP < 74770 || DP > 344706 || MQ < 44.90 || SOR > 12.837 || QD < 0.309 || FS > 118.826 || MQRankSum < -11.162 || ReadPosRankSum < -29.939 || ReadPosRankSum > 2.988 ' \
+--filter-name "SNP_filtered" \
+--output Dirofilaria_immitis_Sep2023.mitoSNPs.filtered.vcf
+
+gatk VariantFiltration \
+--reference ${REFERENCE} \
+--variant Dirofilaria_immitis_Sep2023.mitoINDELs.vcf \
+--filter-expression 'QUAL < 41 || DP < 97127 || DP > 302774 || MQ < 45.12 || SOR > 6.131 || QD < 0.024 || FS > 38.265 || MQRankSum < -9.223 || ReadPosRankSum < -19.980 || ReadPosRankSum > 7.935' \
+--filter-name "INDEL_filtered" \
+--output Dirofilaria_immitis_Sep2023.mitoINDELs.filtered.vcf
+
+#Wolbachia
+gatk VariantFiltration \
+--reference ${REFERENCE} \
+--variant Dirofilaria_immitis_Sep2023.WbSNPs.vcf \
+--filter-expression ' QUAL < 30 || DP < 46205 || DP > 75065 || MQ < 40.00 || SOR > 8.439 || QD < 0.310 || FS > 140.016 || MQRankSum < -7.359 || ReadPosRankSum < -11.790 || ReadPosRankSum > 5.226' \
+--filter-name "SNP_filtered" \
+--output Dirofilaria_immitis_Sep2023.WbSNPs.filtered.vcf
+
+gatk VariantFiltration \
+--reference ${REFERENCE} \
+--variant Dirofilaria_immitis_Sep2023.WbINDELs.vcf \
+--filter-expression 'QUAL < 36 || DP < 53935 || DP > 76905 || MQ < 42.44 || SOR > 8.254 || QD < 0.370 || FS > 137.307 || MQRankSum < -4.466 || ReadPosRankSum < -11.908 || ReadPosRankSum > 3.043' \
+--filter-name "INDEL_filtered" \
+--output Dirofilaria_immitis_Sep2023.WbINDELs.filtered.vcf
+
+# once done, count the filtered sites - funny use of "|" allows direct markdown table format
+echo -e "| Filtered_VCF | Variants_PASS | Variants_FILTERED |\n| -- | -- | -- | " > filter.stats
+
+for i in *filtered.vcf; do
+     name=${i}; pass=$( grep -E 'PASS' ${i} | wc -l ); filter=$( grep -E 'filter' ${i} | wc -l );
+     echo -e "| ${name} | ${pass} | ${filter} |" >> filter.stats
+done
+```
+This is the summary of the filtered variants ('filter.stats'):
+![](output/images/filter_stats.PNG)
+
+Filtering looks ok. Didn't lose too many SNPs.
+
+Usually we would merge the SNP and INDEL files together to make a joined VCF. However, I want to disregard the indels moving forward and only focus on the SNPs. Some downstream tools don't like having indels in there.
+
+
+
+### Filter genotypes based on x3 depth per genotype
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N snps_qc3
+#PBS -l select=1:ncpus=1:mem=10GB
+#PBS -l walltime=00:30:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o snps_qc3.txt
+
+# qsub ../snps_qc3.pbs
+
+# load gatk
+module load gatk/4.1.4.1
+
+WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/filter
+
+# set reference, vcf
+REFERENCE=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/dimmitis_WSI_2.2.fa
+VCF=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/filter/Dirofilaria_immitis_Sep2023.vcf.gz
+
+cd ${WORKING_DIR}
+
+#Nuclear 
+gatk VariantFiltration \
+--reference ${REFERENCE} \
+--variant ${VCF%.vcf.gz}.nuclearSNPs.filtered.vcf \
+--genotype-filter-expression ' DP < 3 '  \
+--genotype-filter-name "DP_lt3" \
+--output ${VCF%.vcf.gz}.nuclearSNPs.DPfiltered.vcf
+
+gatk SelectVariants \
+--reference ${REFERENCE} \
+--variant ${VCF%.vcf.gz}.nuclearSNPs.DPfiltered.vcf \
+--set-filtered-gt-to-nocall \
+--output ${VCF%.vcf.gz}.nuclearSNPs.DPfilterNoCall.vcf
+
+#Mito
+gatk VariantFiltration \
+--reference ${REFERENCE} \
+--variant ${VCF%.vcf.gz}.mitoSNPs.filtered.vcf \
+--genotype-filter-expression ' DP < 3 '  \
+--genotype-filter-name "DP_lt3" \
+--output ${VCF%.vcf.gz}.mitoSNPs.DPfiltered.vcf
+
+gatk SelectVariants \
+--reference ${REFERENCE} \
+--variant ${VCF%.vcf.gz}.mitoSNPs.DPfiltered.vcf \
+--set-filtered-gt-to-nocall \
+--output ${VCF%.vcf.gz}.mitoSNPs.DPfilterNoCall.vcf
+
+#wolbachia
+gatk VariantFiltration \
+--reference ${REFERENCE} \
+--variant ${VCF%.vcf.gz}.WbSNPs.filtered.vcf \
+--genotype-filter-expression ' DP < 3 '  \
+--genotype-filter-name "DP_lt3" \
+--output ${VCF%.vcf.gz}.WbSNPs.DPfiltered.vcf
+
+gatk SelectVariants \
+--reference ${REFERENCE} \
+--variant ${VCF%.vcf.gz}.WbSNPs.DPfiltered.vcf \
+--set-filtered-gt-to-nocall \
+--output ${VCF%.vcf.gz}.WbSNPs.DPfilterNoCall.vcf
+```
+
+### Now we apply a set of standard filters for population genomics
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N snps_qc4
+#PBS -l select=1:ncpus=1:mem=4GB
+#PBS -l walltime=00:05:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o snps_qc4.txt
+
+# qsub ../snps_qc4.pbs
+
+# load gatk
+module load gatk/4.1.4.1
+module load vcftools/0.1.14
+
+WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/filter
+
+# set vcf
+VCF=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/filter/Dirofilaria_immitis_Sep2023.vcf.gz
+
+
+cd ${WORKING_DIR}
+
+#Nuclear variants
+vcftools \
+--vcf ${VCF%.vcf.gz}.nuclearSNPs.DPfilterNoCall.vcf \
+--remove-filtered-geno-all \
+--remove-filtered-all \
+--min-alleles 2 \
+--max-alleles 2 \
+--hwe 1e-06 \
+--maf 0.05 \
+--recode \
+--recode-INFO-all \
+--out ${VCF%.vcf.gz}.nuclear_SNPs.final
+# After filtering, kept 61 out of 61 Individuals
+#Outputting VCF file...
+#After filtering, kept 196498 out of a possible 506734 Sites
+
+#--- nuclear SNPs
+vcftools --vcf Dirofilaria_immitis_Sep2023.nuclear_SNPs.final.recode.vcf --remove-indels
+#After filtering, kept 61 out of 61 Individuals
+#After filtering, kept 196498 out of a possible 196498 Sites
+
+#--- nuclear  INDELs
+vcftools --vcf Dirofilaria_immitis_Sep2023.nuclear_SNPs.final.recode.vcf --keep-only-indels
+#After filtering, kept 61 out of 61 Individuals
+#After filtering, kept 0 out of a possible 196498 Sites
+
+
+
+#Mitochondrial variants
+vcftools \
+--vcf ${VCF%.vcf.gz}.mitoSNPs.DPfilterNoCall.vcf \
+--remove-filtered-geno-all \
+--remove-filtered-all \
+--min-alleles 2 \
+--max-alleles 2 \
+--maf 0.05 \
+--recode \
+--recode-INFO-all \
+--out ${VCF%.vcf.gz}.mito_SNPs.final
+#After filtering, kept 61 out of 61 Individuals
+#Outputting VCF file...
+#After filtering, kept 25 out of a possible 99 Sites
+
+#--- mito SNPs
+vcftools --vcf Dirofilaria_immitis_Sep2023.mito_SNPs.final.recode.vcf --remove-indels
+#After filtering, kept 61 out of 61 Individuals
+#After filtering, kept 25 out of a possible 25 Sites
+
+#--- mito INDELs
+vcftools --vcf Dirofilaria_immitis_Sep2023.mito_SNPs.final.recode.vcf --keep-only-indels
+#After filtering, kept 61 out of 61 Individuals
+#After filtering, kept 0 out of a possible 25 Sites
+
+
+
+#wolbachia variants
+vcftools \
+--vcf ${VCF%.vcf.gz}.WbSNPs.DPfilterNoCall.vcf \
+--remove-filtered-geno-all \
+--remove-filtered-all \
+--min-alleles 2 \
+--max-alleles 2 \
+--maf 0.05 \
+--recode \
+--recode-INFO-all \
+--out ${VCF%.vcf.gz}.Wb_SNPs.final
+#After filtering, kept 61 out of 61 Individuals
+#Outputting VCF file...
+#After filtering, kept 279 out of a possible 3493 Sites
+
+#--- Wb SNPs
+vcftools --vcf Dirofilaria_immitis_Sep2023.Wb_SNPs.final.recode.vcf --remove-indels
+# After filtering, kept 61 out of 61 Individuals
+#After filtering, kept 279 out of a possible 279 Sites
+
+#--- Wb INDELs
+vcftools --vcf Dirofilaria_immitis_Sep2023.Wb_SNPs.final.recode.vcf --keep-only-indels
+# After filtering, kept 61 out of 61 Individuals
+#After filtering, kept 0 out of a possible 279 Sites
+
+
+```
+
+### Now, we are filtering by missingness
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N snps_qc5
+#PBS -l select=1:ncpus=1:mem=10GB
+#PBS -l walltime=00:10:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o snps_qc5.txt
+
+# qsub ../snps_qc5.pbs
+
+# load modules
+module load gatk/4.1.4.1
+module load vcftools/0.1.14
+
+WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/filter
+
+# set vcf
+VCF=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/filter/Dirofilaria_immitis_Sep2023.vcf.gz
+
+cd ${WORKING_DIR}
+
+#determine missingness per individual
+vcftools --vcf ${VCF%.vcf.gz}.nuclear_SNPs.final.recode.vcf --out nuclear --missing-indv
+vcftools --vcf ${VCF%.vcf.gz}.mito_SNPs.final.recode.vcf --out mito --missing-indv
+vcftools --vcf ${VCF%.vcf.gz}.Wb_SNPs.final.recode.vcf --out wb --missing-indv
+```
+
+### Check the missingess in R
+
+```R
+ # Check missingness
+  data_nuclear <- read.delim("nuclear.imiss", header=T)
+  data_mito <- read.delim("mito.imiss", header=T)
+  data_wb <- read.delim("wb.imiss", header=T)
+  
+  #creating the function - per sample
+  fun_plot_missingness <- function(data,title) {
+    
+    plot <- ggplot(data, aes(INDV, 1-F_MISS)) +
+      geom_boxplot(color = 'brown') +
+      geom_point(size = 1, color = 'brown4') +
+      theme_bw() +
+      labs(x="Sample ID", y="Proportion of total variants present (1-missingness)")+
+      ggtitle(title) +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1))
+    print(plot)
+    ggsave(paste0("plot_missingness_figure",title,".png"))
+  }
+  
+  # plotting for each dataset
+  fun_plot_missingness(data_nuclear, "nuclear_variants")
+```
+![](output/images/plot_missingness_figurenuclear_variants.png)
+
+
+```R
+  fun_plot_missingness(data_mito,"mitochondrial_variants")
+```
+![](output/images/plot_missingness_figuremitochondrial_variants.png)
+
+```R
+  fun_plot_missingness(data_wb, "wb_variants")
+```
+![](output/images/plot_missingness_figurewb_variants.png)
+
+
+In Javier's code, he generated a different sample list for each database and evaluated the max missingness. For now, I will just keep all the samples.
+
+```bash
+# For nuclear (n=31) - nuclear_samplelist.keep
+ERR034940
+ERR034941
+ERR034942
+ERR034943
+JS6597_DKDN230025568-1A_HHMLHDSX7_L1
+JS6598_DKDN230025569-1A_HHMLHDSX7_L1
+JS6599_DKDN230025570-1A_HHMLHDSX7_L1
+JS6600_DKDN230025571-1A_HHMLHDSX7_L1
+JS6601_DKDN230025572-1A_HHMLHDSX7_L1
+JS6602_DKDN230025573-1A_HHMLHDSX7_L1
+JS6603_DKDN230025574-1A_HHMLHDSX7_L1
+JS6604_DKDN230025575-1A_HHMLHDSX7_L1
+JS6605_DKDN230025576-1A_HHMLHDSX7_L1
+JS6606_DKDN230025577-1A_HHMLHDSX7_L1
+JS6607_DKDN230025578-1A_HHMLHDSX7_L4
+JS6608_DKDN230025579-1A_HHMLHDSX7_L4
+JS6609_DKDN230025580-1A_HHMLHDSX7_L4
+JS6610_DKDN230025581-1A_HHMLHDSX7_L1
+JS6611_DKDN230025582-1A_HHMLHDSX7_L1
+JS6612_DKDN230025583-1A_HHMLHDSX7_L1
+JS6613_DKDN230025584-1A_HHMLHDSX7_L1
+JS6614_DKDN230025585-1A_HHMLHDSX7_L1
+JS6615_DKDN230025586-1A_HHMLHDSX7_L1
+JS6616_DKDN230025587-1A_HHMLHDSX7_L1
+JS6617_DKDN230025588-1A_HHMLHDSX7_L1
+SRR10533236
+SRR10533237
+SRR10533238
+SRR10533239
+SRR10533240
+JS6277
+JS6278
+JS6279
+JS6280
+JS6281
+JS6342
+JS6343
+JS6344
+JS6345
+JS6346
+JS6347
+JS6349
+JS6350
+JS6351
+JS6352
+JS6353
+JS6354
+JS6355
+JS6356
+JS6357
+JS6358
+JS6359
+JS6360
+JS6368
+JS6369
+JS6370
+SRR13154013
+SRR13154014
+SRR13154015
+SRR13154016
+SRR13154017
+
+# For mithochondiral (n=31) - mito_samplelist.keep
+#Same as above
+
+
+# For wb (n=31) - wb_samplelist.keep
+#same as above
+```
+
+
+### Let's check different thresholds for each dataset
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N snps_qc6
+#PBS -l select=1:ncpus=1:mem=10GB
+#PBS -l walltime=00:20:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o snps_qc6.txt
+
+# qsub ../snps_qc6.pbs
+
+# load gatk
+module load gatk/4.1.4.1
+module load vcftools/0.1.14
+
+WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/filter
+
+# set vcf
+VCF=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/filter/Dirofilaria_immitis_Sep2023.vcf.gz
+
+cd ${WORKING_DIR}
+
+# For nuclear variants
+for i in 0.7 0.8 0.9 1; do
+     vcftools --vcf ${VCF%.vcf.gz}.nuclear_SNPs.final.recode.vcf --keep nuclear_samplelist.keep --max-missing ${i} ;
+done
+
+# max-missing = 0.7
+# After filtering, kept 61 out of 61 Individuals
+#After filtering, kept 192756 out of a possible 196498 Sites
+
+# max-missing = 0.8
+# After filtering, kept 61 out of 61 Individuals
+#After filtering, kept 189865 out of a possible 196498 Sites
+
+# max-missing = 0.9
+# After filtering, kept 61 out of 61 Individuals
+#After filtering, kept 163584 out of a possible 196498 Sites
+
+# max-missing = 1
+# After filtering, kept 61 out of 61 Individuals
+#After filtering, kept 5285 out of a possible 196498 Sites
+
+# For mito variants
+for i in 0.7 0.8 0.9 1; do
+     vcftools --vcf ${VCF%.vcf.gz}.mito_SNPs.final.recode.vcf --keep mito_samplelist.keep --max-missing ${i} ;
+done
+
+# max-missing = 0.7
+# After filtering, kept 61 out of 61 Individuals
+#After filtering, kept 25 out of a possible 25 Sites
+
+# max-missing = 0.8
+# After filtering, kept 61 out of 61 Individuals
+#After filtering, kept 25 out of a possible 25 Sites
+
+# max-missing = 0.9
+# After filtering, kept 61 out of 61 Individuals
+#After filtering, kept 25 out of a possible 25 Sites
+
+# max-missing = 1
+# After filtering, kept 61 out of 61 Individuals
+#After filtering, kept 24 out of a possible 25 Sites
+
+# For Wb variants
+for i in 0.7 0.8 0.9 1; do
+     vcftools --vcf ${VCF%.vcf.gz}.Wb_SNPs.final.recode.vcf --keep wb_samplelist.keep --max-missing ${i} ;
+done
+
+# max-missing = 0.7
+# After filtering, kept 61 out of 61 Individuals
+#After filtering, kept 279 out of a possible 279 Sites
+
+# max-missing = 0.8
+# After filtering, kept 61 out of 61 Individuals
+#After filtering, kept 279 out of a possible 279 Sites
+
+# max-missing = 0.9
+# After filtering, kept 61 out of 61 Individuals
+#After filtering, kept 278 out of a possible 279 Sites
+
+# max-missing = 1
+# After filtering, kept 61 out of 61 Individuals
+#After filtering, kept 16 out of a possible 279 Sites
+```
+
+Selecting a max missingness of 0.9 for nuclear, 0.9 for mito and 0.9 for Wb is sensible.
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N snps_qc7
+#PBS -l select=1:ncpus=1:mem=10GB
+#PBS -l walltime=00:10:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o snps_qc7.txt
+
+# qsub ../snps_qc7.pbs
+
+# load gatk
+module load gatk/4.1.4.1
+module load vcftools/0.1.14
+
+WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/filter
+
+# set vcf
+VCF=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/filter/Dirofilaria_immitis_Sep2023.vcf.gz
+
+cd ${WORKING_DIR}
+
+# For nuclear
+vcftools --vcf ${VCF%.vcf.gz}.nuclear_SNPs.final.recode.vcf \
+     --keep nuclear_samplelist.keep \
+     --max-missing 0.9 \
+     --recode --recode-INFO-all \
+     --out FINAL_SETS/nuclear_samples3x_missing0.9
+
+# For mito
+vcftools --vcf ${VCF%.vcf.gz}.mito_SNPs.final.recode.vcf \
+     --keep mito_samplelist.keep \
+     --max-missing 0.9 \
+     --recode --recode-INFO-all \
+     --out FINAL_SETS/mito_samples3x_missing0.9
+
+# For wb
+vcftools --vcf ${VCF%.vcf.gz}.Wb_SNPs.final.recode.vcf \
+     --keep wb_samplelist.keep \
+     --max-missing 0.9 \
+     --recode --recode-INFO-all \
+     --out FINAL_SETS/wb_samples3x_missing0.9
+```
+
+### Also, we will select only the variants in the chr 1 to chr4, avoiding the chrX and the scaffolds
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N snps_qc8
+#PBS -l select=1:ncpus=1:mem=4GB
+#PBS -l walltime=00:10:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o snps_qc8.txt
+
+# qsub ../snps_qc8.pbs
+
+# load gatk
+module load vcftools/0.1.14
+
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/filter
+
+vcftools --vcf FINAL_SETS/nuclear_samples3x_missing0.9.recode.vcf \
+--chr dirofilaria_immitis_chr1 \
+--chr dirofilaria_immitis_chr2 \
+--chr dirofilaria_immitis_chr3 \
+--chr dirofilaria_immitis_chr4 \
+--recode --out FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4
+# After filtering, kept 61 out of 61 Individuals
+#Outputting VCF file...
+#After filtering, kept 122852 out of a possible 163584 Sites
+
+
+vcftools --vcf FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.vcf --remove-indels
+# After filtering, kept 61 out of 61 Individuals
+#After filtering, kept 122852 out of a possible 122852 Sites
+
+
+vcftools --vcf FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.vcf --keep-only-indels
+# After filtering, kept 61 out of 61 Individuals
+#After filtering, kept 0 out of a possible 122852 Sites - this makes sense because I removed the indels earlier and only focused on the SNPs.
+```
