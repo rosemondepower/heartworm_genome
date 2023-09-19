@@ -1,0 +1,8 @@
+| Filtered_VCF | Variants_PASS | Variants_FILTERED |
+| -- | -- | -- | 
+| Dirofilaria_immitis_Sep2023.mitoINDELs.filtered.vcf | 29 | 26 |
+| Dirofilaria_immitis_Sep2023.mitoSNPs.filtered.vcf | 68 | 37 |
+| Dirofilaria_immitis_Sep2023.nuclearINDELs.filtered.vcf | 442619 | 161124 |
+| Dirofilaria_immitis_Sep2023.nuclearSNPs.filtered.vcf | 357312 | 149428 |
+| Dirofilaria_immitis_Sep2023.WbINDELs.filtered.vcf | 4387 | 1852 |
+| Dirofilaria_immitis_Sep2023.WbSNPs.filtered.vcf | 2426 | 1073 |

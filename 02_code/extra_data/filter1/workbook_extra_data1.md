@@ -1053,22 +1053,22 @@ fun_variant_summaries <- function(data, title){
 # run nuclear variants
 fun_variant_summaries(VCF_nuclear,"nuclear")
 ```
-![](output/images/plot_nuclear_variant_summaries.png)
-![](output/images/table_nuclear_variant_quantiles.png)
+![](output1/images/plot_nuclear_variant_summaries.png)
+![](output1/images/table_nuclear_variant_quantiles.png)
 
 ```R
 # run mitochondrial variants
 fun_variant_summaries(VCF_mito,"mitochondrial")
 ```
-![](output/images/plot_mitochondrial_variant_summaries.png)
-![](output/images/table_mitochondrial_variant_quantiles.png)
+![](output1/images/plot_mitochondrial_variant_summaries.png)
+![](output1/images/table_mitochondrial_variant_quantiles.png)
 
 ```R
 # run wolbachia variants
 fun_variant_summaries(VCF_wb,"wolbachia")
 ```
-![](output/images/plot_wolbachia_variant_summaries.png)
-![](output/images/table_wolbachia_variant_quantiles.png)
+![](output1/images/plot_wolbachia_variant_summaries.png)
+![](output1/images/table_wolbachia_variant_quantiles.png)
 
 ```R
 # Plot for mtDNA
@@ -1151,7 +1151,7 @@ fun_variant_summaries(VCF_wb,"wolbachia")
   
   ggsave(paste0("plot_mitochondrial_indiv_variant_summaries.png"), height=20, width=15, type="cairo")
 ```
-![](output/images/plot_mitochondrial_indiv_variant_summaries.png)
+![](output1/images/plot_mitochondrial_indiv_variant_summaries.png)
 Notice how everything is in 1 line on the y-axis because I used geom_point(). What if there are thousands of points voerlapping one another and I just can't see them? To combat this, I can use geom_jitter() which spreads things out so I can see them properly (but the y-axis doesn't really mean anything, it is simply to help visualise things).
 
 
@@ -1236,7 +1236,7 @@ Using geom_jitter():
   
   ggsave(paste0("plot_mitochondrial_indiv_variant_summaries_jitter.png"), height=20, width=15, type="cairo")
 ```
-![](output/images/plot_mitochondrial_indiv_variant_summaries_jitter.png)
+![](output1/images/plot_mitochondrial_indiv_variant_summaries_jitter.png)
 You can now visualise the points much better.
 
 
@@ -1322,7 +1322,7 @@ for i in *filtered.vcf; do
 done
 ```
 This is the summary of the filtered variants ('filter.stats'):
-![](output/images/filter_stats.PNG)
+![](output1/images/filter_stats.PNG)
 
 Filtering looks ok. Didn't lose too many SNPs.
 
@@ -1420,10 +1420,10 @@ gatk SelectVariants \
 module load gatk/4.1.4.1
 module load vcftools/0.1.14
 
-WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/filter
+WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/filter/filter1
 
 # set vcf
-VCF=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/filter/Dirofilaria_immitis_Sep2023.vcf.gz
+VCF=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/filter/filter1/Dirofilaria_immitis_Sep2023.vcf.gz
 
 
 cd ${WORKING_DIR}
@@ -1436,23 +1436,25 @@ vcftools \
 --min-alleles 2 \
 --max-alleles 2 \
 --hwe 1e-06 \
---maf 0.05 \
+--maf 0.02 \
 --recode \
 --recode-INFO-all \
 --out ${VCF%.vcf.gz}.nuclear_SNPs.final
 # After filtering, kept 61 out of 61 Individuals
 #Outputting VCF file...
-#After filtering, kept 196498 out of a possible 506734 Sites
+#After filtering, kept 250164 out of a possible 506734 Sites
+
+# Changed --maf from 0.05 to 0.02 to follow Javier's code
 
 #--- nuclear SNPs
 vcftools --vcf Dirofilaria_immitis_Sep2023.nuclear_SNPs.final.recode.vcf --remove-indels
 #After filtering, kept 61 out of 61 Individuals
-#After filtering, kept 196498 out of a possible 196498 Sites
+#After filtering, kept 250164 out of a possible 250164 Sites
 
 #--- nuclear  INDELs
 vcftools --vcf Dirofilaria_immitis_Sep2023.nuclear_SNPs.final.recode.vcf --keep-only-indels
 #After filtering, kept 61 out of 61 Individuals
-#After filtering, kept 0 out of a possible 196498 Sites
+#After filtering, kept 0 out of a possible 250164 Sites
 
 
 
@@ -1463,23 +1465,24 @@ vcftools \
 --remove-filtered-all \
 --min-alleles 2 \
 --max-alleles 2 \
---maf 0.05 \
+--maf 0.02 \
 --recode \
 --recode-INFO-all \
 --out ${VCF%.vcf.gz}.mito_SNPs.final
 #After filtering, kept 61 out of 61 Individuals
 #Outputting VCF file...
-#After filtering, kept 25 out of a possible 99 Sites
+#After filtering, kept 32 out of a possible 99 Sites
+
 
 #--- mito SNPs
 vcftools --vcf Dirofilaria_immitis_Sep2023.mito_SNPs.final.recode.vcf --remove-indels
 #After filtering, kept 61 out of 61 Individuals
-#After filtering, kept 25 out of a possible 25 Sites
+#After filtering, kept 32 out of a possible 32 Sites
 
 #--- mito INDELs
 vcftools --vcf Dirofilaria_immitis_Sep2023.mito_SNPs.final.recode.vcf --keep-only-indels
 #After filtering, kept 61 out of 61 Individuals
-#After filtering, kept 0 out of a possible 25 Sites
+#After filtering, kept 0 out of a possible 32 Sites
 
 
 
@@ -1490,25 +1493,24 @@ vcftools \
 --remove-filtered-all \
 --min-alleles 2 \
 --max-alleles 2 \
---maf 0.05 \
+--maf 0.02 \
 --recode \
 --recode-INFO-all \
 --out ${VCF%.vcf.gz}.Wb_SNPs.final
 #After filtering, kept 61 out of 61 Individuals
 #Outputting VCF file...
-#After filtering, kept 279 out of a possible 3493 Sites
+#After filtering, kept 480 out of a possible 3493 Sites
+
 
 #--- Wb SNPs
 vcftools --vcf Dirofilaria_immitis_Sep2023.Wb_SNPs.final.recode.vcf --remove-indels
 # After filtering, kept 61 out of 61 Individuals
-#After filtering, kept 279 out of a possible 279 Sites
+#After filtering, kept 480 out of a possible 480 Sites
 
 #--- Wb INDELs
 vcftools --vcf Dirofilaria_immitis_Sep2023.Wb_SNPs.final.recode.vcf --keep-only-indels
 # After filtering, kept 61 out of 61 Individuals
-#After filtering, kept 0 out of a possible 279 Sites
-
-
+#After filtering, kept 0 out of a possible 480 Sites
 ```
 
 ### Now, we are filtering by missingness
@@ -1531,10 +1533,10 @@ vcftools --vcf Dirofilaria_immitis_Sep2023.Wb_SNPs.final.recode.vcf --keep-only-
 module load gatk/4.1.4.1
 module load vcftools/0.1.14
 
-WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/filter
+WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/filter/filter1
 
 # set vcf
-VCF=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/filter/Dirofilaria_immitis_Sep2023.vcf.gz
+VCF=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/filter/filter1/Dirofilaria_immitis_Sep2023.vcf.gz
 
 cd ${WORKING_DIR}
 
@@ -1569,18 +1571,18 @@ vcftools --vcf ${VCF%.vcf.gz}.Wb_SNPs.final.recode.vcf --out wb --missing-indv
   # plotting for each dataset
   fun_plot_missingness(data_nuclear, "nuclear_variants")
 ```
-![](output/images/plot_missingness_figurenuclear_variants.png)
+![](output1/images/plot_missingness_figurenuclear_variants.png)
 
 
 ```R
   fun_plot_missingness(data_mito,"mitochondrial_variants")
 ```
-![](output/images/plot_missingness_figuremitochondrial_variants.png)
+![](output1/images/plot_missingness_figuremitochondrial_variants.png)
 
 ```R
   fun_plot_missingness(data_wb, "wb_variants")
 ```
-![](output/images/plot_missingness_figurewb_variants.png)
+![](output1/images/plot_missingness_figurewb_variants.png)
 
 
 In Javier's code, he generated a different sample list for each database and evaluated the max missingness. For now, I will just keep all the samples.
@@ -1652,7 +1654,6 @@ SRR13154017
 # For mithochondiral (n=31) - mito_samplelist.keep
 #Same as above
 
-
 # For wb (n=31) - wb_samplelist.keep
 #same as above
 ```
@@ -1678,10 +1679,10 @@ SRR13154017
 module load gatk/4.1.4.1
 module load vcftools/0.1.14
 
-WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/filter
+WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/filter/filter1
 
 # set vcf
-VCF=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/filter/Dirofilaria_immitis_Sep2023.vcf.gz
+VCF=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/filter/filter1/Dirofilaria_immitis_Sep2023.vcf.gz
 
 cd ${WORKING_DIR}
 
@@ -1692,19 +1693,20 @@ done
 
 # max-missing = 0.7
 # After filtering, kept 61 out of 61 Individuals
-#After filtering, kept 192756 out of a possible 196498 Sites
+#After filtering, kept 245000 out of a possible 250164 Sites
 
 # max-missing = 0.8
 # After filtering, kept 61 out of 61 Individuals
-#After filtering, kept 189865 out of a possible 196498 Sites
+#After filtering, kept 240489 out of a possible 250164 Sites
 
 # max-missing = 0.9
 # After filtering, kept 61 out of 61 Individuals
-#After filtering, kept 163584 out of a possible 196498 Sites
+#After filtering, kept 205561 out of a possible 250164 Sites
 
 # max-missing = 1
 # After filtering, kept 61 out of 61 Individuals
-#After filtering, kept 5285 out of a possible 196498 Sites
+#After filtering, kept 7025 out of a possible 250164 Sites
+
 
 # For mito variants
 for i in 0.7 0.8 0.9 1; do
@@ -1713,19 +1715,20 @@ done
 
 # max-missing = 0.7
 # After filtering, kept 61 out of 61 Individuals
-#After filtering, kept 25 out of a possible 25 Sites
+#After filtering, kept 32 out of a possible 32 Sites
 
 # max-missing = 0.8
 # After filtering, kept 61 out of 61 Individuals
-#After filtering, kept 25 out of a possible 25 Sites
+#After filtering, kept 32 out of a possible 32 Sites
 
 # max-missing = 0.9
 # After filtering, kept 61 out of 61 Individuals
-#After filtering, kept 25 out of a possible 25 Sites
+#After filtering, kept 32 out of a possible 32 Sites
 
 # max-missing = 1
 # After filtering, kept 61 out of 61 Individuals
-#After filtering, kept 24 out of a possible 25 Sites
+#After filtering, kept 30 out of a possible 32 Sites
+
 
 # For Wb variants
 for i in 0.7 0.8 0.9 1; do
@@ -1734,22 +1737,22 @@ done
 
 # max-missing = 0.7
 # After filtering, kept 61 out of 61 Individuals
-#After filtering, kept 279 out of a possible 279 Sites
+#After filtering, kept 480 out of a possible 480 Sites
 
 # max-missing = 0.8
 # After filtering, kept 61 out of 61 Individuals
-#After filtering, kept 279 out of a possible 279 Sites
+#After filtering, kept 480 out of a possible 480 Sites
 
 # max-missing = 0.9
 # After filtering, kept 61 out of 61 Individuals
-#After filtering, kept 278 out of a possible 279 Sites
+#After filtering, kept 473 out of a possible 480 Sites
 
 # max-missing = 1
 # After filtering, kept 61 out of 61 Individuals
-#After filtering, kept 16 out of a possible 279 Sites
+#After filtering, kept 64 out of a possible 480 Sites
 ```
 
-Selecting a max missingness of 0.9 for nuclear, 0.9 for mito and 0.9 for Wb is sensible.
+Selecting a max missingness of 0.9 for nuclear, 1 for mito and 0.9 for Wb is sensible.
 
 ```bash
 #!/bin/bash
@@ -1769,10 +1772,10 @@ Selecting a max missingness of 0.9 for nuclear, 0.9 for mito and 0.9 for Wb is s
 module load gatk/4.1.4.1
 module load vcftools/0.1.14
 
-WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/filter
+WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/filter/filter1
 
 # set vcf
-VCF=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/filter/Dirofilaria_immitis_Sep2023.vcf.gz
+VCF=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/filter/filter1/Dirofilaria_immitis_Sep2023.vcf.gz
 
 cd ${WORKING_DIR}
 
@@ -1786,9 +1789,9 @@ vcftools --vcf ${VCF%.vcf.gz}.nuclear_SNPs.final.recode.vcf \
 # For mito
 vcftools --vcf ${VCF%.vcf.gz}.mito_SNPs.final.recode.vcf \
      --keep mito_samplelist.keep \
-     --max-missing 0.9 \
+     --max-missing 1 \
      --recode --recode-INFO-all \
-     --out FINAL_SETS/mito_samples3x_missing0.9
+     --out FINAL_SETS/mito_samples3x_missing1
 
 # For wb
 vcftools --vcf ${VCF%.vcf.gz}.Wb_SNPs.final.recode.vcf \
@@ -1817,7 +1820,7 @@ vcftools --vcf ${VCF%.vcf.gz}.Wb_SNPs.final.recode.vcf \
 # load gatk
 module load vcftools/0.1.14
 
-cd /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/filter
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/filter/filter1
 
 vcftools --vcf FINAL_SETS/nuclear_samples3x_missing0.9.recode.vcf \
 --chr dirofilaria_immitis_chr1 \
@@ -1827,15 +1830,142 @@ vcftools --vcf FINAL_SETS/nuclear_samples3x_missing0.9.recode.vcf \
 --recode --out FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4
 # After filtering, kept 61 out of 61 Individuals
 #Outputting VCF file...
-#After filtering, kept 122852 out of a possible 163584 Sites
+#After filtering, kept 153555 out of a possible 205561 Sites
 
 
 vcftools --vcf FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.vcf --remove-indels
 # After filtering, kept 61 out of 61 Individuals
-#After filtering, kept 122852 out of a possible 122852 Sites
+#After filtering, kept 153555 out of a possible 153555 Sites
 
 
 vcftools --vcf FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.vcf --keep-only-indels
 # After filtering, kept 61 out of 61 Individuals
-#After filtering, kept 0 out of a possible 122852 Sites - this makes sense because I removed the indels earlier and only focused on the SNPs.
+#After filtering, kept 0 out of a possible 153555 Sites- this makes sense because I removed the indels earlier and only focused on the SNPs.
 ```
+
+I can run this code to exclude certain samples if I want:
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N vcf_exclude
+#PBS -l select=1:ncpus=8:mem=50GB
+#PBS -l walltime=05:00:00
+#PBS -m abe
+#PBS -q defaultQ
+#PBS -o vcf_exclude.txt
+#PBS -M rosemonde.power@sydney.edu.au
+
+# qsub ../vcf_exclude.pbs
+
+# load modules
+module load bcftools/1.11
+
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/filter/FINAL_SETS
+
+bcftools view -s ^ERR034940,ERR034941,ERR034942,ERR034943,SRR10533236,SRR10533237,SRR10533238,SRR10533239,SRR10533240 -o nuclear_samples3x_missing0.9.chr1to4.recode_MYSAMPLES.vcf nuclear_samples3x_missing0.9.chr1to4.recode.vcf
+```
+
+
+Rename samples to more meaningful names:
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N vcf_rename
+#PBS -l select=1:ncpus=2:mem=20GB
+#PBS -l walltime=00:20:00
+#PBS -m abe
+#PBS -q defaultQ
+#PBS -o vcf_rename.txt
+#PBS -M rosemonde.power@sydney.edu.au
+
+# qsub ../vcf_rename.pbs
+
+# load modules
+module load bcftools/1.11
+
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/filter/filter1/FINAL_SETS
+
+bcftools reheader -s rename.txt nuclear_samples3x_missing0.9.chr1to4.recode.vcf -o nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf
+```
+
+
+rename.txt:
+
+ERR034940	ERR034940	
+ERR034941	ERR034941	
+ERR034942	ERR034942	
+ERR034943	ERR034943	
+JS6277	Dog2.1	
+JS6278	Dog2.2	
+JS6279	Dog2.3	
+JS6280	Dog2.4	
+JS6281	JS6281	
+JS6342	JS6342	
+JS6343	JS6343	
+JS6344	JS6344	
+JS6345	JS6345	
+JS6346	Fox1	
+JS6347	Fox2	
+JS6349	JS6349	
+JS6350	JS6350	
+JS6351	JS6351	
+JS6352	JS6352	
+JS6353	JS6353	
+JS6354	JS6354	
+JS6355	JS6355	
+JS6356	JS6356	
+JS6357	JS6357	
+JS6358	JS6358	
+JS6359	JS6359	
+JS6360	JS6360	
+JS6368	JS6368	
+JS6369	JS6369	
+JS6370	JS6370	
+JS6597_DKDN230025568-1A_HHMLHDSX7_L1	JS6597	
+JS6598_DKDN230025569-1A_HHMLHDSX7_L1	JS6598	
+JS6599_DKDN230025570-1A_HHMLHDSX7_L1	JS6599	
+JS6600_DKDN230025571-1A_HHMLHDSX7_L1	JS6600	
+JS6601_DKDN230025572-1A_HHMLHDSX7_L1	Dog3.1	
+JS6602_DKDN230025573-1A_HHMLHDSX7_L1	Dog3.2	
+JS6603_DKDN230025574-1A_HHMLHDSX7_L1	Dog3.3	
+JS6604_DKDN230025575-1A_HHMLHDSX7_L1	JS6604	
+JS6605_DKDN230025576-1A_HHMLHDSX7_L1	JS6605	
+JS6606_DKDN230025577-1A_HHMLHDSX7_L1	JS6606	
+JS6607_DKDN230025578-1A_HHMLHDSX7_L4	JS6344-REP	
+JS6608_DKDN230025579-1A_HHMLHDSX7_L4	Dog2.3-REP	
+JS6609_DKDN230025580-1A_HHMLHDSX7_L4	Dog1-REP	
+JS6610_DKDN230025581-1A_HHMLHDSX7_L1	JS6610	
+JS6611_DKDN230025582-1A_HHMLHDSX7_L1	JS6611	
+JS6612_DKDN230025583-1A_HHMLHDSX7_L1	JS6612	
+JS6613_DKDN230025584-1A_HHMLHDSX7_L1	JS6613	
+JS6614_DKDN230025585-1A_HHMLHDSX7_L1	JS6614	
+JS6615_DKDN230025586-1A_HHMLHDSX7_L1	JS6615	
+JS6616_DKDN230025587-1A_HHMLHDSX7_L1	JS6616	
+JS6617_DKDN230025588-1A_HHMLHDSX7_L1	JS6617	
+SRR10533236	SRR10533236	
+SRR10533237	SRR10533237	
+SRR10533238	SRR10533238	
+SRR10533239	SRR10533239	
+SRR10533240	SRR10533240	
+SRR13154013	Dog1.1	
+SRR13154014	Dog1.2	
+SRR13154015	Dog1.3	
+SRR13154016	Dog1.4	
+SRR13154017	Dog1.5	
+
+
+
+Check that it worked:
+
+```bash
+# List all sample names in the original VCF
+bcftools query -l nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf
+```
+
+Yep all the sample names are changed.
