@@ -2594,3 +2594,86 @@ PC1_PC2_plot_chr4
 ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1/vcf/pca/PC1_PC2_plot_chr4.png", PC1_PC2_plot_chr4, height = 6, width = 8)
 
 ```
+
+
+## Generate an ALL SITES variant set for running pixy properly
+
+Try running this on Sanger system
+
+```bash
+
+# Transfer data into Sanger system
+pscp -P 2227 Z:/PRJ-Heartworm_MLR/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/reference_di_wol_dog.fa.gz rp24@localhost:/lustre/scratch125/pam/teams/team333/rp24/Diro
+
+
+
+
+
+
+# ALL SITES (including non-variant sites)
+
+WORKING_DIR=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis
+cd "${WORKING_DIR}"
+
+cohort=Dirofilaria_immitis_June2023
+config=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/info.txt
+ref=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/reference_di_wol_dog.fa
+
+gvcf=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/vcf/${cohort}_ALLSITES.g.vcf.gz
+vcf=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/vcf/${cohort}_ALLSITES.vcf.gz
+
+# Load modules
+#module load gatk/4.2.1.0
+module load gatk/4.1.4.1 #they only had this version available
+
+# Genotype cohort vcf
+bsub.py 10 gatk_allsites gatk "GenotypeGVCFs \
+        -R ${ref} \
+        -all-sites \
+        -V ${gvcf} \
+        -O ${vcf}"
+```
+
+
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N gatk_allsites.pbs
+#PBS -l select=1:ncpus=1:mem=80GB
+#PBS -l walltime=24:00:00
+#PBS -m abe
+#PBS -q defaultQ
+#PBS -o gatk_allsites.txt
+#PBS -M rosemonde.power@sydney.edu.au
+
+# qsub ../gatk_allsites.pbs
+
+# ALL SITES (including non-variant sites)
+
+WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/vcf
+cd "${WORKING_DIR}"
+
+cohort=Dirofilaria_immitis_Sep2023
+ref=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/reference_di_wol_dog.fa
+
+gvcf=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/vcf/${cohort}.g.vcf.gz
+vcf=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/vcf/${cohort}_ALLSITES.vcf.gz
+
+# Load modules
+module load gatk/4.2.1.0
+
+# Genotype cohort vcf
+gatk --java-options "-Xmx28g -DGATK_STACKTRACE_ON_USER_EXCEPTION=true" \
+        GenotypeGVCFs \
+        -R ${ref} \
+        -all-sites \
+        -V ${gvcf} \
+        -O ${vcf}
+```
+
+
+
+
