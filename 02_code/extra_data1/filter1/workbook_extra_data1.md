@@ -1889,7 +1889,7 @@ Rename samples to more meaningful names:
 # load modules
 module load bcftools/1.11
 
-cd /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/filter/filter1/FINAL_SETS
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/extra_data1/analysis/mapping/filter/filter1/FINAL_SETS
 
 bcftools reheader -s rename.txt nuclear_samples3x_missing0.9.chr1to4.recode.vcf -o nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf
 ```
@@ -1939,7 +1939,7 @@ JS6605_DKDN230025576-1A_HHMLHDSX7_L1	JS6605
 JS6606_DKDN230025577-1A_HHMLHDSX7_L1	JS6606	
 JS6607_DKDN230025578-1A_HHMLHDSX7_L4	JS6344-REP	
 JS6608_DKDN230025579-1A_HHMLHDSX7_L4	Dog2.3-REP	
-JS6609_DKDN230025580-1A_HHMLHDSX7_L4	Dog1-REP	
+JS6609_DKDN230025580-1A_HHMLHDSX7_L4	Dog1.5-REP	
 JS6610_DKDN230025581-1A_HHMLHDSX7_L1	JS6610	
 JS6611_DKDN230025582-1A_HHMLHDSX7_L1	JS6611	
 JS6612_DKDN230025583-1A_HHMLHDSX7_L1	JS6612	
@@ -2595,43 +2595,284 @@ ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/
 
 ```
 
+# Concordance between technical replicates
 
-## Generate an ALL SITES variant set for running pixy properly
-
-Try running this on Sanger system
+I had technical replicates for 3 samples. Look at the concordance between these. If there is a small % that are discordant, where are they? I can use this to help QC some of my SNPs by potentially excluding certain parts of the genome which may be more error-prone.
 
 ```bash
+#!/bin/bash
 
-# Transfer data into Sanger system
-pscp -P 2227 Z:/PRJ-Heartworm_MLR/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/reference_di_wol_dog.fa.gz rp24@localhost:/lustre/scratch125/pam/teams/team333/rp24/Diro
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N replicates
+#PBS -l select=1:ncpus=1:mem=2GB
+#PBS -l walltime=00:10:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o replicates.txt
+
+# Submit job
+## qsub ../replicates.pbs
+
+# load modules
+module load bcftools/1.11
+module load tabix/0.2.6
+
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/extra_data1/analysis/mapping/filter/filter1/REPLICATES
+
+###################################################################################
+# Extract variants for each technical replicate
+###################################################################################
+
+# Extract variants for JS6344
+bcftools view -s JS6344 ../FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf -o JS6344.vcf
+bgzip JS6344.vcf
+tabix -p vcf JS6344.vcf.gz
+
+# Extract variants for JS6344-REP
+bcftools view -s JS6344-REP ../FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf -o JS6344-REP.vcf
+bgzip JS6344-REP.vcf
+tabix -p vcf JS6344-REP.vcf.gz
+
+# Extract variants for Dog2.3
+bcftools view -s Dog2.3 ../FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf -o Dog2.3.vcf
+bgzip Dog2.3.vcf
+tabix -p vcf Dog2.3.vcf.gz
+
+# Extract variants for Dog2.3-REP
+bcftools view -s Dog2.3-REP ../FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf -o Dog2.3-REP.vcf
+bgzip Dog2.3-REP.vcf
+tabix -p vcf Dog2.3-REP.vcf.gz
+
+# Extract variants for Dog1.5
+bcftools view -s Dog1.5 ../FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf -o Dog1.5.vcf
+bgzip Dog1.5.vcf
+tabix -p vcf Dog1.5.vcf.gz
+
+# Extract variants for Dog1.5-REP
+bcftools view -s Dog1.5-REP ../FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf -o Dog1.5-REP.vcf
+bgzip Dog1.5-REP.vcf
+tabix -p vcf Dog1.5-REP.vcf.gz
 
 
+###################################################################################
+# Extract the genotypes for each sample
+###################################################################################
 
-# ALL SITES (including non-variant sites)
+bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\t[%GT]\n' -s JS6344 JS6344.vcf.gz > JS6344_genotypes.txt
+bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\t[%GT]\n' -s JS6344-REP JS6344-REP.vcf.gz > JS6344-REP_genotypes.txt
 
-WORKING_DIR=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis
-cd "${WORKING_DIR}"
+bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\t[%GT]\n' -s Dog2.3 Dog2.3.vcf.gz > Dog2.3_genotypes.txt
+bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\t[%GT]\n' -s Dog2.3-REP Dog2.3-REP.vcf.gz > Dog2.3-REP_genotypes.txt
 
-cohort=Dirofilaria_immitis_June2023
-config=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/info.txt
-ref=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/reference_di_wol_dog.fa
-
-gvcf=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/vcf/${cohort}_ALLSITES.g.vcf.gz
-vcf=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/vcf/${cohort}_ALLSITES.vcf.gz
-
-# Load modules
-#module load gatk/4.2.1.0
-module load gatk/4.1.4.1 #they only had this version available
-
-# Genotype cohort vcf
-bsub.py 10 gatk_allsites gatk "GenotypeGVCFs \
-        -R ${ref} \
-        -all-sites \
-        -V ${gvcf} \
-        -O ${vcf}"
+bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\t[%GT]\n' -s Dog1.5 Dog1.5.vcf.gz > Dog1.5_genotypes.txt
+bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\t[%GT]\n' -s Dog1.5-REP Dog1.5-REP.vcf.gz > Dog1.5-REP_genotypes.txt
 ```
 
 
+```R
+# Replicates concordance
+
+# Load modules
+library(data.table)
+library(ggplot2)
+
+# Set working directory
+setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1/replicates")
+
+########################################################
+# Dog 1.5
+########################################################
+
+# Load genotypes from the two files
+genotypes_Dog1.5 <- fread("Dog1.5_genotypes.txt", header = FALSE, col.names = c("CHROM", "POS", "REF", "ALT", "Dog1.5_Genotype"))
+genotypes_Dog1.5_REP <- fread("Dog1.5-REP_genotypes.txt", header = FALSE, col.names = c("CHROM", "POS", "REF", "ALT", "Dog1.5_REP_Genotype"))
+
+# Merge data.tables by CHROM and POS
+merged_genotypes_Dog1.5 <- merge(genotypes_Dog1.5, genotypes_Dog1.5_REP, by = c("CHROM", "POS", "REF", "ALT"))
+
+# Create a new column for concordance status
+merged_genotypes_Dog1.5$Concordance <- ifelse(merged_genotypes_Dog1.5$Dog1.5_Genotype == merged_genotypes_Dog1.5$Dog1.5_REP_Genotype, "Concordant", "Discordant")
+
+# Calculate discordance
+discordant_positions_Dog1.5 <- subset(merged_genotypes_Dog1.5, Dog1.5_Genotype != Dog1.5_REP_Genotype)
+discordant_percentage_Dog1.5 <- nrow(discordant_positions_Dog1.5) / nrow(merged_genotypes_Dog1.5) * 100
+
+# Format the discordance percentage to two decimal places
+discordant_percentage_Dog1.5_2dp <- sprintf("%.2f", discordant_percentage_Dog1.5)
+discordant_percentage_Dog1.5_2dp
+
+# Output discordant positions and percentage
+write.table(discordant_positions_Dog1.5, "discordant_genotypes_Dog1.5.txt", sep = "\t", quote = FALSE, row.names = FALSE)
+cat("Discordance Percentage:", discordant_percentage_Dog1.5, "%\n")
+
+# Define custom labels for chromosomes
+chr_labels <- c(
+  "dirofilaria_immitis_chr1" = "Chr1",
+  "dirofilaria_immitis_chr2" = "Chr2",
+  "dirofilaria_immitis_chr3" = "Chr3",
+  "dirofilaria_immitis_chr4" = "Chr4")
+
+# Create a bar plot
+ggplot(data = merged_genotypes_Dog1.5, aes(x = CHROM, fill = Concordance)) +
+  geom_bar() +
+  labs(title = "Discordance by Chromosome: Dog 1.5 vs Dog 1.5 REP", subtitle = paste("Discordance Percentage:", discordant_percentage_Dog1.5_2dp, "%"), y = "Count") +
+  scale_fill_manual(values = c("Concordant" = "lightblue1", "Discordant" = "tomato2")) +
+  theme_minimal() +
+  scale_x_discrete(labels = chr_labels) +
+  theme(plot.title = element_text(face = "bold"))
+
+ggsave("discordance_plot_Dog1.5.png", plot = last_plot(), width = 8, height = 6, dpi = 600)
+
+
+
+########################################################
+# Dog 2.3
+########################################################
+
+# Load genotypes from the two files
+genotypes_Dog2.3 <- fread("Dog2.3_genotypes.txt", header = FALSE, col.names = c("CHROM", "POS", "REF", "ALT", "Dog2.3_Genotype"))
+genotypes_Dog2.3_REP <- fread("Dog2.3-REP_genotypes.txt", header = FALSE, col.names = c("CHROM", "POS", "REF", "ALT", "Dog2.3_REP_Genotype"))
+
+# Merge data.tables by CHROM and POS
+merged_genotypes_Dog2.3 <- merge(genotypes_Dog2.3, genotypes_Dog2.3_REP, by = c("CHROM", "POS", "REF", "ALT"))
+
+# Create a new column for concordance status
+merged_genotypes_Dog2.3$Concordance <- ifelse(merged_genotypes_Dog2.3$Dog2.3_Genotype == merged_genotypes_Dog2.3$Dog2.3_REP_Genotype, "Concordant", "Discordant")
+
+# Calculate discordance
+discordant_positions_Dog2.3 <- subset(merged_genotypes_Dog2.3, Dog2.3_Genotype != Dog2.3_REP_Genotype)
+discordant_percentage_Dog2.3 <- nrow(discordant_positions_Dog2.3) / nrow(merged_genotypes_Dog2.3) * 100
+
+# Format the discordance percentage to two decimal places
+discordant_percentage_Dog2.3_2dp <- sprintf("%.2f", discordant_percentage_Dog2.3)
+discordant_percentage_Dog2.3_2dp
+
+# Output discordant positions and percentage
+write.table(discordant_positions_Dog2.3, "discordant_genotypes_Dog2.3.txt", sep = "\t", quote = FALSE, row.names = FALSE)
+cat("Discordance Percentage:", discordant_percentage_Dog2.3, "%\n")
+
+# Define custom labels for chromosomes
+chr_labels <- c(
+  "dirofilaria_immitis_chr1" = "Chr1",
+  "dirofilaria_immitis_chr2" = "Chr2",
+  "dirofilaria_immitis_chr3" = "Chr3",
+  "dirofilaria_immitis_chr4" = "Chr4")
+
+# Create a bar plot
+ggplot(data = merged_genotypes_Dog2.3, aes(x = CHROM, fill = Concordance)) +
+  geom_bar() +
+  labs(title = "Discordance by Chromosome: Dog 2.3 vs Dog 2.3 REP", subtitle = paste("Discordance Percentage:", discordant_percentage_Dog2.3_2dp, "%"), y = "Count") +
+  scale_fill_manual(values = c("Concordant" = "darkseagreen3", "Discordant" = "tomato2")) +
+  theme_minimal() +
+  scale_x_discrete(labels = chr_labels) +
+  theme(plot.title = element_text(face = "bold"))
+
+ggsave("discordance_plot_Dog2.3.png", plot = last_plot(), width = 8, height = 6, dpi = 600)
+
+
+########################################################
+# JS6344
+########################################################
+
+# Load genotypes from the two files
+genotypes_JS6344 <- fread("JS6344_genotypes.txt", header = FALSE, col.names = c("CHROM", "POS", "REF", "ALT", "JS6344_Genotype"))
+genotypes_JS6344_REP <- fread("JS6344-REP_genotypes.txt", header = FALSE, col.names = c("CHROM", "POS", "REF", "ALT", "JS6344_REP_Genotype"))
+
+# Merge data.tables by CHROM and POS
+merged_genotypes_JS6344 <- merge(genotypes_JS6344, genotypes_JS6344_REP, by = c("CHROM", "POS", "REF", "ALT"))
+
+# Create a new column for concordance status
+merged_genotypes_JS6344$Concordance <- ifelse(merged_genotypes_JS6344$JS6344_Genotype == merged_genotypes_JS6344$JS6344_REP_Genotype, "Concordant", "Discordant")
+
+# Calculate discordance
+discordant_positions_JS6344 <- subset(merged_genotypes_JS6344, JS6344_Genotype != JS6344_REP_Genotype)
+discordant_percentage_JS6344 <- nrow(discordant_positions_JS6344) / nrow(merged_genotypes_JS6344) * 100
+
+# Format the discordance percentage to two decimal places
+discordant_percentage_JS6344_2dp <- sprintf("%.2f", discordant_percentage_JS6344)
+discordant_percentage_JS6344_2dp
+
+# Output discordant positions and percentage
+write.table(discordant_positions_JS6344, "discordant_genotypes_JS6344.txt", sep = "\t", quote = FALSE, row.names = FALSE)
+cat("Discordance Percentage:", discordant_percentage_JS6344, "%\n")
+
+# Define custom labels for chromosomes
+chr_labels <- c(
+  "dirofilaria_immitis_chr1" = "Chr1",
+  "dirofilaria_immitis_chr2" = "Chr2",
+  "dirofilaria_immitis_chr3" = "Chr3",
+  "dirofilaria_immitis_chr4" = "Chr4")
+
+# Create a bar plot
+ggplot(data = merged_genotypes_JS6344, aes(x = CHROM, fill = Concordance)) +
+  geom_bar() +
+  labs(title = "Discordance by Chromosome: JS6344 vs JS6344 REP", subtitle = paste("Discordance Percentage:", discordant_percentage_JS6344_2dp, "%"), y = "Count") +
+  scale_fill_manual(values = c("Concordant" = "lightpink", "Discordant" = "tomato2")) +
+  theme_minimal() +
+  scale_x_discrete(labels = chr_labels) +
+  theme(plot.title = element_text(face = "bold"))
+
+ggsave("discordance_plot_JS6344.png", plot = last_plot(), width = 8, height = 6, dpi = 600)
+
+
+
+
+
+########################################################
+# Are discordant variants shared between replicates?
+########################################################
+
+library(VennDiagram)
+
+# Read the discordant genotypes files for all three pairs
+Dog1.5_data <- read.table("discordant_genotypes_Dog1.5.txt", header = TRUE, sep = "\t")
+Dog2.3_data <- read.table("discordant_genotypes_Dog2.3.txt", header = TRUE, sep = "\t")
+JS6344_data <- read.table("discordant_genotypes_JS6344.txt", header = TRUE, sep = "\t")
+
+# Extract the "CHROM" and "POS" columns for each pair
+Dog1.5_variants <- with(Dog1.5_data, paste(CHROM, POS, sep = ":"))
+Dog2.3_variants <- with(Dog2.3_data, paste(CHROM, POS, sep = ":"))
+JS6344_variants <- with(JS6344_data, paste(CHROM, POS, sep = ":"))
+
+# Create a Venn diagram with three circles
+venn.plot <- venn.diagram(
+  x = list(Dog1.5_variants, Dog2.3_variants, JS6344_variants),
+  category.names = c("Dog1.5", "Dog2.3", "JS6344"),
+  filename = NULL,
+  output = TRUE,
+  euler.d = TRUE, # For a more circular layout
+  fontfamily = "sans", # Change font family to Arial (or your preferred font)
+  category.cex = 2, # Increase category label size
+  output = TRUE,
+  lwd = 1, # Increase line width
+  fill = c("lightblue1", "darkseagreen3", "lightpink"), # Customize fill colors
+  alpha = 0.5, # Set transparency
+  cat.pos = 0, # Position of category labels (0 = centered)
+  margin = 0.05 # Adjust the margin
+)
+
+# Display the Venn diagram
+grid.draw(venn.plot)
+
+ggsave("discordance_venn_diagram.png", plot = venn.plot, width = 6, height = 6, dpi = 600)
+
+```
+
+Now I may want to exclude these discordant variant sites from my cohort VCF
+
+```R
+
+```
+```bash
+bcftools view -T ^discordant_variants.txt -O v -o filtered_cohort.vcf input_cohort.vcf
+```
+
+
+
+
+
+## Generate an ALL SITES variant set for running pixy properly
 
 ```bash
 #!/bin/bash
@@ -2671,6 +2912,54 @@ gatk --java-options "-Xmx28g -DGATK_STACKTRACE_ON_USER_EXCEPTION=true" \
         -O ${vcf}
 ```
 
+This is taking a while. Try running this on Sanger system to see which one finishes first.
+
+```bash
+# Transfer cohort.g.vcf.gz and associated tbi file into RDS
+dt-script -P RDS-FSC-Heartworm_MLR-RW \
+-m 50GB \
+--from /scratch/RDS-FSC-Heartworm_MLR-RW/extra_data1/analysis/mapping/vcf/Dirofilaria_immitis_Sep2023.g.vcf.gz \
+--to /rds/PRJ-Heartworm_MLR/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/vcf/Dirofilaria_immitis_Sep2023.g.vcf.gz
+# done
+
+dt-script -P RDS-FSC-Heartworm_MLR-RW \
+-m 10GB \
+--from /scratch/RDS-FSC-Heartworm_MLR-RW/extra_data1/analysis/mapping/vcf/Dirofilaria_immitis_Sep2023.g.vcf.gz.tbi \
+--to /rds/PRJ-Heartworm_MLR/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/vcf/Dirofilaria_immitis_Sep2023.g.vcf.gz.tbi
+# done
+
+# Transfer data from RDS to Sanger
+# reference
+pscp -P 2227 Z:/PRJ-Heartworm_MLR/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/reference_di_wol_dog.fa.gz rp24@localhost:/lustre/scratch125/pam/teams/team333/rp24/Diro
+# done
+
+# g.vcf.gz.tbi
+pscp -P 2227 Z:/PRJ-Heartworm_MLR/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/vcf/Dirofilaria_immitis_Sep2023.g.vcf.gz.tbi rp24@localhost:/lustre/scratch125/pam/teams/team333/rp24/Diro
+
+
+# ALL SITES (including non-variant sites)
+
+WORKING_DIR=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis
+cd "${WORKING_DIR}"
+
+cohort=Dirofilaria_immitis_June2023
+config=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/info.txt
+ref=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping/reference_di_wol_dog.fa
+
+gvcf=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/vcf/${cohort}_ALLSITES.g.vcf.gz
+vcf=/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/vcf/${cohort}_ALLSITES.vcf.gz
+
+# Load modules
+#module load gatk/4.2.1.0
+module load gatk/4.1.4.1 #they only had this version available
+
+# Genotype cohort vcf
+bsub.py 10 gatk_allsites "gatk GenotypeGVCFs \
+        -R reference_di_wol_dog.fa \
+        -all-sites \
+        -V Dirofilaria_immitis_Sep2023.g.vcf.gz \
+        -O Dirofilaria_immitis_Sep2023_ALLSITES.vcf.gz"
+```
 
 
 
