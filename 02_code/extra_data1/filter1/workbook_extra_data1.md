@@ -2961,6 +2961,292 @@ bsub.py 10 gatk_allsites "gatk GenotypeGVCFs \
         -O Dirofilaria_immitis_Sep2023_ALLSITES.vcf.gz"
 ```
 
+This ran out of walltime and there was a fatal error. Try splitting it into jobs like Javier did.
+
+
+
+
+## Split my cohort GVCF file into individual GVCFs for each chromosome (Sanger)
+
+#bsub.py 10 SPLIT_GVCF "../SPLIT_GVCFS.sh"
+
+```bash
+#Creating environmental variables and loading modules
+# working dir
+WORKING_DIR=/lustre/scratch125/pam/teams/team333/rp24/Diro/data
+# load gatk
+module load gatk/4.1.4.1
+#vcftools
+module load vcftools/0.1.16-c4
+# also need htslib for tabix
+module load common-apps/htslib/1.9.229
+
+
+REFERENCE=${WORKING_DIR}/REFERENCE/reference_di_wol_dog.fa
+REF_DIR=${WORKING_DIR}/REFERENCE
+
+# made a sequences list to allow splitting jobs per scaffold/contig
+SEQUENCE_LIST=${WORKING_DIR}/VARIANTS/sequences.list
+ulimit -c unlimited
+
+COHORT_GVCF=${WORKING_DIR}/VARIANTS/Dirofilaria_immitis_Sep2023.g.vcf.gz
+OUTPUT_DIR=${WORKING_DIR}/VARIANTS/
+
+
+# Split my cohort GVCF file into individual GVCF files for each chromosome
+while IFS= read -r CHR; do
+    gatk SelectVariants \
+        -R ${REFERENCE} \
+        -V ${COHORT_GVCF} \
+        -L ${CHR} \
+        -O ${OUTPUT_DIR}/${CHR}.g.vcf.gz
+done < "${SEQUENCE_LIST}"
+```
+
+That seemed to work.
+
+
+## Run genotyping on each chromosome GVCF
+
+bsub.py 1 genotype_jobs "../genotype_jobs.sh"
+
+```bash
+#Creating environmental variables and loading modules
+# working dir
+WORKING_DIR=/lustre/scratch125/pam/teams/team333/rp24/Diro/data
+# load gatk
+module load gatk/4.1.4.1
+#vcftools
+module load vcftools/0.1.16-c4
+# also need htslib for tabix
+module load common-apps/htslib/1.9.229
+
+REFERENCE=${WORKING_DIR}/REFERENCE/reference_di_wol_dog.fa
+
+# made a sequences list to allow splitting jobs per scaffold/contig
+SEQUENCE_LIST=${WORKING_DIR}/VARIANTS/sequences.list
+ulimit -c unlimited
+
+OUTPUT_DIR=${WORKING_DIR}/VARIANTS/
+
+# Split each chromosome up into separate jobs, and run genotyping on each individually.
+n=1
+while read SEQUENCE; do
+     echo -e "gatk GenotypeGVCFs \
+     -R ${REFERENCE} \
+     -V ${OUTPUT_DIR}/${SEQUENCE}.g.vcf.gz \
+     --intervals ${SEQUENCE} \
+     --all-sites \
+     --heterozygosity 0.015 \
+     --indel-heterozygosity 0.01 \
+     --annotation DepthPerAlleleBySample --annotation Coverage --annotation ExcessHet --annotation FisherStrand --annotation MappingQualityRankSumTest --annotation StrandOddsRatio --annotation RMSMappingQuality --annotation ReadPosRankSumTest --annotation DepthPerSampleHC --annotation QualByDepth \
+     -O ${n}.${SEQUENCE}.cohort.vcf.gz" > run_hc_genotype.${SEQUENCE}.tmp.job_${n};
+     let "n+=1";
+done < ${SEQUENCE_LIST}
+```
+
+```bash
+chmod a+x run_hc_genotype*
+
+mkdir LOGFILES
+
+# setup job conditions
+JOBS=$( ls -1 run_hc_* | wc -l )
+ID="U$(date +%s)"
+
+# run
+bsub -q long -R'span[hosts=1] select[mem>20000] rusage[mem=20000]' -n 4 -M20000 -J GATK_HC_GENOTYPE_${ID}_[1-$JOBS] -e LOGFILES/GATK_HC_GENOTYPE_${ID}_[1-$JOBS].e -o LOGFILES/GATK_HC_GENOTYPE_${ID}_[1-$JOBS].o "./run_hc_*\$LSB_JOBINDEX"
+```
+
+That seemed to work. But [6] (scaffold 1) is missing? I ran this twice and it was missing both times. Don't know what could've gone wrong there...
+I moved all the all-site cohort vcf files into the data/VARIANTS/ALLSITES folder to keep things tidy. All the log files were moved to the scripts/logs folder.
+
+## Bring the files together
+
+bsub.py 4 genotype_concat "../genotype_concat.sh"
+
+```bash
+#vcftools
+module load vcftools/0.1.16-c4
+# also need htslib for tabix
+module load common-apps/htslib/1.9.229
+
+cd /lustre/scratch125/pam/teams/team333/rp24/Diro/data/VARIANTS/ALLSITES
+
+# make list of vcfs
+ls -1 *.cohort.vcf.gz | sort -n > vcf_files.list
+
+# merge them
+vcf-concat --files vcf_files.list > dirofilaria_immitis.cohort.allsites.vcf;
+     bgzip dirofilaria_immitis.cohort.allsites.vcf;
+     tabix -p vcf dirofilaria_immitis.cohort.allsites.vcf.gz
+```
+
+Do this later:
+```bash
+# clean up
+rm run*
+rm ^[0-9]* #remove files in the current directory whose filenames start with one or more digits (0-9)
+rm *.g.vcf.gz*
+```
+
+## Now, let's filter nuclear variants and invariants
+
+bsub.py 10 genotype_filter "../genotype_filter.sh"
+
+```bash
+#Creating environmental variables and loading modules
+# working dir
+WORKING_DIR=/lustre/scratch125/pam/teams/team333/rp24/Diro/data
+cd ${WORKING_DIR}
+
+# load gatk
+module load gatk/4.1.4.1
+#vcftools
+module load vcftools/0.1.16-c4
+# also need htslib for tabix
+module load common-apps/htslib/1.9.229
+# bsub.py
+module load bsub.py
+
+REFERENCE=${WORKING_DIR}/REFERENCE/reference_di_wol_dog.fa
+
+VCF=${WORKING_DIR}/VARIANTS/ALLSITES/dirofilaria_immitis.cohort.allsites.vcf.gz
+MIT_CONTIG=dirofilaria_immitis_chrMtDNA
+WB_CONTIG=dirofilaria_immitis_chrWb
+
+vcftools --gzvcf ${WORKING_DIR}/VARIANTS/ALLSITES/dirofilaria_immitis.cohort.allsites.vcf.gz --remove-indels
+#After filtering, kept 61 out of 61 Individuals
+#After filtering, kept 87974473 out of a possible 88674417 Sites
+# Some weird warnings appeared - not sure if important?
+
+#select nuclear invariants
+gatk SelectVariants \
+--reference ${REFERENCE} \
+--variant ${VCF} \
+--select-type-to-include NO_VARIATION \
+--exclude-intervals ${MIT_CONTIG} \
+--exclude-intervals ${WB_CONTIG} \
+--output ${VCF%.vcf.gz}.nuclearINVARIANTs.vcf
+
+vcftools --vcf ${WORKING_DIR}/VARIANTS/ALLSITES/dirofilaria_immitis.cohort.allsites.nuclearINVARIANTs.vcf --remove-indels
+#After filtering, kept 61 out of 61 Individuals
+#After filtering, kept 86562415 out of a possible 86601320 Sites
+# Some weird warnings appeared - not sure if important?
+```
+Some guides recommend not to apply pop genomics filters for invariants
+
+
+## In any way, lets merge the nuclear invariants with nuclear SNPs previously filtered
+
+bsub.py 1 filter_nuclear_INVARITANTvcftools "../filter_nuclear_INVARITANTvcftools.sh"
+
+```bash
+#Creating environmental variables and loading modules
+# working dir
+WORKING_DIR=/lustre/scratch125/pam/teams/team333/rp24/Diro/data
+cd ${WORKING_DIR}
+
+# load gatk
+module load gatk/4.1.4.1
+#vcftools
+module load vcftools/0.1.16-c4
+# also need htslib for tabix
+module load common-apps/htslib/1.9.229
+# bsub.py
+module load bsub.py
+
+REFERENCE=${WORKING_DIR}/REFERENCE/reference_di_wol_dog.fa
+
+VCF=${WORKING_DIR}/VARIANTS/ALLSITES/dirofilaria_immitis.cohort.allsites.vcf.gz
+
+#Keep all the samples of the nuclear dataset and then merge with the SNPs-INDELs
+vcftools --vcf ${VCF%.vcf.gz}.nuclearINVARIANTs.vcf \
+--keep ${WORKING_DIR}/VARIANTS/nuclear_samplelist.keep \
+--recode --out nuclearINVARIANTS_allsamples
+#After filtering, kept 61 out of 61 Individuals
+#After filtering, kept 86601320 out of a possible 86601320 Sites
+# Weird warnings again?
+```
+
+Rename the "/scratch/RDS-FSC-Heartworm_MLR-RW/extra_data1/analysis/mapping/filter/filter1/FINAL_SETS/nuclear_samples3x_missing0.9.recode.vcf" file on Artemis. They still have the old long sample names.
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N origvcf_rename
+#PBS -l select=1:ncpus=2:mem=20GB
+#PBS -l walltime=00:20:00
+#PBS -m abe
+#PBS -q defaultQ
+#PBS -o origvcf_rename.txt
+
+# qsub ../origvcf_rename.pbs
+
+# load modules
+module load bcftools/1.11
+
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/extra_data1/analysis/mapping/filter/filter1/FINAL_SETS
+
+bcftools reheader -s rename.txt nuclear_samples3x_missing0.9.recode.vcf -o nuclear_samples3x_missing0.9.recode.RENAMED.vcf
+```
+Then transferred this file from Artemis -> Sanger. This is the 'already filtered variants'.
+
+
+
+bsub.py 2 merge_nuclear_VARIANTsandINVARIANTs "../merge_nuclear_VARIANTsandINVARIANTs.sh"
+
+```bash
+#Creating environmental variables and loading modules
+# working dir
+WORKING_DIR=/lustre/scratch125/pam/teams/team333/rp24/Diro/data
+cd ${WORKING_DIR}
+
+# load gatk
+module load gatk/4.1.4.1
+#vcftools
+module load vcftools/0.1.16-c4
+# also need htslib for tabix
+module load common-apps/htslib/1.9.229
+# bsub.py
+module load bsub.py
+
+REFERENCE=${WORKING_DIR}/REFERENCE/reference_di_wol_dog.fa
+
+VCF=${WORKING_DIR}/VARIANTS/ALLSITES/dirofilaria_immitis.cohort.allsites.vcf.gz
+
+
+#And merge with the already filtered variants
+gatk MergeVcfs \
+--INPUT ${WORKING_DIR}/VARIANTS/FINAL_SETS/nuclear_samples3x_missing0.8.recode.RENAMED.vcf \
+--INPUT ${WORKING_DIR}/VARIANTS/ALLSITES/nuclearINVARIANTS_allsamples.recode.vcf \
+--OUTPUT ${WORKING_DIR}/VARIANTS/ALLSITES/nuclearVARIANTsandINVARIANTs_allsamples.recode.vcf
+
+#Also, we will select only the chrX to chr4, avoiding the scaffolds
+vcftools \
+--vcf ${WORKING_DIR}/VARIANTS/ALLSITES/nuclearVARIANTsandINVARIANTs_allsamples.recode.vcf \
+--chr dirofilaria_immitis_chrX \
+--chr dirofilaria_immitis_chr1 \
+--chr dirofilaria_immitis_chr2 \
+--chr dirofilaria_immitis_chr3 \
+--chr dirofilaria_immitis_chr4 \
+--remove-indels \
+--recode --out ${WORKING_DIR}/VARIANTS/ALLSITES/nuclearSNPssandINVARIANTs.chrxto4
+#After filtering, kept _ out of _ Individuals
+#After filtering, kept _ out of a possible _ Sites
+
+bgzip ${WORKING_DIR}/VARIANTS/ALLSITES/nuclearSNPssandINVARIANTs.chrxto4.recode.vcf;
+tabix -p vcf ${WORKING_DIR}/VARIANTS/ALLSITES/nuclearSNPssandINVARIANTs.chrxto4.recode.vcf.gz
+mv ${WORKING_DIR}/VARIANTS/ALLSITES/nuclearSNPssandINVARIANTs.chrxto4.recode.vcf.* ../FINAL_SETS/
+```
+
+
+
+
+
+****************************
 
 
 # Filter nuclear variants and invariants
