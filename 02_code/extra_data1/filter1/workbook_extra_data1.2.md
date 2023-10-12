@@ -2647,7 +2647,7 @@ print(USA_shapiro)
 
 
 #Wilcoxson test for everyone
-# The Wilcoxson test determined whether the distribution of paired data significantly differs from a hypothetical median/reference value. It's a non-parametric alternative to the paired t-test (which doesn't assume that the data follows a normal distribution)
+# The Wilcoxson test determines whether the distribution of paired data significantly differs from a hypothetical median/reference value. It's a non-parametric alternative to the paired t-test (which doesn't assume that the data follows a normal distribution)
 wilcox.test(pi_data_Australia$avg_pi, pi_data_Italy$avg_pi)
 # W = 331814, p-value < 2.2e-16
 wilcox.test(pi_data_Australia$avg_pi, pi_data_Thailand$avg_pi)
@@ -3101,6 +3101,9 @@ Dog1.3	Sydney
 Dog1.4	Sydney
 Dog1.5	Sydney
 
+conda activate pixy
+module load bsub.py
+
 cd /lustre/scratch125/pam/teams/team333/rp24/Diro/data/PIXY
 
 #submitting jobs
@@ -3111,6 +3114,132 @@ bsub.py --queue long --threads 20 20 aus_pop \
 --window_size 100000 \
 --n_cores 20 \
 --output_prefix AUS_pop"
+```
+Successfully completed
+
+
+## Nucleotide diversity (pi)
+
+```R
+library(tidyverse)
+library(ggsci)
+library(ggpubr)
+library(patchwork)
+library(ggridges)
+library(dplyr)
+
+setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1.2/pixy_aus")
+
+##############################################################
+# PI
+##############################################################
+
+# Per population
+# get nucleotide diversity (pi) data from pixy output
+pi_data <- read.table("aus_pop_pi.txt", header=T)
+pi_data$chromosome <- str_remove(pi_data$chromosome, 'dirofilaria_immitis_')
+
+# filter pi data to remove small scaffolds not in the linkage groups, and to number the rows per group to help with plotting
+pi_data <- pi_data %>%
+  group_by(pop) %>%
+  mutate(position = 1:n())
+
+#LEt's add the chr type variable
+pi_data <- pi_data %>%
+  mutate(chr_type = ifelse(str_detect(chromosome, "X"), "sexchr", "autosome"))
+
+# calculate the median Pi and checking the ratio of sex-to-autosome diversity. Should be about 0.75, as Trichuris is XX/XY
+pi_data_sex_median <- pi_data %>%
+  group_by(chr_type) %>%
+  summarise(median = median(avg_pi, na.rm = TRUE))
+'
+
+'
+# calculation
+
+pi_data_pop_sex_median <- pi_data %>%
+  group_by(pop, chr_type) %>%
+  summarise(median = median(avg_pi, na.rm = TRUE))
+'
+
+'
+
+#Now a boxplot of the pi value per population
+pi_data$pop <- factor(pi_data$pop, 
+                           levels = c('Lockhart River Cooktown', 'Cairns', 'Townsville', 'Rockhampton', 
+                                      'Brisbane', 'Sydney'))
+
+scale_colour_javier_PCA <- function(...){
+  ggplot2:::manual_scale(
+    'colour', 
+    values = setNames(
+      c('royalblue1', 'blue3',
+        'turquoise3',
+        'green',
+        'lightgoldenrod1', 'darkgoldenrod1', 'orange', 'orange2',
+        'orange3', 'tomato1', 'red2', 'darkred'), 
+      c('QUE', 'NSW', 
+        'PAV',
+        'SIC',
+        'MCH', 'ILL', 'TEN', 'ARK', 
+        'GEO', 'MIP', 'TEX', 'LOU')), 
+    ...
+  )
+}
+
+boxplot_pi_usa_pop <- ggplot(pi_data, aes(pop, avg_pi, col=pop)) +
+  geom_jitter(size = 1, alpha = 0.5) +
+  geom_boxplot(fill=NA, col="grey15", linewidth = 1) +
+  labs(x = "Population" , y = "Nucleotide diversity (Pi)") +
+  theme_bw() +
+  theme(legend.position = "none") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  scale_color_npg() +
+  ylim(0, 0.003) + scale_colour_javier_PCA()
+
+#Per sample type
+# get nucleotide diversity (pi) data from pixy output
+pi_data <- read.table("data/usa_sampletype_pi.txt", header=T)
+pi_data$chromosome <- str_remove(pi_data$chromosome, 'dirofilaria_immitis_')
+
+# filter pi data to remove small scaffolds not in the linkage groups, and to number the rows per group to help with plotting
+pi_data <- pi_data %>%
+  group_by(pop) %>%
+  mutate(position = 1:n())
+
+#LEt's add the chr type variable
+pi_data <- pi_data %>%
+  mutate(chr_type = ifelse(str_detect(chromosome, "X"), "sexchr", "autosome"))
+# calculate the median Pi and checking the ratio of sex-to-autosome diversity. Should be about 0.75, as Trichuris is XX/XY
+pi_data_sex_median <- pi_data %>%
+  group_by(chr_type) %>%
+  summarise(median = median(avg_pi, na.rm = TRUE))
+'
+
+'
+# 0.000378 / 0.000704 = 0.5369318 (far off 0.75 expected of diversity on sex chromosome relative to autosome)
+
+pi_data_pop_sex_median <- pi_data %>%
+  group_by(pop, chr_type) %>%
+  summarise(median = median(avg_pi, na.rm = TRUE))
+'
+
+'
+#Now a boxplot of the pi value per population
+boxplot_pi_usa_sampletype <- ggplot(pi_data, aes(pop, avg_pi, col=pop, shape = pop)) +
+  geom_jitter(size = 2, alpha = 0.5) +
+  geom_boxplot(fill=NA, col="grey15", linewidth = 1) +
+  labs(x = "Population" , y = "Nucleotide diversity (Pi)") +
+  theme_bw() +
+  scale_color_tron()+
+  theme(legend.position = "none") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  ylim(0, 0.003)
+
+#and arranging
+ggarrange(boxplot_pi_usa_pop, boxplot_pi_usa_sampletype, labels = c('a', 'b'),
+          ncol = 2, widths =  c(1.5, 1))
+ggsave("FigS8_plots_diversity_USA.png", width=9, height=5.5)
 ```
 
 
