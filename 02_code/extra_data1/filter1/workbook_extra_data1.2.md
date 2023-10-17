@@ -3019,7 +3019,44 @@ plot_2_fst
 # bring it together
 plot_1_fst + plot_2_fst +  plot_layout(widths = c(5, 1))
 ggsave("plots_genomewide_and_density_fst.png", width=9, height=6)
+## Fst values should only range between 0 and 1. Set anything <0 to 0 and re-do the plots.
+
+# Data cleaning
+data_fst_clean <- data %>% filter(data_type == 'Fst') %>% mutate(value = ifelse(value < 0, 0, value)) # this takes my original data, filters it to only include rows where the data_type is Fst. Then mutate function is used to create/modify columns. It modifies the value column, checks if the value is less than 0. If the value is <0, it replaces it with 0. If the value is >0, it keeps the original value.
+
+# Re-do plots with cleaned data
+# plot 1 - genome wide plots per population
+plot_1_fst_clean <- data_fst_clean %>%
+  filter(data_type=='Fst')%>%
+  ggplot(., aes(position*100000, value, col=chromosome)) +
+  geom_point(size=1) +
+  facet_grid(comparison~.) +
+  scale_color_tron() +
+  theme_bw() +
+  theme(legend.position="top", 
+        legend.title = element_blank()) +
+  labs(x="Genomic Position", y="Fst")
+plot_1_fst_clean
+
+
+# plot 2 - density plots of Fst per group
+plot_2_fst_clean <- data_fst_clean %>%
+  filter(data_type=='Fst')%>%
+  ggplot(aes(value, chr_type, fill=chr_type), guide="none") +
+  geom_density_ridges(quantile_lines=TRUE, quantile_fun=function(x,...)median(x), size=0.5) +
+  theme_bw() + theme(legend.position = "none", axis.text.y=element_blank()) +
+  facet_grid(comparison~.) +
+  scale_fill_npg() +
+  labs(x="Fst", y="Density")
+plot_2_fst_clean
+
+# bring it together
+plot_1_fst_clean + plot_2_fst_clean +  plot_layout(widths = c(5, 1))
+ggsave("plots_genomewide_and_density_fst_CLEAN.png", width=9, height=6)
 ```
+
+
+
 
 
 ## Explore the Australian populations
@@ -3127,6 +3164,8 @@ library(ggpubr)
 library(patchwork)
 library(ggridges)
 library(dplyr)
+library(RColorBrewer)
+library(ggplot2)
 
 setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1.2/pixy_aus")
 
@@ -3136,7 +3175,7 @@ setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/H
 
 # Per population
 # get nucleotide diversity (pi) data from pixy output
-pi_data <- read.table("aus_pop_pi.txt", header=T)
+pi_data <- read.table("AUS_pop_pi.txt", header=TRUE, sep = "\t")
 pi_data$chromosome <- str_remove(pi_data$chromosome, 'dirofilaria_immitis_')
 
 # filter pi data to remove small scaffolds not in the linkage groups, and to number the rows per group to help with plotting
@@ -3144,7 +3183,7 @@ pi_data <- pi_data %>%
   group_by(pop) %>%
   mutate(position = 1:n())
 
-#LEt's add the chr type variable
+#Let's add the chr type variable
 pi_data <- pi_data %>%
   mutate(chr_type = ifelse(str_detect(chromosome, "X"), "sexchr", "autosome"))
 
@@ -3152,94 +3191,351 @@ pi_data <- pi_data %>%
 pi_data_sex_median <- pi_data %>%
   group_by(chr_type) %>%
   summarise(median = median(avg_pi, na.rm = TRUE))
+pi_data_sex_median
 '
-
+# A tibble: 2 × 2
+  chr_type   median
+  <chr>       <dbl>
+1 autosome 0.000476
+2 sexchr   0.000190
 '
-# calculation
+# sex/autosome ratio is 0.000190 / 0.000476 = 0.3991597 (far off 0.75 expected of diversity on sex chromosome relative to autosome)
 
 pi_data_pop_sex_median <- pi_data %>%
   group_by(pop, chr_type) %>%
   summarise(median = median(avg_pi, na.rm = TRUE))
+pi_data_pop_sex_median
 '
-
+# A tibble: 12 × 3
+# Groups:   pop [6]
+   pop                     chr_type    median
+   <chr>                   <chr>        <dbl>
+ 1 Brisbane                autosome 0.000431 
+ 2 Brisbane                sexchr   0.000202 
+ 3 Cairns                  autosome 0.000444 
+ 4 Cairns                  sexchr   0.0000767
+ 5 Lockhart River Cooktown autosome 0.000824 
+ 6 Lockhart River Cooktown sexchr   0.000379 
+ 7 Rockhampton             autosome 0.000271 
+ 8 Rockhampton             sexchr   0.0000206
+ 9 Sydney                  autosome 0.000366 
+10 Sydney                  sexchr   0.000185 
+11 Townsville              autosome 0.000627 
+12 Townsville              sexchr   0.000272 
 '
 
 #Now a boxplot of the pi value per population
 pi_data$pop <- factor(pi_data$pop, 
-                           levels = c('Lockhart River Cooktown', 'Cairns', 'Townsville', 'Rockhampton', 
-                                      'Brisbane', 'Sydney'))
+                      levels = c('Lockhart River Cooktown', 'Cairns', 'Townsville', 'Rockhampton', 
+                                 'Brisbane', 'Sydney'))
 
-scale_colour_javier_PCA <- function(...){
-  ggplot2:::manual_scale(
-    'colour', 
-    values = setNames(
-      c('royalblue1', 'blue3',
-        'turquoise3',
-        'green',
-        'lightgoldenrod1', 'darkgoldenrod1', 'orange', 'orange2',
-        'orange3', 'tomato1', 'red2', 'darkred'), 
-      c('QUE', 'NSW', 
-        'PAV',
-        'SIC',
-        'MCH', 'ILL', 'TEN', 'ARK', 
-        'GEO', 'MIP', 'TEX', 'LOU')), 
-    ...
-  )
-}
 
-boxplot_pi_usa_pop <- ggplot(pi_data, aes(pop, avg_pi, col=pop)) +
+blue_palette <- brewer.pal(n = 9, name = "Blues")
+scale_colour_aus <- c("Lockhart River Cooktown" = blue_palette[9], "Cairns" = blue_palette[8], "Townsville" = blue_palette[7], "Rockhampton" = blue_palette[6], "Brisbane" = blue_palette[5], "Sydney" = blue_palette[4])
+
+
+
+boxplot_pi_aus_pop <- ggplot(pi_data, aes(pop, avg_pi, col=pop)) +
   geom_jitter(size = 1, alpha = 0.5) +
   geom_boxplot(fill=NA, col="grey15", linewidth = 1) +
   labs(x = "Population" , y = "Nucleotide diversity (Pi)") +
   theme_bw() +
   theme(legend.position = "none") +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  scale_color_npg() +
-  ylim(0, 0.003) + scale_colour_javier_PCA()
+  scale_color_manual(values = scale_colour_aus)  +
+  ylim(0, 0.003)
+boxplot_pi_aus_pop
+ggsave("AUS_plots_boxplot_pi.png", width=9, height=5.5)
+# Removed 31 rows containing non-finite values (`stat_boxplot()`). 
+# Removed 233 rows containing missing values (`geom_point()`).
+```
 
-#Per sample type
-# get nucleotide diversity (pi) data from pixy output
-pi_data <- read.table("data/usa_sampletype_pi.txt", header=T)
-pi_data$chromosome <- str_remove(pi_data$chromosome, 'dirofilaria_immitis_')
+## Dxy and Fst
 
-# filter pi data to remove small scaffolds not in the linkage groups, and to number the rows per group to help with plotting
-pi_data <- pi_data %>%
-  group_by(pop) %>%
+```R
+##############################################################
+# Dxy and Fst
+##############################################################
+
+# load data
+dxy_data <- read.table("AUS_pop_dxy.txt", header=T, sep = "\t")
+dxy_data_renamed <- dxy_data %>% mutate(pop1 = case_when(pop1 == 'Lockhart River Cooktown' ~ 'LHR', pop1 == 'Cairns' ~ 'CNS', pop1 == 'Townsville' ~ 'TSV', pop1 == 'Rockhampton' ~ 'ROK', pop1 == 'Brisbane' ~ 'BNE', pop1 == 'Sydney' ~ 'SYD', TRUE ~ pop1))
+dxy_data_renamed <- dxy_data_renamed %>% mutate(pop2 = case_when(pop2 == 'Lockhart River Cooktown' ~ 'LHR', pop2 == 'Cairns' ~ 'CNS', pop2 == 'Townsville' ~ 'TSV', pop2 == 'Rockhampton' ~ 'ROK', pop2 == 'Brisbane' ~ 'BNE', pop2 == 'Sydney' ~ 'SYD', TRUE ~ pop2))
+
+
+fst_data <- read.table("AUS_pop_fst.txt", header=T, sep = "\t")
+fst_data_renamed <- fst_data %>% mutate(pop1 = case_when(pop1 == 'Lockhart River Cooktown' ~ 'LHR', pop1 == 'Cairns' ~ 'CNS', pop1 == 'Townsville' ~ 'TSV', pop1 == 'Rockhampton' ~ 'ROK', pop1 == 'Brisbane' ~ 'BNE', pop1 == 'Sydney' ~ 'SYD', TRUE ~ pop1))
+fst_data_renamed <- fst_data_renamed %>% mutate(pop2 = case_when(pop2 == 'Lockhart River Cooktown' ~ 'LHR', pop2 == 'Cairns' ~ 'CNS', pop2 == 'Townsville' ~ 'TSV', pop2 == 'Rockhampton' ~ 'ROK', pop2 == 'Brisbane' ~ 'BNE', pop2 == 'Sydney' ~ 'SYD', TRUE ~ pop2))
+
+# add some columns
+dxy_data_renamed$data_type <- "Dxy"
+dxy_data_renamed <- mutate(dxy_data_renamed,
+                           comparison = paste(pop1, pop2, sep = '_v_'))
+fst_data_renamed$data_type <- "Fst"
+fst_data_renamed <- mutate(fst_data_renamed,
+                           comparison = paste(pop1, pop2, sep = '_v_'))
+
+# subset and merge dataframes
+dxy_data_sub <- dxy_data_renamed %>% select(comparison,data_type,chromosome,window_pos_1,window_pos_2,avg_dxy)
+colnames(dxy_data_sub) <- c("comparison","data_type","chromosome","window_pos_1","window_pos_2","value")
+
+fst_data_sub <- fst_data_renamed %>% select(comparison,data_type,chromosome,window_pos_1,window_pos_2,avg_wc_fst)
+colnames(fst_data_sub) <- c("comparison","data_type","chromosome","window_pos_1","window_pos_2","value")
+
+# cheeky fix to get matching rows from both datasets
+tmp_dxy <- semi_join(dxy_data_sub, fst_data_sub, by=c("comparison", "chromosome", "window_pos_1", "window_pos_2"))
+tmp_fst <- semi_join(fst_data_sub, dxy_data_sub,  by=c("comparison", "chromosome", "window_pos_1", "window_pos_2"))
+
+# join the datasets together to create a single dataframe
+data <- full_join(tmp_dxy, tmp_fst)
+data$chromosome <- str_remove(data$chromosome, 'dirofilaria_immitis_')
+
+# add numbering to help with plotting
+data <- data %>%
+  group_by(comparison, data_type) %>%
   mutate(position = 1:n())
 
-#LEt's add the chr type variable
-pi_data <- pi_data %>%
+# add sex chromosome information
+data <- data %>%
   mutate(chr_type = ifelse(str_detect(chromosome, "X"), "sexchr", "autosome"))
-# calculate the median Pi and checking the ratio of sex-to-autosome diversity. Should be about 0.75, as Trichuris is XX/XY
-pi_data_sex_median <- pi_data %>%
-  group_by(chr_type) %>%
-  summarise(median = median(avg_pi, na.rm = TRUE))
+
+
+# summarise median data for Fst and Dxy
+summary_data <- data %>%
+  group_by(comparison,data_type) %>%
+  summarise(median = median(value, na.rm = TRUE))
+print (summary_data, n = Inf)
+'
+# A tibble: 30 × 3
+# Groups:   comparison [15]
+   comparison data_type    median
+   <chr>      <chr>         <dbl>
+ 1 BNE_v_CNS  Dxy        0.000483
+ 2 BNE_v_CNS  Fst        0.214   
+ 3 BNE_v_ROK  Dxy        0.000438
+ 4 BNE_v_ROK  Fst        0.113   
+ 5 BNE_v_TSV  Dxy        0.000471
+ 6 BNE_v_TSV  Fst        0.0625  
+ 7 CNS_v_ROK  Dxy        0.000478
+ 8 CNS_v_ROK  Fst        0.396   
+ 9 CNS_v_TSV  Dxy        0.000497
+10 CNS_v_TSV  Fst        0.0627  
+11 LHR_v_BNE  Dxy        0.000495
+12 LHR_v_BNE  Fst        0.0595  
+13 LHR_v_CNS  Dxy        0.000452
+14 LHR_v_CNS  Fst        0.175   
+15 LHR_v_ROK  Dxy        0.000494
+16 LHR_v_ROK  Fst        0       
+17 LHR_v_TSV  Dxy        0.000507
+18 LHR_v_TSV  Fst       -0.0391  
+19 SYD_v_BNE  Dxy        0.000500
+20 SYD_v_BNE  Fst        0.242   
+21 SYD_v_CNS  Dxy        0.000475
+22 SYD_v_CNS  Fst        0.200   
+23 SYD_v_LHR  Dxy        0.000497
+24 SYD_v_LHR  Fst        0.0574  
+25 SYD_v_ROK  Dxy        0.000458
+26 SYD_v_ROK  Fst        0.0617  
+27 SYD_v_TSV  Dxy        0.000514
+28 SYD_v_TSV  Fst        0.142   
+29 TSV_v_ROK  Dxy        0.000509
+30 TSV_v_ROK  Fst        0.0794  
 '
 
-'
-# 0.000378 / 0.000704 = 0.5369318 (far off 0.75 expected of diversity on sex chromosome relative to autosome)
 
-pi_data_pop_sex_median <- pi_data %>%
-  group_by(pop, chr_type) %>%
-  summarise(median = median(avg_pi, na.rm = TRUE))
-'
+#Plotting Dxy
 
-'
-#Now a boxplot of the pi value per population
-boxplot_pi_usa_sampletype <- ggplot(pi_data, aes(pop, avg_pi, col=pop, shape = pop)) +
-  geom_jitter(size = 2, alpha = 0.5) +
-  geom_boxplot(fill=NA, col="grey15", linewidth = 1) +
-  labs(x = "Population" , y = "Nucleotide diversity (Pi)") +
+# plot 1 - genome wide plots per comparison
+plot_1_dxy <- data %>%
+  filter(data_type =='Dxy')%>%
+  ggplot(., aes(position*100000, value, col=chromosome)) +
+  geom_point(size=1) +
+  facet_grid(comparison~.) +
+  scale_color_tron() +
   theme_bw() +
-  scale_color_tron()+
-  theme(legend.position = "none") +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
-  ylim(0, 0.003)
+  theme(legend.position="top", 
+        legend.title = element_blank()) +
+  labs(x="Genomic Position", y="Dxy")
+plot_1_dxy
 
-#and arranging
-ggarrange(boxplot_pi_usa_pop, boxplot_pi_usa_sampletype, labels = c('a', 'b'),
-          ncol = 2, widths =  c(1.5, 1))
-ggsave("FigS8_plots_diversity_USA.png", width=9, height=5.5)
+# plot 2 - density plots of dxy per group
+## Density plots show the distribution of dxy values for the sex-linked (blue) and autosomal (red) scaffolds
+plot_2_dxy <- data %>%
+  filter(data_type=='Dxy')%>%
+  ggplot(aes(value, chr_type, fill=chr_type), guide="none") +
+  geom_density_ridges(quantile_lines=TRUE, quantile_fun=function(x,...)median(x), size=0.5) +
+  theme_bw() + theme(legend.position = "none", axis.text.y=element_blank()) +
+  facet_grid(comparison~.) +
+  scale_fill_npg() +
+  labs(x="Dxy", y="Density")
+plot_2_dxy
+
+# bring it together
+dxy_plot <- plot_1_dxy + plot_2_dxy +  plot_layout(widths = c(5, 1))
+dxy_plot
+ggsave("AUS_plots_genomewide_and_density_dxy.png", width=9, height=20)
+
+
+#some additional plots
+boxplot_dxy <- data %>%
+  filter(data_type =='Dxy') %>% 
+  ggplot(., aes(comparison, value, col=comparison)) +
+  geom_jitter(size = 1, alpha = 0.5) +
+  geom_boxplot(fill=NA, col="black") +
+  labs(x = "Population" , y = "Dxy", colour = "Population") +
+  theme_bw() +
+  theme(legend.position = "none") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+boxplot_dxy
+ggsave("AUS_plots_boxplot_compare_dxy.png", width=10, height=5)
+
+density_dxy <- data %>%
+  filter(data_type =='Dxy') %>% 
+  ggplot(., aes(x=value, group = comparison, fill=comparison)) +
+  geom_density(adjust=1.5, alpha=.4) +
+  labs(x = "Dxy" , y = "density", colour = "Comparison") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+density_dxy
+
+
+
+#Trying to plot lines
+#getting chr positions
+chr <- c('X', '1', '2', '3', '4')
+
+for (i in chr) {
+  x <- data %>%
+    filter(chromosome == paste0('chr', i))
+  print(quantile(x$position))
+}
+
+data$comparison <- str_replace_all(data$comparison, '_', ' ')
+data$comparison <- str_replace_all(data$comparison, 'v', 'vs')
+
+dxy_lineplot <- data %>%
+  filter(data_type=='Dxy')%>%
+  ggplot(., aes(position*100000, value, col=comparison)) +
+  geom_point(size=0.2, alpha = 0.1) +
+  geom_vline(xintercept=c(281*100000,
+                          438*100000,
+                          590*100000,
+                          740*100000),
+             size=1, linetype="dashed", col='grey41')+
+  annotate(geom="text", x=140*100000, y=0.004, label="ChrX")+
+  annotate(geom="text", x=359.5*100000, y=0.004, label="Chr1")+
+  annotate(geom="text", x=545*100000, y=0.004, label="Chr2")+
+  annotate(geom="text", x=665*100000, y=0.004, label="Chr3")+
+  annotate(geom="text", x=810.5*100000, y=0.004, label="Chr4")+
+  geom_line() +
+  scale_color_brewer(type = 'div', palette = 'Accent') +
+  theme_bw() +
+  theme(legend.position="top", 
+        legend.title = element_blank()) +
+  labs(x="Genomic Position", y="Dxy")
+
+dxy_lineplot
+ggsave("AUS_dxy_lineplot.png", width=9, height=6)
+
+# Plotting Fst
+
+# plot 1 - genome wide plots per population
+plot_1_fst <- data %>%
+  filter(data_type=='Fst')%>%
+  ggplot(., aes(position*100000, value, col=chromosome)) +
+  geom_point(size=1) +
+  facet_grid(comparison~.) +
+  scale_color_tron() +
+  theme_bw() +
+  theme(legend.position="top", 
+        legend.title = element_blank()) +
+  labs(x="Genomic Position", y="Fst")
+plot_1_fst
+
+
+# plot 2 - density plots of Fst per group
+plot_2_fst <- data %>%
+  filter(data_type=='Fst')%>%
+  ggplot(aes(value, chr_type, fill=chr_type), guide="none") +
+  geom_density_ridges(quantile_lines=TRUE, quantile_fun=function(x,...)median(x), size=0.5) +
+  theme_bw() + theme(legend.position = "none", axis.text.y=element_blank()) +
+  facet_grid(comparison~.) +
+  scale_fill_npg() +
+  labs(x="Fst", y="Density")
+plot_2_fst
+
+# bring it together
+plot_1_fst + plot_2_fst +  plot_layout(widths = c(5, 1))
+ggsave("AUS_plots_genomewide_and_density_fst.png", width=9, height=20)
+## Fst values should only range between 0 and 1. Set anything <0 to 0 and re-do the plots.
+
+
+
+
+# Data cleaning
+data_fst_clean <- data %>% filter(data_type == 'Fst') %>% mutate(value = ifelse(value < 0, 0, value)) # this takes my original data, filters it to only include rows where the data_type is Fst. Then mutate function is used to create/modify columns. It modifies the value column, checks if the value is less than 0. If the value is <0, it replaces it with 0. If the value is >0, it keeps the original value.
+
+# Re-do plots with cleaned data
+# plot 1 - genome wide plots per population
+plot_1_fst_clean <- data_fst_clean %>%
+  filter(data_type=='Fst')%>%
+  ggplot(., aes(position*100000, value, col=chromosome)) +
+  geom_point(size=1) +
+  facet_grid(comparison~.) +
+  scale_color_tron() +
+  theme_bw() +
+  theme(legend.position="top", 
+        legend.title = element_blank()) +
+  labs(x="Genomic Position", y="Fst")
+plot_1_fst_clean
+
+
+# plot 2 - density plots of Fst per group
+plot_2_fst_clean <- data_fst_clean %>%
+  filter(data_type=='Fst')%>%
+  ggplot(aes(value, chr_type, fill=chr_type), guide="none") +
+  geom_density_ridges(quantile_lines=TRUE, quantile_fun=function(x,...)median(x), size=0.5) +
+  theme_bw() + theme(legend.position = "none", axis.text.y=element_blank()) +
+  facet_grid(comparison~.) +
+  scale_fill_npg() +
+  labs(x="Fst", y="Density")
+plot_2_fst_clean
+
+# bring it together
+plot_1_fst_clean + plot_2_fst_clean +  plot_layout(widths = c(5, 1))
+ggsave("AUS_plots_genomewide_and_density_fst_CLEAN.png", width=9, height=20)
+
+
+# Plot Fst between pairs of populations vs geographical distance
+## H0 = populations that are geographically closer are more likely to mate.
+
+# Get mean/median Fst
+fst_median <- data_fst_clean %>% 
+  group_by(comparison) %>%
+  summarise(median_fst = median(value, na.rm = TRUE)) # Pixy spit out some NA data. Remove the NAs.
+
+# Export data to get the comparison column
+comparison_names <- unique(data[, 1])
+comparison_names
+write.csv(data.frame(Name = comparison_names), "comparison_names.csv", row.names = FALSE)
+# Edited the file so that it includes distance in the second column
+
+# Import data back in
+distance <- read.csv("comparison_names_km.csv")
+fst_distance <- left_join(fst_median, distance, by = "comparison")
+
+# Plot
+plot_fst_distance <- ggplot(fst_distance, aes(x = km, y = median_fst, color = comparison)) +
+  geom_point(size=3) +
+  labs(x = "Distance (kms)", y = "Fst") +
+  theme_minimal()
+plot_fst_distance
+
+# Add trend line
+plot_fst_distance_trend <- plot_fst_distance + geom_smooth(method = "lm", se = FALSE, color = "grey")
+plot_fst_distance_trend
+
+ggsave("AUS_plots_fst_distance.png", width=9, height=8)
 ```
 
 
