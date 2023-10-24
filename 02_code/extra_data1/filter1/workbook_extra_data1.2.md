@@ -1077,7 +1077,7 @@ Yep all the sample names are changed.
 ```R
 ######################################################################
 
-# PCA for filt1
+# PCA for filt1.2 -consistently used the combined reference genome, just check whether I'm getting the same results as I did when I randomly switched to the D. immitis genome in filt1.
 
 ######################################################################
 
@@ -1099,7 +1099,7 @@ library(ggimage)
 
 
 # Set working directory
-setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1/vcf/input")
+setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1.2/vcf/input")
 
 #Preparing the data for plotting
 # Set colours for different cities
@@ -1123,7 +1123,7 @@ scale_colour_pop <- function(...){
       c('Lockhart River Cooktown', 'Cairns', 
         'Townsville', 'Rockhampton',
         'Brisbane',
-        'Sydney', 'Bangkok', 'Pavia', 'USA', 'Mississippi', 'Illinois', 'Louisiana', 'Georgia')), 
+        'Sydney', 'Bangkok', 'Pavia', 'Missouri', 'Mississippi', 'Illinois', 'Louisiana', 'Georgia')), 
     ...
   )
 }
@@ -1160,7 +1160,7 @@ data$POPULATION <- factor(data$POPULATION,
                           levels = c('Lockhart River Cooktown', 'Cairns', 
                                      'Townsville', 'Rockhampton',
                                      'Brisbane',
-                                     'Sydney', 'Bangkok', 'Pavia', 'USA', 'Mississippi', 'Illinois', 'Louisiana', 'Georgia'))
+                                     'Sydney', 'Bangkok', 'Pavia', 'Missouri', 'Mississippi', 'Illinois', 'Louisiana', 'Georgia'))
 
 
 
@@ -1171,7 +1171,7 @@ data$POPULATION <- factor(data$POPULATION,
 explained_variance <- 100 * pca$eigenval[!is.na(pca$eigenval)] / sum(pca$eigenval, na.rm = TRUE)
 
 # Create a barplot
-jpeg("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1/vcf/pca/barplot_eigenvalues.jpg", width = 800, height = 600)
+jpeg("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1.2/vcf/pca/barplot_eigenvalues.jpg", width = 800, height = 600)
 barplot(explained_variance, col = "dark green", ylim = c(0, 20))
 title(ylab = "Percent of variance explained") 
 title(xlab = "Eigenvalues")
@@ -1217,7 +1217,7 @@ ggtitle("Filter1: PC1 vs PC2")
   
 PC1_PC2_plot
 
-ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1/vcf/pca/PC1_PC2_plot.png", PC1_PC2_plot, height = 6, width = 8)
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1.2/vcf/pca/PC1_PC2_plot.png", PC1_PC2_plot, height = 6, width = 8)
 
 # PC1 vs PC3
 PC1_PC3_plot <- ggplot(data, aes(x = EV1, y = EV3, color = POPULATION, label = SAMPLEID)) +
@@ -1232,7 +1232,7 @@ PC1_PC3_plot <- ggplot(data, aes(x = EV1, y = EV3, color = POPULATION, label = S
 
 PC1_PC3_plot
 
-ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1/vcf/pca/PC1_PC3_plot.png", PC1_PC3_plot, height = 6, width = 8)
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1.2/vcf/pca/PC1_PC3_plot.png", PC1_PC3_plot, height = 6, width = 8)
 
 # PC1 vs PC4
 PC1_PC4_plot <- ggplot(data, aes(x = EV1, y = EV4, color = POPULATION, label = SAMPLEID)) +
@@ -1247,7 +1247,7 @@ PC1_PC4_plot <- ggplot(data, aes(x = EV1, y = EV4, color = POPULATION, label = S
 
 PC1_PC4_plot
 
-ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1/vcf/pca/PC1_PC4_plot.png", PC1_PC4_plot, height = 6, width = 8)
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1.2/vcf/pca/PC1_PC4_plot.png", PC1_PC4_plot, height = 6, width = 8)
 
 # PC1 vs PC5
 PC1_PC5_plot <- ggplot(data, aes(x = EV1, y = EV5, color = POPULATION, label = SAMPLEID)) +
@@ -1262,7 +1262,7 @@ PC1_PC5_plot <- ggplot(data, aes(x = EV1, y = EV5, color = POPULATION, label = S
 
 PC1_PC5_plot
 
-ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1/vcf/pca/PC1_PC5_plot.png", PC1_PC5_plot, height = 6, width = 8)
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1.2/vcf/pca/PC1_PC5_plot.png", PC1_PC5_plot, height = 6, width = 8)
 
 # PC1 vs PC6
 PC1_PC6_plot <- ggplot(data, aes(x = EV1, y = EV6, color = POPULATION, label = SAMPLEID)) +
@@ -1277,7 +1277,7 @@ PC1_PC6_plot <- ggplot(data, aes(x = EV1, y = EV6, color = POPULATION, label = S
 
 PC1_PC6_plot
 
-ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1/vcf/pca/PC1_PC6_plot.png", PC1_PC6_plot, height = 6, width = 8)
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1.2/vcf/pca/PC1_PC6_plot.png", PC1_PC6_plot, height = 6, width = 8)
 
 # PC2 vs PC3
 PC2_PC3_plot <- ggplot(data, aes(x = EV2, y = EV3, color = POPULATION, label = SAMPLEID)) +
@@ -1292,7 +1292,7 @@ PC2_PC3_plot <- ggplot(data, aes(x = EV2, y = EV3, color = POPULATION, label = S
 
 PC2_PC3_plot
 
-ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1/vcf/pca/PC2_PC3_plot.png", PC2_PC3_plot, height = 6, width = 8)
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1.2/vcf/pca/PC2_PC3_plot.png", PC2_PC3_plot, height = 6, width = 8)
 
 # PC2 vs PC4
 PC2_PC4_plot <- ggplot(data, aes(x = EV2, y = EV4, color = POPULATION, label = SAMPLEID)) +
@@ -1307,7 +1307,7 @@ PC2_PC4_plot <- ggplot(data, aes(x = EV2, y = EV4, color = POPULATION, label = S
 
 PC2_PC4_plot
 
-ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1/vcf/pca/PC2_PC4_plot.png", PC2_PC4_plot, height = 6, width = 8)
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1.2/vcf/pca/PC2_PC4_plot.png", PC2_PC4_plot, height = 6, width = 8)
 
 # PC3 vs PC4
 PC3_PC4_plot <- ggplot(data, aes(x = EV3, y = EV4, color = POPULATION, label = SAMPLEID)) +
@@ -1322,652 +1322,16 @@ PC3_PC4_plot <- ggplot(data, aes(x = EV3, y = EV4, color = POPULATION, label = S
 
 PC3_PC4_plot
 
-ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1/vcf/pca/PC3_PC4_plot.png", PC3_PC4_plot, height = 6, width = 8)
-
-
-######################################################################
-
-# PCs on linear plane
-
-######################################################################
-
-# PC1
-constant_y <- 0
-pc1_line_data <- data.frame(PC1 = data$EV1, Y = constant_y)
-PC1_line <- ggplot(pc1_line_data, aes(x = PC1, y = Y)) +
-  geom_point(data = data, aes(x = EV1, y = rep(constant_y, nrow(data)), color = POPULATION), alpha = 0.8, size = 3) +
-  geom_text_repel(data = data, aes(x = EV1, y = rep(constant_y, nrow(data)), label = SAMPLEID), box.padding = 0.05, point.padding = 0.01, segment.color = 'grey50', size = 2, hjust = 0, vjust = 0, max.overlaps = Inf, show.legend = FALSE) +
-  theme_bw() +
-  labs(x = "PC1", y = NULL) +
-  scale_colour_pop() +
-  theme(axis.text.y = element_blank(), axis.ticks.y = element_blank(), legend.position = "none") +
-  theme(panel.grid = element_blank())
-
-# Print the plot
-print(PC1_line)
-# Save plot
-ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1/vcf/pca/PC1_line.png", height=2, width=8)
-
-# PC2
-constant_y <- 0
-PC2_line_data <- data.frame(PC2 = data$EV2, Y = constant_y)
-PC2_line <- ggplot(PC2_line_data, aes(x = PC2, y = Y)) +
-  geom_point(data = data, aes(x = EV2, y = rep(constant_y, nrow(data)), color = POPULATION), alpha = 0.8, size = 3) +
-  geom_text_repel(data = data, aes(x = EV2, y = rep(constant_y, nrow(data)), label = SAMPLEID), box.padding = 0.05, point.padding = 0.01, segment.color = 'grey50', size = 2, hjust = 0, vjust = 0, max.overlaps = Inf, show.legend = FALSE) +
-  theme_bw() +
-  labs(x = "PC2", y = NULL) +
-  scale_colour_pop() +
-  theme(axis.text.y = element_blank(), axis.ticks.y = element_blank(), legend.position = "none") +
-  theme(panel.grid = element_blank())
-
-# Print the plot
-print(PC2_line)
-# Save plot
-ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1/vcf/pca/PC2_line.png", height=2, width=8)
-
-# PC3
-constant_y <- 0
-PC3_line_data <- data.frame(PC3 = data$EV3, Y = constant_y)
-PC3_line <- ggplot(PC3_line_data, aes(x = PC3, y = Y)) +
-  geom_point(data = data, aes(x = EV3, y = rep(constant_y, nrow(data)), color = POPULATION), alpha = 0.8, size = 3) +
-  geom_text_repel(data = data, aes(x = EV3, y = rep(constant_y, nrow(data)), label = SAMPLEID), box.padding = 0.05, point.padding = 0.01, segment.color = 'grey50', size = 2, hjust = 0, vjust = 0, max.overlaps = Inf, show.legend = FALSE) +
-  theme_bw() +
-  labs(x = "PC3", y = NULL) +
-  scale_colour_pop() +
-  theme(axis.text.y = element_blank(), axis.ticks.y = element_blank(), legend.position = "none") +
-  theme(panel.grid = element_blank())
-
-# Print the plot
-print(PC3_line)
-# Save plot
-ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1/vcf/pca/PC3_line.png", height=2, width=8)
-
-# PC4
-constant_y <- 0
-PC4_line_data <- data.frame(PC4 = data$EV4, Y = constant_y)
-PC4_line <- ggplot(PC4_line_data, aes(x = PC4, y = Y)) +
-  geom_point(data = data, aes(x = EV4, y = rep(constant_y, nrow(data)), color = POPULATION), alpha = 0.8, size = 3) +
-  geom_text_repel(data = data, aes(x = EV4, y = rep(constant_y, nrow(data)), label = SAMPLEID), box.padding = 0.05, point.padding = 0.01, segment.color = 'grey50', size = 2, hjust = 0, vjust = 0, max.overlaps = Inf, show.legend = FALSE) +
-  theme_bw() +
-  labs(x = "PC4", y = NULL) +
-  scale_colour_pop() +
-  theme(axis.text.y = element_blank(), axis.ticks.y = element_blank(), legend.position = "none") +
-  theme(panel.grid = element_blank())
-
-# Print the plot
-print(PC4_line)
-# Save plot
-ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1/vcf/pca/PC4_line.png", height=2, width=8)
-
-# PC5
-constant_y <- 0
-PC5_line_data <- data.frame(PC5 = data$EV5, Y = constant_y)
-PC5_line <- ggplot(PC5_line_data, aes(x = PC5, y = Y)) +
-  geom_point(data = data, aes(x = EV5, y = rep(constant_y, nrow(data)), color = POPULATION), alpha = 0.8, size = 3) +
-  geom_text_repel(data = data, aes(x = EV5, y = rep(constant_y, nrow(data)), label = SAMPLEID), box.padding = 0.05, point.padding = 0.01, segment.color = 'grey50', size = 2, hjust = 0, vjust = 0, max.overlaps = Inf, show.legend = FALSE) +
-  theme_bw() +
-  labs(x = "PC5", y = NULL) +
-  scale_colour_pop() +
-  theme(axis.text.y = element_blank(), axis.ticks.y = element_blank(), legend.position = "none") +
-  theme(panel.grid = element_blank())
-
-# Print the plot
-print(PC5_line)
-# Save plot
-ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1/vcf/pca/PC5_line.png", height=2, width=8)
-
-# PC6
-constant_y <- 0
-PC6_line_data <- data.frame(PC6 = data$EV6, Y = constant_y)
-PC6_line <- ggplot(PC6_line_data, aes(x = PC6, y = Y)) +
-  geom_point(data = data, aes(x = EV6, y = rep(constant_y, nrow(data)), color = POPULATION), alpha = 0.8, size = 3) +
-  geom_text_repel(data = data, aes(x = EV6, y = rep(constant_y, nrow(data)), label = SAMPLEID), box.padding = 0.05, point.padding = 0.01, segment.color = 'grey50', size = 2, hjust = 0, vjust = 0, max.overlaps = Inf, show.legend = FALSE) +
-  theme_bw() +
-  labs(x = "PC6", y = NULL) +
-  scale_colour_pop() +
-  theme(axis.text.y = element_blank(), axis.ticks.y = element_blank(), legend.position = "none") +
-  theme(panel.grid = element_blank())
-
-# Print the plot
-print(PC6_line)
-# Save plot
-ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1/vcf/pca/PC6_line.png", height=2, width=8)
-```
-
-
-## Select variants for chr1, chr2, chr3 and chr4 (SEPARATELY)
-
-```bash
-#!/bin/bash
-
-# PBS directives 
-#PBS -P RDS-FSC-Heartworm_MLR-RW
-#PBS -N snps_chr1-4_separate
-#PBS -l select=1:ncpus=1:mem=2GB
-#PBS -l walltime=00:20:00
-#PBS -m e
-#PBS -q defaultQ
-#PBS -o snps_chr1-4_separate.txt
-
-# qsub ../snps_chr1-4_separate.pbs
-
-# load gatk
-module load vcftools/0.1.14
-
-cd /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/filter/filter1/FINAL_SETS
-
-# chr1
-vcftools --vcf nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf \
---chr dirofilaria_immitis_chr1 \
---recode --out nuclear_samples3x_missing0.9.chr1
-# After filtering, kept 61 out of 61 Individuals
-#Outputting VCF file...
-#After filtering, kept 40623 out of a possible 153555 Sites
-
-# chr2
-vcftools --vcf nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf \
---chr dirofilaria_immitis_chr2 \
---recode --out nuclear_samples3x_missing0.9.chr2
-# After filtering, kept 61 out of 61 Individuals
-#Outputting VCF file...
-#After filtering, kept 35706 out of a possible 153555 Sites
-
-# chr3
-vcftools --vcf nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf \
---chr dirofilaria_immitis_chr3 \
---recode --out nuclear_samples3x_missing0.9.chr3
-# After filtering, kept 61 out of 61 Individuals
-#Outputting VCF file...
-#After filtering, kept 39513 out of a possible 153555 Sites
-
-# chr4
-vcftools --vcf nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf \
---chr dirofilaria_immitis_chr4 \
---recode --out nuclear_samples3x_missing0.9.chr4
-# After filtering, kept 61 out of 61 Individuals
-#Outputting VCF file...
-#After filtering, kept 37713 out of a possible 153555 Sites
-```
-
-## PCA per chromosome
-
-```R
-######################################################################
-
-# Per chromosome
-
-######################################################################
-
-
-
-# Chromosome 1
-
-snpgdsClose(genofile_chr1)
-vcf.in_chr1 <- "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1/vcf/input/nuclear_samples3x_missing0.9.chr1.recode.vcf"
-gds_chr1<-snpgdsVCF2GDS(vcf.in_chr1, "nucDNA_chr1.gds", method="biallelic.only")
-genofile_chr1 <- snpgdsOpen(gds_chr1)
-
-
-pca_chr1 <-snpgdsPCA(genofile_chr1, num.thread=2, autosome.only = F)
-samples_chr1 <- as.data.frame(pca_chr1$sample.id)
-colnames(samples_chr1) <- "name"
-
-data_chr1 <- data.frame(sample.id = pca_chr1$sample.id,
-                        EV1_chr1 = pca_chr1$eigenvect[,1],  
-                        EV2_chr1 = pca_chr1$eigenvect[,2],
-                        EV3_chr1 = pca_chr1$eigenvect[,3],
-                        EV4_chr1 = pca_chr1$eigenvect[,4],
-                        EV5_chr1 = pca_chr1$eigenvect[,5],
-                        EV6_chr1 = pca_chr1$eigenvect[,6],
-                        POPULATION = metadata$city,
-                        SAMPLEID = metadata$sample_name,
-                        stringsAsFactors = FALSE)
-
-#Generating levels for population and super-population variables
-data_chr1$POPULATION <- factor(data_chr1$POPULATION, 
-                               levels = c('Lockhart River Cooktown', 'Cairns', 
-                                          'Townsville', 'Rockhampton',
-                                          'Brisbane',
-                                          'Sydney', 'Bangkok', 'Pavia', 'USA', 'Mississippi', 'Illinois', 'Louisiana', 'Georgia'))
-
-
-
-# PC1 vs PC2
-PC1_PC2_plot_chr1 <- ggplot(data_chr1, aes(x = EV1_chr1, y = EV2_chr1, color = POPULATION, label = SAMPLEID)) +
-  theme_bw() +
-  geom_point(alpha = 0.8, size = 2) +
-  geom_text_repel(aes(label = SAMPLEID), box.padding = 0.05, point.padding = 0.01, segment.color = 'grey50', size = 3, hjust = 0, vjust = 0, max.overlaps = Inf, show.legend=FALSE) +
-  labs(x = paste0("PC1 variance: ", round(pca_chr1$varprop[1] * 100, digits = 2), "%"),
-       y = paste0("PC2 variance: ", round(pca_chr1$varprop[2] * 100, digits = 2), "%")) +
-  scale_colour_pop() +
-  theme(legend.position = "right") +  # Adjust legend position as needed
-  ggtitle("Filter1: PC1 vs PC2 - Chromosome 1")
-
-PC1_PC2_plot_chr1
-
-ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1/vcf/pca/PC1_PC2_plot_chr1.png", PC1_PC2_plot_chr1, height = 6, width = 8)
-
-
-
-# Chromosome 2
-
-snpgdsClose(genofile_chr2)
-vcf.in_chr2 <- "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1/vcf/input/nuclear_samples3x_missing0.9.chr2.recode.vcf"
-gds_chr2<-snpgdsVCF2GDS(vcf.in_chr2, "nucDNA_chr2.gds", method="biallelic.only")
-genofile_chr2 <- snpgdsOpen(gds_chr2)
-
-
-pca_chr2 <-snpgdsPCA(genofile_chr2, num.thread=2, autosome.only = F)
-samples_chr2 <- as.data.frame(pca_chr2$sample.id)
-colnames(samples_chr2) <- "name"
-
-data_chr2 <- data.frame(sample.id = pca_chr2$sample.id,
-                        EV1_chr2 = pca_chr2$eigenvect[,1],  
-                        EV2_chr2 = pca_chr2$eigenvect[,2],
-                        EV3_chr2 = pca_chr2$eigenvect[,3],
-                        EV4_chr2 = pca_chr2$eigenvect[,4],
-                        EV5_chr2 = pca_chr2$eigenvect[,5],
-                        EV6_chr2 = pca_chr2$eigenvect[,6],
-                        POPULATION = metadata$city,
-                        SAMPLEID = metadata$sample_name,
-                        stringsAsFactors = FALSE)
-
-#Generating levels for population and super-population variables
-data_chr2$POPULATION <- factor(data_chr2$POPULATION, 
-                               levels = c('Lockhart River Cooktown', 'Cairns', 
-                                          'Townsville', 'Rockhampton',
-                                          'Brisbane',
-                                          'Sydney', 'Bangkok', 'Pavia', 'USA', 'Mississippi', 'Illinois', 'Louisiana', 'Georgia'))
-
-
-
-# PC1 vs PC2
-PC1_PC2_plot_chr2 <- ggplot(data_chr2, aes(x = EV1_chr2, y = EV2_chr2, color = POPULATION, label = SAMPLEID)) +
-  theme_bw() +
-  geom_point(alpha = 0.8, size = 2) +
-  geom_text_repel(aes(label = SAMPLEID), box.padding = 0.05, point.padding = 0.01, segment.color = 'grey50', size = 3, hjust = 0, vjust = 0, max.overlaps = Inf, show.legend=FALSE) +
-  labs(x = paste0("PC1 variance: ", round(pca_chr2$varprop[1] * 100, digits = 2), "%"),
-       y = paste0("PC2 variance: ", round(pca_chr2$varprop[2] * 100, digits = 2), "%")) +
-  scale_colour_pop() +
-  theme(legend.position = "right") +  # Adjust legend position as needed
-  ggtitle("Filter1: PC1 vs PC2 - Chromosome 2")
-
-PC1_PC2_plot_chr2
-
-ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1/vcf/pca/PC1_PC2_plot_chr2.png", PC1_PC2_plot_chr2, height = 6, width = 8)
-
-
-
-
-# Chromosome 3
-
-snpgdsClose(genofile_chr3)
-vcf.in_chr3 <- "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1/vcf/input/nuclear_samples3x_missing0.9.chr3.recode.vcf"
-gds_chr3<-snpgdsVCF2GDS(vcf.in_chr3, "nucDNA_chr3.gds", method="biallelic.only")
-genofile_chr3 <- snpgdsOpen(gds_chr3)
-
-
-pca_chr3 <-snpgdsPCA(genofile_chr3, num.thread=2, autosome.only = F)
-samples_chr3 <- as.data.frame(pca_chr3$sample.id)
-colnames(samples_chr3) <- "name"
-
-data_chr3 <- data.frame(sample.id = pca_chr3$sample.id,
-                        EV1_chr3 = pca_chr3$eigenvect[,1],  
-                        EV2_chr3 = pca_chr3$eigenvect[,2],
-                        EV3_chr3 = pca_chr3$eigenvect[,3],
-                        EV4_chr3 = pca_chr3$eigenvect[,4],
-                        EV5_chr3 = pca_chr3$eigenvect[,5],
-                        EV6_chr3 = pca_chr3$eigenvect[,6],
-                        POPULATION = metadata$city,
-                        SAMPLEID = metadata$sample_name,
-                        stringsAsFactors = FALSE)
-
-#Generating levels for population and super-population variables
-data_chr3$POPULATION <- factor(data_chr3$POPULATION, 
-                               levels = c('Lockhart River Cooktown', 'Cairns', 
-                                          'Townsville', 'Rockhampton',
-                                          'Brisbane',
-                                          'Sydney', 'Bangkok', 'Pavia', 'USA', 'Mississippi', 'Illinois', 'Louisiana', 'Georgia'))
-
-
-
-# PC1 vs PC2
-PC1_PC2_plot_chr3 <- ggplot(data_chr3, aes(x = EV1_chr3, y = EV2_chr3, color = POPULATION, label = SAMPLEID)) +
-  theme_bw() +
-  geom_point(alpha = 0.8, size = 2) +
-  geom_text_repel(aes(label = SAMPLEID), box.padding = 0.05, point.padding = 0.01, segment.color = 'grey50', size = 3, hjust = 0, vjust = 0, max.overlaps = Inf, show.legend=FALSE) +
-  labs(x = paste0("PC1 variance: ", round(pca_chr3$varprop[1] * 100, digits = 2), "%"),
-       y = paste0("PC2 variance: ", round(pca_chr3$varprop[2] * 100, digits = 2), "%")) +
-  scale_colour_pop() +
-  theme(legend.position = "right") +  # Adjust legend position as needed
-  ggtitle("Filter1: PC1 vs PC2 - Chromosome 3")
-
-PC1_PC2_plot_chr3
-
-ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1/vcf/pca/PC1_PC2_plot_chr3.png", PC1_PC2_plot_chr3, height = 6, width = 8)
-
-
-# Chromosome 4
-
-snpgdsClose(genofile_chr4)
-vcf.in_chr4 <- "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1/vcf/input/nuclear_samples3x_missing0.9.chr4.recode.vcf"
-gds_chr4<-snpgdsVCF2GDS(vcf.in_chr4, "nucDNA_chr4.gds", method="biallelic.only")
-genofile_chr4 <- snpgdsOpen(gds_chr4)
-
-
-pca_chr4 <-snpgdsPCA(genofile_chr4, num.thread=2, autosome.only = F)
-samples_chr4 <- as.data.frame(pca_chr4$sample.id)
-colnames(samples_chr4) <- "name"
-
-data_chr4 <- data.frame(sample.id = pca_chr4$sample.id,
-                        EV1_chr4 = pca_chr4$eigenvect[,1],  
-                        EV2_chr4 = pca_chr4$eigenvect[,2],
-                        EV3_chr4 = pca_chr4$eigenvect[,3],
-                        EV4_chr4 = pca_chr4$eigenvect[,4],
-                        EV5_chr4 = pca_chr4$eigenvect[,5],
-                        EV6_chr4 = pca_chr4$eigenvect[,6],
-                        POPULATION = metadata$city,
-                        SAMPLEID = metadata$sample_name,
-                        stringsAsFactors = FALSE)
-
-#Generating levels for population and super-population variables
-data_chr4$POPULATION <- factor(data_chr4$POPULATION, 
-                               levels = c('Lockhart River Cooktown', 'Cairns', 
-                                          'Townsville', 'Rockhampton',
-                                          'Brisbane',
-                                          'Sydney', 'Bangkok', 'Pavia', 'USA', 'Mississippi', 'Illinois', 'Louisiana', 'Georgia'))
-
-
-
-# PC1 vs PC2
-PC1_PC2_plot_chr4 <- ggplot(data_chr4, aes(x = EV1_chr4, y = EV2_chr4, color = POPULATION, label = SAMPLEID)) +
-  theme_bw() +
-  geom_point(alpha = 0.8, size = 2) +
-  geom_text_repel(aes(label = SAMPLEID), box.padding = 0.05, point.padding = 0.01, segment.color = 'grey50', size = 3, hjust = 0, vjust = 0, max.overlaps = Inf, show.legend=FALSE) +
-  labs(x = paste0("PC1 variance: ", round(pca_chr4$varprop[1] * 100, digits = 2), "%"),
-       y = paste0("PC2 variance: ", round(pca_chr4$varprop[2] * 100, digits = 2), "%")) +
-  scale_colour_pop() +
-  theme(legend.position = "right") +  # Adjust legend position as needed
-  ggtitle("Filter1: PC1 vs PC2 - Chromosome 4")
-
-PC1_PC2_plot_chr4
-
-ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1/vcf/pca/PC1_PC2_plot_chr4.png", PC1_PC2_plot_chr4, height = 6, width = 8)
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1.2/vcf/pca/PC3_PC4_plot.png", PC3_PC4_plot, height = 6, width = 8)
 
 ```
 
-# Concordance between technical replicates
+Yep all the PCAs looked the same as those from filt1 using just the D. immitis reference genome.
 
-I had technical replicates for 3 samples. Look at the concordance between these. If there is a small % that are discordant, where are they? I can use this to help QC some of my SNPs by potentially excluding certain parts of the genome which may be more error-prone.
 
-```bash
-#!/bin/bash
 
-# PBS directives 
-#PBS -P RDS-FSC-Heartworm_MLR-RW
-#PBS -N replicates
-#PBS -l select=1:ncpus=1:mem=2GB
-#PBS -l walltime=00:10:00
-#PBS -m e
-#PBS -q defaultQ
-#PBS -o replicates.txt
 
-# Submit job
-## qsub ../replicates.pbs
 
-# load modules
-module load bcftools/1.11
-module load tabix/0.2.6
-
-cd /scratch/RDS-FSC-Heartworm_MLR-RW/extra_data1/analysis/mapping/filter/filter1/REPLICATES
-
-###################################################################################
-# Extract variants for each technical replicate
-###################################################################################
-
-# Extract variants for JS6344
-bcftools view -s JS6344 ../FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf -o JS6344.vcf
-bgzip JS6344.vcf
-tabix -p vcf JS6344.vcf.gz
-
-# Extract variants for JS6344-REP
-bcftools view -s JS6344-REP ../FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf -o JS6344-REP.vcf
-bgzip JS6344-REP.vcf
-tabix -p vcf JS6344-REP.vcf.gz
-
-# Extract variants for Dog2.3
-bcftools view -s Dog2.3 ../FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf -o Dog2.3.vcf
-bgzip Dog2.3.vcf
-tabix -p vcf Dog2.3.vcf.gz
-
-# Extract variants for Dog2.3-REP
-bcftools view -s Dog2.3-REP ../FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf -o Dog2.3-REP.vcf
-bgzip Dog2.3-REP.vcf
-tabix -p vcf Dog2.3-REP.vcf.gz
-
-# Extract variants for Dog1.5
-bcftools view -s Dog1.5 ../FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf -o Dog1.5.vcf
-bgzip Dog1.5.vcf
-tabix -p vcf Dog1.5.vcf.gz
-
-# Extract variants for Dog1.5-REP
-bcftools view -s Dog1.5-REP ../FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf -o Dog1.5-REP.vcf
-bgzip Dog1.5-REP.vcf
-tabix -p vcf Dog1.5-REP.vcf.gz
-
-
-###################################################################################
-# Extract the genotypes for each sample
-###################################################################################
-
-bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\t[%GT]\n' -s JS6344 JS6344.vcf.gz > JS6344_genotypes.txt
-bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\t[%GT]\n' -s JS6344-REP JS6344-REP.vcf.gz > JS6344-REP_genotypes.txt
-
-bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\t[%GT]\n' -s Dog2.3 Dog2.3.vcf.gz > Dog2.3_genotypes.txt
-bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\t[%GT]\n' -s Dog2.3-REP Dog2.3-REP.vcf.gz > Dog2.3-REP_genotypes.txt
-
-bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\t[%GT]\n' -s Dog1.5 Dog1.5.vcf.gz > Dog1.5_genotypes.txt
-bcftools query -f '%CHROM\t%POS\t%REF\t%ALT\t[%GT]\n' -s Dog1.5-REP Dog1.5-REP.vcf.gz > Dog1.5-REP_genotypes.txt
-```
-
-
-```R
-# Replicates concordance
-
-# Load modules
-library(data.table)
-library(ggplot2)
-
-# Set working directory
-setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1/replicates")
-
-########################################################
-# Dog 1.5
-########################################################
-
-# Load genotypes from the two files
-genotypes_Dog1.5 <- fread("Dog1.5_genotypes.txt", header = FALSE, col.names = c("CHROM", "POS", "REF", "ALT", "Dog1.5_Genotype"))
-genotypes_Dog1.5_REP <- fread("Dog1.5-REP_genotypes.txt", header = FALSE, col.names = c("CHROM", "POS", "REF", "ALT", "Dog1.5_REP_Genotype"))
-
-# Merge data.tables by CHROM and POS
-merged_genotypes_Dog1.5 <- merge(genotypes_Dog1.5, genotypes_Dog1.5_REP, by = c("CHROM", "POS", "REF", "ALT"))
-
-# Create a new column for concordance status
-merged_genotypes_Dog1.5$Concordance <- ifelse(merged_genotypes_Dog1.5$Dog1.5_Genotype == merged_genotypes_Dog1.5$Dog1.5_REP_Genotype, "Concordant", "Discordant")
-
-# Calculate discordance
-discordant_positions_Dog1.5 <- subset(merged_genotypes_Dog1.5, Dog1.5_Genotype != Dog1.5_REP_Genotype)
-discordant_percentage_Dog1.5 <- nrow(discordant_positions_Dog1.5) / nrow(merged_genotypes_Dog1.5) * 100
-
-# Format the discordance percentage to two decimal places
-discordant_percentage_Dog1.5_2dp <- sprintf("%.2f", discordant_percentage_Dog1.5)
-discordant_percentage_Dog1.5_2dp
-
-# Output discordant positions and percentage
-write.table(discordant_positions_Dog1.5, "discordant_genotypes_Dog1.5.txt", sep = "\t", quote = FALSE, row.names = FALSE)
-cat("Discordance Percentage:", discordant_percentage_Dog1.5, "%\n")
-
-# Define custom labels for chromosomes
-chr_labels <- c(
-  "dirofilaria_immitis_chr1" = "Chr1",
-  "dirofilaria_immitis_chr2" = "Chr2",
-  "dirofilaria_immitis_chr3" = "Chr3",
-  "dirofilaria_immitis_chr4" = "Chr4")
-
-# Create a bar plot
-ggplot(data = merged_genotypes_Dog1.5, aes(x = CHROM, fill = Concordance)) +
-  geom_bar() +
-  labs(title = "Discordance by Chromosome: Dog 1.5 vs Dog 1.5 REP", subtitle = paste("Discordance Percentage:", discordant_percentage_Dog1.5_2dp, "%"), y = "Count") +
-  scale_fill_manual(values = c("Concordant" = "lightblue1", "Discordant" = "tomato2")) +
-  theme_minimal() +
-  scale_x_discrete(labels = chr_labels) +
-  theme(plot.title = element_text(face = "bold"))
-
-ggsave("discordance_plot_Dog1.5.png", plot = last_plot(), width = 8, height = 6, dpi = 600)
-
-
-
-########################################################
-# Dog 2.3
-########################################################
-
-# Load genotypes from the two files
-genotypes_Dog2.3 <- fread("Dog2.3_genotypes.txt", header = FALSE, col.names = c("CHROM", "POS", "REF", "ALT", "Dog2.3_Genotype"))
-genotypes_Dog2.3_REP <- fread("Dog2.3-REP_genotypes.txt", header = FALSE, col.names = c("CHROM", "POS", "REF", "ALT", "Dog2.3_REP_Genotype"))
-
-# Merge data.tables by CHROM and POS
-merged_genotypes_Dog2.3 <- merge(genotypes_Dog2.3, genotypes_Dog2.3_REP, by = c("CHROM", "POS", "REF", "ALT"))
-
-# Create a new column for concordance status
-merged_genotypes_Dog2.3$Concordance <- ifelse(merged_genotypes_Dog2.3$Dog2.3_Genotype == merged_genotypes_Dog2.3$Dog2.3_REP_Genotype, "Concordant", "Discordant")
-
-# Calculate discordance
-discordant_positions_Dog2.3 <- subset(merged_genotypes_Dog2.3, Dog2.3_Genotype != Dog2.3_REP_Genotype)
-discordant_percentage_Dog2.3 <- nrow(discordant_positions_Dog2.3) / nrow(merged_genotypes_Dog2.3) * 100
-
-# Format the discordance percentage to two decimal places
-discordant_percentage_Dog2.3_2dp <- sprintf("%.2f", discordant_percentage_Dog2.3)
-discordant_percentage_Dog2.3_2dp
-
-# Output discordant positions and percentage
-write.table(discordant_positions_Dog2.3, "discordant_genotypes_Dog2.3.txt", sep = "\t", quote = FALSE, row.names = FALSE)
-cat("Discordance Percentage:", discordant_percentage_Dog2.3, "%\n")
-
-# Define custom labels for chromosomes
-chr_labels <- c(
-  "dirofilaria_immitis_chr1" = "Chr1",
-  "dirofilaria_immitis_chr2" = "Chr2",
-  "dirofilaria_immitis_chr3" = "Chr3",
-  "dirofilaria_immitis_chr4" = "Chr4")
-
-# Create a bar plot
-ggplot(data = merged_genotypes_Dog2.3, aes(x = CHROM, fill = Concordance)) +
-  geom_bar() +
-  labs(title = "Discordance by Chromosome: Dog 2.3 vs Dog 2.3 REP", subtitle = paste("Discordance Percentage:", discordant_percentage_Dog2.3_2dp, "%"), y = "Count") +
-  scale_fill_manual(values = c("Concordant" = "darkseagreen3", "Discordant" = "tomato2")) +
-  theme_minimal() +
-  scale_x_discrete(labels = chr_labels) +
-  theme(plot.title = element_text(face = "bold"))
-
-ggsave("discordance_plot_Dog2.3.png", plot = last_plot(), width = 8, height = 6, dpi = 600)
-
-
-########################################################
-# JS6344
-########################################################
-
-# Load genotypes from the two files
-genotypes_JS6344 <- fread("JS6344_genotypes.txt", header = FALSE, col.names = c("CHROM", "POS", "REF", "ALT", "JS6344_Genotype"))
-genotypes_JS6344_REP <- fread("JS6344-REP_genotypes.txt", header = FALSE, col.names = c("CHROM", "POS", "REF", "ALT", "JS6344_REP_Genotype"))
-
-# Merge data.tables by CHROM and POS
-merged_genotypes_JS6344 <- merge(genotypes_JS6344, genotypes_JS6344_REP, by = c("CHROM", "POS", "REF", "ALT"))
-
-# Create a new column for concordance status
-merged_genotypes_JS6344$Concordance <- ifelse(merged_genotypes_JS6344$JS6344_Genotype == merged_genotypes_JS6344$JS6344_REP_Genotype, "Concordant", "Discordant")
-
-# Calculate discordance
-discordant_positions_JS6344 <- subset(merged_genotypes_JS6344, JS6344_Genotype != JS6344_REP_Genotype)
-discordant_percentage_JS6344 <- nrow(discordant_positions_JS6344) / nrow(merged_genotypes_JS6344) * 100
-
-# Format the discordance percentage to two decimal places
-discordant_percentage_JS6344_2dp <- sprintf("%.2f", discordant_percentage_JS6344)
-discordant_percentage_JS6344_2dp
-
-# Output discordant positions and percentage
-write.table(discordant_positions_JS6344, "discordant_genotypes_JS6344.txt", sep = "\t", quote = FALSE, row.names = FALSE)
-cat("Discordance Percentage:", discordant_percentage_JS6344, "%\n")
-
-# Define custom labels for chromosomes
-chr_labels <- c(
-  "dirofilaria_immitis_chr1" = "Chr1",
-  "dirofilaria_immitis_chr2" = "Chr2",
-  "dirofilaria_immitis_chr3" = "Chr3",
-  "dirofilaria_immitis_chr4" = "Chr4")
-
-# Create a bar plot
-ggplot(data = merged_genotypes_JS6344, aes(x = CHROM, fill = Concordance)) +
-  geom_bar() +
-  labs(title = "Discordance by Chromosome: JS6344 vs JS6344 REP", subtitle = paste("Discordance Percentage:", discordant_percentage_JS6344_2dp, "%"), y = "Count") +
-  scale_fill_manual(values = c("Concordant" = "lightpink", "Discordant" = "tomato2")) +
-  theme_minimal() +
-  scale_x_discrete(labels = chr_labels) +
-  theme(plot.title = element_text(face = "bold"))
-
-ggsave("discordance_plot_JS6344.png", plot = last_plot(), width = 8, height = 6, dpi = 600)
-
-
-
-
-
-########################################################
-# Are discordant variants shared between replicates?
-########################################################
-
-library(VennDiagram)
-
-# Read the discordant genotypes files for all three pairs
-Dog1.5_data <- read.table("discordant_genotypes_Dog1.5.txt", header = TRUE, sep = "\t")
-Dog2.3_data <- read.table("discordant_genotypes_Dog2.3.txt", header = TRUE, sep = "\t")
-JS6344_data <- read.table("discordant_genotypes_JS6344.txt", header = TRUE, sep = "\t")
-
-# Extract the "CHROM" and "POS" columns for each pair
-Dog1.5_variants <- with(Dog1.5_data, paste(CHROM, POS, sep = ":"))
-Dog2.3_variants <- with(Dog2.3_data, paste(CHROM, POS, sep = ":"))
-JS6344_variants <- with(JS6344_data, paste(CHROM, POS, sep = ":"))
-
-# Create a Venn diagram with three circles
-venn.plot <- venn.diagram(
-  x = list(Dog1.5_variants, Dog2.3_variants, JS6344_variants),
-  category.names = c("Dog1.5", "Dog2.3", "JS6344"),
-  filename = NULL,
-  output = TRUE,
-  euler.d = TRUE, # For a more circular layout
-  fontfamily = "sans", # Change font family to Arial (or your preferred font)
-  category.cex = 2, # Increase category label size
-  output = TRUE,
-  lwd = 1, # Increase line width
-  fill = c("lightblue1", "darkseagreen3", "lightpink"), # Customize fill colors
-  alpha = 0.5, # Set transparency
-  cat.pos = 0, # Position of category labels (0 = centered)
-  margin = 0.05 # Adjust the margin
-)
-
-# Display the Venn diagram
-grid.draw(venn.plot)
-
-ggsave("discordance_venn_diagram.png", plot = venn.plot, width = 6, height = 6, dpi = 600)
-
-```
-
-Now I may want to exclude these discordant variant sites from my cohort VCF
-
-```R
-
-```
-```bash
-bcftools view -T ^discordant_variants.txt -O v -o filtered_cohort.vcf input_cohort.vcf
-```
 
 
 

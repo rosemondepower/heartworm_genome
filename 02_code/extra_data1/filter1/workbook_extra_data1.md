@@ -2862,10 +2862,50 @@ ggsave("discordance_venn_diagram.png", plot = venn.plot, width = 6, height = 6, 
 Now I may want to exclude these discordant variant sites from my cohort VCF
 
 ```R
+# Load discordant variant data from each file
+discordant_genotypes_Dog1.5 <- fread("discordant_genotypes_Dog1.5.txt", header = TRUE)
+discordant_genotypes_Dog2.3 <- fread("discordant_genotypes_Dog2.3.txt", header = TRUE)
+discordant_genotypes_JS6344 <- fread("discordant_genotypes_JS6344.txt", header = TRUE)
 
+# Extract CHROM and POS from each data frame
+discordant_sites_Dog1.5 <- discordant_genotypes_Dog1.5[, c("CHROM", "POS")]
+discordant_sites_Dog2.3 <- discordant_genotypes_Dog2.3[, c("CHROM", "POS")]
+discordant_sites_JS6344 <- discordant_genotypes_JS6344[, c("CHROM", "POS")]
+
+# Merge sites from all data frames
+discordant_sites_all <- rbind(discordant_sites_Dog1.5, discordant_sites_Dog2.3, discordant_sites_JS6344)
+
+# Remove duplicate sites
+discordant_sites_unique <- unique(discordant_sites_all)
+
+# Export as test file
+write.table(discordant_sites_unique, "discordant_sites.txt", sep = "\t", quote = FALSE, row.names = FALSE)
 ```
+
 ```bash
-bcftools view -T ^discordant_variants.txt -O v -o filtered_cohort.vcf input_cohort.vcf
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N exclude_discordant_sites
+#PBS -l select=1:ncpus=8:mem=20GB
+#PBS -l walltime=10:00:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o exclude_discordant_sites.txt
+
+# Submit job
+## qsub ../exclude_discordant_sites.pbs
+
+# load modules
+module load bcftools/1.11
+module load tabix/0.2.6
+
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/extra_data1/analysis/mapping/filter/filter1/REPLICATES
+
+# Exclude discordant sites
+bcftools index ../FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf
+bcftools view -T ^discordant_sites.txt -o nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.DISCORDANCE.vcf -O v ../FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf
 ```
 
 
