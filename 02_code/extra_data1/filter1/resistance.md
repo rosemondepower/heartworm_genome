@@ -1,16 +1,19 @@
 
 
-bsub.py 1 resistance "../resistance.sh"
 
+bsub.py 1 resistance "../resistance.sh"
 ```bash
-# load modules
-module load bcftools/1.14--h88f3f91_0
+# Load modules
+module load vcftools/0.1.16-c4
 module load common-apps/htslib/1.9.229
 
 cd /lustre/scratch125/pam/teams/team333/rp24/Diro/data/VARIANTS/RESISTANCE
 
-cp ../ALLSITES/nuclearVARIANTsandINVARIANTs_allsamples.recode.RENAMED.vcf ../ALLSITES/nuclearVARIANTsandINVARIANTs_allsamples.recode.RENAMED.COPY.vcf
-bgzip ../ALLSITES/nuclearVARIANTsandINVARIANTs_allsamples.recode.RENAMED.COPY.vcf
+vcftools --gzvcf ../ALLSITES/nuclearVARIANTsandINVARIANTs_allsamples.recode.RENAMED.COPY.vcf.gz --positions resistance_snps.txt --recode --out nuclearVARIANTsandINVARIANTs_allsamples.recode.RENAMED.RESISTANCE
 
-bcftools query -R resistance.bed -f '%CHROM\t%POS\t%REF\t%ALT[\t%GT]\n' ../ALLSITES/nuclearVARIANTsandINVARIANTs_allsamples.recode.RENAMED.COPY.vcf.gz > extracted_alleles.txt
+vcftools --gzvcf ../ALLSITES/nuclearVARIANTsandINVARIANTs_allsamples.recode.RENAMED.COPY.vcf.gz --positions resistance_snps.txt --hardy --out nuclearVARIANTsandINVARIANTs_allsamples.recode.RENAMED.RESISTANCE
+
+vcftools --gzvcf ../ALLSITES/nuclearVARIANTsandINVARIANTs_allsamples.recode.RENAMED.COPY.vcf.gz --positions resistance_snps.txt --freq --out nuclearVARIANTsandINVARIANTs_allsamples.recode.RENAMED.RESISTANCE
+
+vcftools --gzvcf ../ALLSITES/nuclearVARIANTsandINVARIANTs_allsamples.recode.RENAMED.COPY.vcf.gz --positions resistance_snps.txt --site-pi --out nuclearVARIANTsandINVARIANTs_allsamples.recode.RENAMED.RESISTANCE
 ```
