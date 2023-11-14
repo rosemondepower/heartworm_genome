@@ -2,15 +2,24 @@
 
 ## Admixture plots
 
+bsub.py 1 admixture "../admixture.sh"
+
 ```bash
-cd /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/05_ANALYSIS/ADMIXTURE
+#vcftools
+module load vcftools/0.1.16-c4
+# also need htslib for tabix
+module load common-apps/htslib/1.9.229
+
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/02_VARIANTS/ADMIXTURE
 
 mkdir CHROMOSOMES_PL
 
-ln -s /nfs/users/nfs_s/sd21/lustre118_link/trichuris_trichiura/04_VARIANTS/GATK_HC_MERGED/nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz
+gzip /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/02_VARIANTS/FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf
 
-cat ../../01_REF/trichuris_trichiura.fa.fai | cut -f1 | while read -r CHR; do
-     vcftools --gzvcf ../../04_VARIANTS/GATK_HC_MERGED/nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz  --max-missing 1 --out CHROMOSOMES_PL/${CHR} --BEAGLE-PL --chr ${CHR};
+ln -s ../FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf.gz
+
+cat ../../01_REF/reference_di_wol_dog.fa.fai | cut -f1 | while read -r CHR; do
+     vcftools --gzvcf ../FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf.gz --max-missing 1 --out CHROMOSOMES_PL/${CHR} --BEAGLE-PL --chr ${CHR};
 done
 
 # merge the data from individual chromosomes into a single dataset
@@ -24,7 +33,11 @@ done
 
 # chromosomes=$(cat ../../01_REF/trichuris_trichiura.fa.fai | cut -f1 | grep -v "MITO" | while read -r CHROMOSOME; do printf "$CHROMOSOME,"; done | sed 's/,$//g')
 # vcftools --gzvcf ../../04_VARIANTS/GATK_HC_MERGED/nuclear_samples3x_missing0.8_animalPhonly.recode.vcf.gz  --out CHROMOSOMES_PL/all_chromosomes --BEAGLE-PL --chr ${chromosomes}
+```
 
+
+
+```
 head -n1 Trichuris_trichiura_3_009.BEAGLE.PL > chromosome.PL
 
 # cat Trichuris_trichiura_1_001.BEAGLE.PL Trichuris_trichiura_1_002.BEAGLE.PL Trichuris_trichiura_1_003.BEAGLE.PL Trichuris_trichiura_1_004.BEAGLE.PL Trichuris_trichiura_1_005.BEAGLE.PL Trichuris_trichiura_1_006.BEAGLE.PL Trichuris_trichiura_1_007.BEAGLE.PL Trichuris_trichiura_2_001.BEAGLE.PL Trichuris_trichiura_3_001.BEAGLE.PL Trichuris_trichiura_3_002.BEAGLE.PL Trichuris_trichiura_3_003.BEAGLE.PL Trichuris_trichiura_3_004.BEAGLE.PL Trichuris_trichiura_3_005.BEAGLE.PL Trichuris_trichiura_3_006.BEAGLE.PL Trichuris_trichiura_3_007.BEAGLE.PL Trichuris_trichiura_3_008.BEAGLE.PL Trichuris_trichiura_3_009.BEAGLE.PL Trichuris_trichiura_3_010.BEAGLE.PL | grep -v "marker" | sort -t ":" -k1,1 -k2,2n >> chromosome.PL
