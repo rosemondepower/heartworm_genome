@@ -130,10 +130,34 @@ ggsave("admixture_plots_k2-10.pdf", height=15, width=10)
 
 ## Clumpak to determine optimal K
 
-- rather that the above code, Steve ended up using Clumpak as suggested here: https://github.com/alexkrohn/AmargosaVoleTutorials/blob/master/ngsAdmix_tutorial.md
+- rather than the above code, Steve ended up using Clumpak as suggested here: https://github.com/alexkrohn/AmargosaVoleTutorials/blob/master/ngsAdmix_tutorial.md
+- Clumpak is a web-based tool for visualizing and analyzing results from clustering algorithms, specifically designed for population genetics data. To use Clumpak, you need to prepare your data and then upload it to the Clumpak website. 
 
 ```bash
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/02_VARIANTS/ADMIXTURE
+
 (for log in `ls k*.log`; do
      grep -Po 'like=\K[^ ]+' $log;
 done) > logfile
+
+# -P: Enables Perl-compatible regular expressions.
+# -o: Only output the part of a matching line that matches the pattern.
+# 'like=\K[^ ]+': This is the regular expression pattern. It looks for the literal string 'like=', then uses \K to reset the start of the match (ignoring everything before it), and [^ ]+ matches one or more characters that are not a space. 
+## E.g. from "best like=-109250.417619 after 350 iterations" it extracts "-109250.417619".
 ```
+
+- to collate the data, and generate a clumpak compatible input file
+
+```R
+# Clumpak to determine optimal K
+
+logs <- as.data.frame(read.table("logfile"))
+
+logs$K <- c(rep("10", 5), rep("2", 5), rep("3", 5), rep("4", 5), rep("5", 5), rep("6", 5), rep("7", 5), rep("8", 5), rep("9", 5))
+
+write.table(logs[, c(2, 1)], "logfile_formatted", row.names = F,
+            col.names = F, quote = F)
+```
+
+- open clumpak and upload the data (https://clumpak.tau.ac.il/)
+- the output suggests k=X is the optimal ancestral number, which I guess is consistent with the PCA which produces three main clusters.
