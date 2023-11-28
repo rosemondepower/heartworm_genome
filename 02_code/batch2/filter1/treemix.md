@@ -92,17 +92,21 @@ for i in {0..5}; do
      done;
 done
 
-# Steve used colobus monkey as root - this helps determine the direction of the branches. I don't really have a root... run without for now (but think about including later).
+# Steve used colobus monkey as root - this helps determine the direction of the branches. I don't really have a root... run without for now (but think about including later - maybe D. repens or Onchocerca).
+# -m is migration events
 ```
 
 
 ## Plotting treemix data
 
 ```R
+# Plotting treemix data
 
 # load libraries
 library(RColorBrewer)
 library(R.utils)
+
+setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1/treemix")
 
 source("plotting_funcs.R")
 prefix="treemix"
@@ -110,28 +114,32 @@ prefix="treemix"
 # plot trees across range of migration edges
 par(mfrow=c(1,2))
 
-pdf("treemix_edges_2-6.pdf")
+# generate pdf file containing multiple lots of Treemix trees
+pdf("treemix_edges_2-6.pdf", width = 10, height = 10)
+par(mar = c(5, 4, 4, 8))
 for(edge in 0:5){
-     plot_tree(cex=0.8,paste0(prefix,".m_",edge,".s_4"))
-     title(paste(edge,"edges"))
+  plot_tree(cex=0.8,paste0(prefix,".m_",edge,".s_4"))
+  title(paste(edge,"edges"))
 }
 dev.off()
 
+
+# generate series of pdf files - each containing a treemix plot and a residual plot for a diff number of edges
 for(edge in 0:5){
-     pdf(paste0("plot_treemix_tree_m-",edge,".pdf"))
-     plot_tree(cex=0.8,paste0(prefix,".m_",edge,".s_3"))
-     plot_resid(stem=paste0(prefix,".m_",edge,".s_3"),pop_order="populations.list")
-     title(paste(edge,"edges"))
-     dev.off()
+  pdf(paste0("plot_treemix_tree_m-",edge,".pdf"))
+  plot_tree(cex=0.8,paste0(prefix,".m_",edge,".s_3"))
+  plot_resid(stem=paste0(prefix,".m_",edge,".s_3"),pop_order="populations.list")
+  title(paste(edge,"edges"))
+  dev.off()
 }
 
 
 # plot residuals across range of migration edges - positive values suggest admixture
 for(edge in 0:5){
-     pdf(paste0("plot_treemix_residuals_m-",edge,".pdf"))
-     plot_resid(stem=paste0(prefix,".m_",edge,".s_4"),pop_order="populations.list")
-     title(paste(edge,"edges")
-     dev.off()
+  pdf(paste0("plot_treemix_residuals_m-",edge,".pdf"))
+  plot_resid(stem=paste0(prefix,".m_",edge,".s_4"),pop_order="populations.list")
+  title(paste(edge,"edges"))
+        dev.off()
 }
 ```
 
@@ -146,18 +154,19 @@ library(OptM)
 
 optM(folder="./")
 
-#> The maximum value for delta m was 10.7624 at m = 3 edges.
+#The maximum value for delta m was 0.9236 at m = 3 edges.
 
-# remake the plots, using 2 migration edges
+# remake the plots, using 3 migration edges
 prefix="treemix"
 
 par(mfrow=c(1,1))
 
 plot_tree(cex=0.8,paste0(prefix,".m_3.s_4"))
-title(paste(1,"edges"))
+title(paste(3,"edges"))
 
-plot_resid(stem=paste0(prefix,".",2),pop_order="populations.list")
-title(paste(1,"edges"))
+plot_resid(stem=paste0(prefix,".",3),pop_order="populations.list")
+title(paste(3,"edges"))
+# this last part didn't work...?
 
 ```
 
@@ -167,7 +176,6 @@ title(paste(1,"edges"))
 
 Rscript treemixVarianceExplained.R treemix.m_1.s_2
 
-#> Standard error for all entries in the covariance matrix estimated from the data	0.000566063693877551
-#> Variance of relatedness between populations explained by the model	0.997250751108934
-
+#Standard error for all entries in the covariance matrix estimated from the data 0.00192256580473373
+# Variance of relatedness between populations explained by the model 0.879974704806534
 ```

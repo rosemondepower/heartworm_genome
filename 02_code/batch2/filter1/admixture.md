@@ -70,10 +70,15 @@ library(ggsci)
 library(patchwork)
 library(tidyverse)
 library(reshape2)
+library(dplyr)
 
 setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1/NGSadmix")
 
+
+
+
 # make a function
+
 plot_admixture <- function(data,title) {
   
   # get metadata
@@ -81,6 +86,13 @@ plot_admixture <- function(data,title) {
   names(samples) <- c("sample_ID") #assign column name
   metadata <- read.delim("metadata.txt", header=F)
   names(metadata) <- c("sampleID", "country", "city") #assign column name
+  
+  desired_city_order <- c("GA", "IL", "MO", "MS", "LA", "PAV", "BKK", "LHR", "CNS", "TSV", "ROK", "BNE", "SYD") 
+  metadata$city <- factor(metadata$city, levels = desired_city_order)
+  
+  
+  
+  
   
   # read data
   data <- read.delim(data, sep=" ", header=F)
@@ -93,13 +105,14 @@ plot_admixture <- function(data,title) {
   # make plot
   ggplot(data,aes(sample_ID,value,fill=variable)) +
     geom_col(color = "gray", size = 0.1)+
-    facet_grid(~fct_inorder(country), switch = "x", scales = "free", space = "free") +
+    facet_grid(~ city, switch = "x", scales = "free", space = "free") +
     theme_minimal() + labs(title = title, y = "Ancestry", x = NULL) +
     scale_y_continuous(expand = c(0, 0)) +
     scale_x_discrete(expand = expansion(add = 0.7)) +
     theme(panel.spacing.x = unit(0.1, "lines"),
           axis.text.x = element_blank(),
-          #axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+          # axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+          strip.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
           panel.grid = element_blank()) +
     scale_fill_npg(guide = "none")
 }
@@ -161,3 +174,20 @@ write.table(logs[, c(2, 1)], "logfile_formatted", row.names = F,
 
 - open clumpak and upload the data (https://clumpak.tau.ac.il/)
 - the output suggests k=X is the optimal ancestral number, which I guess is consistent with the PCA which produces three main clusters.
+
+```R
+## clumpak website has been down for a while. Try an alternative method instead to determine the optimal k (https://baylab.github.io/MarineGenomics/week-9--population-structure-using-ngsadmix.html#how-do-we-know-which-k-to-pick):
+
+tapply(logs$V1, logs$K, FUN= function(x) mean(abs(x))/sd(abs(x)))
+`          10            2            3            4            5            6 
+5.160060e+01 9.916888e+01 2.542872e+07 7.549233e+01 6.140819e+03 9.008485e+05 
+7            8            9 
+1.949719e+02 2.338678e+02 9.555455e+01 `
+
+
+select_k <- tapply(logs$V1, logs$K, FUN = function(x) mean(abs(x))/sd(abs(x)))
+optimal_k <- max(select_k)
+optimal_k
+
+## We then use these values to select our K, which will be the one that has the highest value. So we choose K=3.
+```
