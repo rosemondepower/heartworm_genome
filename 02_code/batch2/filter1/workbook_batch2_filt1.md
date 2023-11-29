@@ -196,6 +196,7 @@ SLIDINGWINDOW:10:20 MINLEN:50
 # Instead of SLIDINGWINDOW, in my previous practice code I used 'AVGQUAL:30 MINLEN:150'.
 ```
 Assume all files are phred33 quality encoded? The SRR files have '????' in the quality scores so I'll have to check this somehow..
+All new Illumina uses phred33. Only need to worry about phred 64 if you've got pretty old data...
 
 
 
