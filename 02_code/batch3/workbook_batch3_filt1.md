@@ -770,4 +770,52 @@ samtools index ${bam}
 ```
 
 
+## Calling variants in a faster way using arrays
+
+Now run on all samples:
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N variant_calling
+#PBS -l select=1:ncpus=2:mem=20GB
+#PBS -l walltime=250:00:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o variant_calling.txt
+#PBS -M rosemonde.power@sydney.edu.au
+#PBS -J 1-19
+
+
+# qsub ../variant_calling.pbs
+
+
+WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/bams
+cd "${WORKING_DIR}"
+
+config=/scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/info.txt
+ref=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/batch1/analysis/mapping/reference_di_wol_dog.fa
+
+sample=$(awk -v taskID=$PBS_ARRAY_INDEX '$1==taskID {print $2}' $config) 
+bam=/scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/bams/${sample}_rg.bam
+vcf=/scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/vcf/${sample}.g.vcf.gz
+
+# Load modules
+#module load gatk/4.2.1.0
+module load gatk/4.1.4.1
+module load samtools/1.9
+
+
+# make gvcf per sample
+gatk --java-options "-Xmx8g -DGATK_STACKTRACE_ON_USER_EXCEPTION=true" \
+HaplotypeCaller \
+-R ${ref} \
+-I ${bam} \
+-O ${vcf} \
+-ERC GVCF
+```
+
+
 
