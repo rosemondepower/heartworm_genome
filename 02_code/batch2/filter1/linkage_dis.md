@@ -1,21 +1,12 @@
 # Linkage disequilibrium
 
-## get linkage disequilibrium statistics using vcftools
+## Entire cohort
 
-bsub.py 10 LD_vcftools "../LD_vcftools.sh"
+### get linkage disequilibrium statistics using vcftools
 
-```bash
-# vcftools
-module load vcftools/0.1.16-c4
-
-cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/02_VARIANTS/LD
-
-vcftools --vcf ../FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf --geno-r2 --out ld_nowindow
-```
 Only using --geno-r2 seemed to work. When I tried using --hap-r2 for phased data (I'm pretty sure mine are phased because the genotypes are like 0/0 etc?), it said no SNPs were left after filtering. But I was also encountering warnings re the PGT and PID format entries...
 
 Actually - Illumina HiSeq produces unphased data by default, so it makes sense why --hap-r2 didn't work. To get phased data, additional steps are needed (usually long-read sequencing or specialised tools).
-
 
 
 
@@ -56,7 +47,7 @@ vcftools --vcf ../FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED
 ```
 
 
-## plotting LD in R
+### plotting LD in R
 
 ```R
 library(ggplot2)
@@ -130,10 +121,66 @@ ggplot(data_10000, aes(x = abs(BP2 - BP1), y = R2)) +
 
 
 
+## Separate cohort into groups
+
+Calculate LD for each group separately. Go with 50,000 window.
+
+bsub.py 10 LD_vcftools_50000_groups "../LD_vcftools_50000_groups.sh"
+
+```bash
+module load vcftools/0.1.16-c4
+
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/02_VARIANTS/LD
+
+vcftools --vcf ../FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf \
+         --geno-r2 \
+         --ld-window-bp 50000 \
+         --keep USA_samples.txt \
+         --out ld_50000_USA
+
+vcftools --vcf ../FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf \
+         --geno-r2 \
+         --ld-window-bp 50000 \
+         --keep ITL_samples.txt \
+         --out ld_50000_ITL
+
+vcftools --vcf ../FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf \
+         --geno-r2 \
+         --ld-window-bp 50000 \
+         --keep THAI_samples.txt \
+         --out ld_50000_THAI
+
+vcftools --vcf ../FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf \
+         --geno-r2 \
+         --ld-window-bp 50000 \
+         --keep AUS_samples.txt \
+         --out ld_50000_AUS
+
+# only compares sites within 50,000 bp of one another
+```
 
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#scratch
 
 
 
