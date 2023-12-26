@@ -10,6 +10,115 @@ Actually - Illumina HiSeq produces unphased data by default, so it makes sense w
 
 
 
+
+
+## Separate cohort into groups
+
+Calculate LD for each group separately. Go with 50,000 window.
+
+bsub.py 10 LD_vcftools_50000 "../LD_vcftools_50000.sh"
+
+```bash
+module load vcftools/0.1.16-c4
+
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/BATCH3/02_VARIANTS/LD
+
+vcftools --vcf ../FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf \
+         --geno-r2 \
+         --ld-window-bp 50000 \
+         --keep USA_samples.txt \
+         --out ld_50000_USA
+
+vcftools --vcf ../FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf \
+         --geno-r2 \
+         --ld-window-bp 50000 \
+         --keep CAM_samples.txt \
+         --out ld_50000_CAM
+
+vcftools --vcf ../FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf \
+         --geno-r2 \
+         --ld-window-bp 50000 \
+         --keep EUR_samples.txt \
+         --out ld_50000_EUR
+
+vcftools --vcf ../FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf \
+         --geno-r2 \
+         --ld-window-bp 50000 \
+         --keep ASIA_samples.txt \
+         --out ld_50000_ASIA
+
+
+vcftools --vcf ../FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf \
+         --geno-r2 \
+         --ld-window-bp 50000 \
+         --keep AUS_samples.txt \
+         --out ld_50000_AUS
+
+# only compares sites within 50,000 bp of one another
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#scratch
+
+
+
+
+
+## convert my vcf file to plink format
+
+bsub.py 10 plink_convert "../plink_convert.sh"
+
+```bash
+# vcftools
+module load vcftools/0.1.16-c4
+
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/02_VARIANTS/LD
+
+plink --vcf ../FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf --make-bed --allow-extra-chr --out plink_output 
+
+# -allow-extra-chr because plink's default is the human genome. This parameter allows it to recognise other species' chromosome naming conventions.
+```
+
+
+## use plink to calculate parwise linkage disequilibrium
+
+```bash
+module load plink/1.90b6.18--h516909a_0
+plink --bfile plink_output --r2 --ld-window-kb 1000 --ld-window 99999 --ld-window-r2 0.2 --out ld_results
+# this calculated r2 (you can also use --ld for D'
+# sliding window size of 1000 kb
+# maximum physical distance of 99999 bases
+# --ld-window-r2 sets the min r2 for SNP pairs to be included
+
+```
+
+
+
+
+
+
+
+
 Try using various window sizes. NB: genome size of D. immitis is ~88,000,000.
 
 bsub.py 10 LD_vcftools_100000 "../LD_vcftools_100000.sh"
@@ -17,7 +126,7 @@ bsub.py 10 LD_vcftools_100000 "../LD_vcftools_100000.sh"
 ```bash
 module load vcftools/0.1.16-c4
 
-cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/02_VARIANTS/LD
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/BATCH3/02_VARIANTS/LD
 
 vcftools --vcf ../FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf --geno-r2 --ld-window-bp 100000 --out ld_100000
 # only compares sites within 100,000 bp of one another
@@ -115,101 +224,4 @@ ggplot(data_10000, aes(x = abs(BP2 - BP1), y = R2)) +
   labs(x = "Distance (bp)", y = "R^2", title = "Linkage Disequilibrium Decay Plot", subtitle = "Window size = 10,000")
   # abs(BP2 - BP1) gets the absolute physical distance between the two variants
   # geom_smooth fits a regression line to the points
-```
-
-
-
-
-
-## Separate cohort into groups
-
-Calculate LD for each group separately. Go with 50,000 window.
-
-bsub.py 10 LD_vcftools_50000_groups "../LD_vcftools_50000_groups.sh"
-
-```bash
-module load vcftools/0.1.16-c4
-
-cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/02_VARIANTS/LD
-
-vcftools --vcf ../FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf \
-         --geno-r2 \
-         --ld-window-bp 50000 \
-         --keep USA_samples.txt \
-         --out ld_50000_USA
-
-vcftools --vcf ../FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf \
-         --geno-r2 \
-         --ld-window-bp 50000 \
-         --keep ITL_samples.txt \
-         --out ld_50000_ITL
-
-vcftools --vcf ../FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf \
-         --geno-r2 \
-         --ld-window-bp 50000 \
-         --keep THAI_samples.txt \
-         --out ld_50000_THAI
-
-vcftools --vcf ../FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf \
-         --geno-r2 \
-         --ld-window-bp 50000 \
-         --keep AUS_samples.txt \
-         --out ld_50000_AUS
-
-# only compares sites within 50,000 bp of one another
-```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#scratch
-
-
-
-
-
-## convert my vcf file to plink format
-
-bsub.py 10 plink_convert "../plink_convert.sh"
-
-```bash
-# vcftools
-module load vcftools/0.1.16-c4
-
-cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/02_VARIANTS/LD
-
-plink --vcf ../FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf --make-bed --allow-extra-chr --out plink_output 
-
-# -allow-extra-chr because plink's default is the human genome. This parameter allows it to recognise other species' chromosome naming conventions.
-```
-
-
-## use plink to calculate parwise linkage disequilibrium
-
-```bash
-module load plink/1.90b6.18--h516909a_0
-plink --bfile plink_output --r2 --ld-window-kb 1000 --ld-window 99999 --ld-window-r2 0.2 --out ld_results
-# this calculated r2 (you can also use --ld for D'
-# sliding window size of 1000 kb
-# maximum physical distance of 99999 bases
-# --ld-window-r2 sets the min r2 for SNP pairs to be included
-
 ```

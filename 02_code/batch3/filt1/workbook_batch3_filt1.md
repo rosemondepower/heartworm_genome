@@ -315,8 +315,44 @@ echo "sample is: $sample"
 fastqc -t $NCPU -o ${OUTDIR} /scratch/RDS-FSC-Heartworm_MLR-RW/batch3/fastq/${sample}.fq.gz
 ```
 
+### Extra 3:
 
-## MultiQC - need to do this still
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N extra3_fastqc
+#PBS -l select=1:ncpus=1:mem=10GB
+#PBS -l walltime=00:30:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o extra3_fastqc.txt
+#PBS -M rosemonde.power@sydney.edu.au
+#PBS -J 1-6
+
+# Submit job
+## qsub ../extra3_fastqc.pbs
+
+# Load modules
+module load fastqc/0.11.8
+
+# FastQC
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis
+
+NCPU=2
+OUTDIR=/scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/fastqc/raw
+
+config=/scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/extra3_info.txt
+sample=$(awk -v taskID=$PBS_ARRAY_INDEX '$1==taskID {print $2}' $config) 
+
+echo "sample is: $sample"
+
+fastqc -t $NCPU -o ${OUTDIR} /scratch/RDS-FSC-Heartworm_MLR-RW/batch3/fastq/${sample}.fq.gz
+```
+
+
+## MultiQC 
 
 ```bash
 #!/bin/bash
@@ -392,6 +428,48 @@ Assume all files are phred33 quality encoded? The SRR files have '????' in the q
 All new Illumina uses phred33. Only need to worry about phred 64 if you've got pretty old data...
 
 
+### Extra 3
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N extra3_trimmomatic
+#PBS -l select=1:ncpus=2:mem=30GB
+#PBS -l walltime=04:00:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o extra3_trimmomatic.txt
+#PBS -J 1-3
+
+# qsub ../extra3_trimmomatic.pbs
+
+config=/scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/trimmomatic/extra3_info.txt
+sample=$(awk -v taskID=$PBS_ARRAY_INDEX '$1==taskID {print $2}' $config) 
+NCPU=2
+
+echo "sample is: $sample"
+
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/trimmomatic
+
+# Load modules
+module load trimmomatic/0.38
+
+# Run Trimmomatic
+java -jar /usr/local/trimmomatic/0.38/trimmomatic-0.38.jar PE \
+-threads $NCPU \
+-phred33 \
+/scratch/RDS-FSC-Heartworm_MLR-RW/batch3/fastq/${sample}_1.fq.gz \
+/scratch/RDS-FSC-Heartworm_MLR-RW/batch3/fastq/${sample}_2.fq.gz \
+${sample}_1_trimpaired.fq.gz ${sample}_1_trimunpaired.fq.gz \
+${sample}_2_trimpaired.fq.gz ${sample}_2_trimunpaired.fq.gz \
+SLIDINGWINDOW:10:20 MINLEN:50
+
+# SLIDINGWINDOW:10:20 means it will scan the read with a 10-base wide sliding window, cutting when the average quality per base drops below 20.
+
+# Instead of SLIDINGWINDOW, in my previous practice code I used 'AVGQUAL:30 MINLEN:150'.
+```
 
 
 
@@ -428,6 +506,39 @@ sample=$(awk -v taskID=$PBS_ARRAY_INDEX '$1==taskID {print $2}' $config)
 
 fastqc -t $NCPU -o ${OUTDIR} /scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/trimmomatic/${sample}_trimpaired.fq.gz
 ```
+
+### Extra 3
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N extra3_fastQC_trimmed
+#PBS -l select=1:ncpus=1:mem=20GB
+#PBS -l walltime=02:00:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o extra3_fastQC_trimmed.txt
+#PBS -J 1-6
+
+# Submit job
+## qsub ../extra3_fastqc_trimmed.pbs
+
+# Load modules
+module load fastqc/0.11.8
+
+# FastQC
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis
+NCPU=1
+OUTDIR=/scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/fastqc/trimmed
+
+config=/scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/extra3_info.txt
+sample=$(awk -v taskID=$PBS_ARRAY_INDEX '$1==taskID {print $2}' $config) 
+
+fastqc -t $NCPU -o ${OUTDIR} /scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/trimmomatic/${sample}_trimpaired.fq.gz
+```
+
 
 ```bash
 #!/bin/bash
@@ -495,6 +606,43 @@ bwa mem /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/batch1/analysis/mapping/ref
 # Set the num_threads param to directly scale with the number of cpus using the PBS environment variable "${NCPUS}).
 ```
 
+### Extra 3
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N extra3_mapping
+#PBS -l select=1:ncpus=16:mem=50GB
+#PBS -l walltime=02:00:00
+#PBS -m abe
+#PBS -q defaultQ
+#PBS -o extra3_mapping.txt
+#PBS -J 1-3
+
+# qsub ../extra3_mapping.pbs
+
+config=/scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/extra3_info.txt
+sample=$(awk -v taskID=$PBS_ARRAY_INDEX '$1==taskID {print $2}' $config) 
+NCPU=16
+
+# Set working directory
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping
+
+# Load modules
+module load bwa/0.7.17
+
+# map the reads, with a separate mapping job for each sample
+bwa mem /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/batch1/analysis/mapping/reference_di_wol_dog.fa \
+-t $NCPUS \
+../trimmomatic/${sample}_1_trimpaired.fq.gz \
+../trimmomatic/${sample}_2_trimpaired.fq.gz \
+> /scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/${sample}.tmp.sam
+
+# Set the num_threads param to directly scale with the number of cpus using the PBS environment variable "${NCPUS}).
+```
+
 
 
 Convert to bam & sort the mapped reads:
@@ -515,6 +663,51 @@ Convert to bam & sort the mapped reads:
 # qsub ../mapping_sort.pbs
 
 config=/scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/info.txt
+sample=$(awk -v taskID=$PBS_ARRAY_INDEX '$1==taskID {print $2}' $config) 
+NCPU=1
+
+echo "sample is: $sample"
+
+# Set working directory
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping
+
+# Load modules
+module load samtools/1.9
+
+# Mapping stats
+samtools flagstat ${sample}.tmp.sam > flagstat1/${sample}_flagstat1.txt
+	
+# convert the sam to bam format
+samtools view -q 15 -b -o ${sample}.tmp.bam ${sample}.tmp.sam
+
+# sort the mapped reads in the bam file
+samtools sort ${sample}.tmp.bam -o ${sample}.sorted.bam
+ 
+# index the sorted bam
+samtools index ${sample}.sorted.bam
+
+# Mapping stats after filtering
+samtools flagstat ${sample}.sorted.bam > flagstat2/${sample}_flagstat2.txt
+```
+
+### Extra 3
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N extra3_mapping_sort
+#PBS -l select=1:ncpus=1:mem=100GB
+#PBS -l walltime=05:00:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o extra3_mapping_sort.txt
+#PBS -J 1-3
+
+# qsub ../extra3_mapping_sort.pbs
+
+config=/scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/extra3_info.txt
 sample=$(awk -v taskID=$PBS_ARRAY_INDEX '$1==taskID {print $2}' $config) 
 NCPU=1
 
@@ -641,6 +834,49 @@ samtools view /scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/${sample
 samtools flagstat /scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/${sample}_extract.bam > /scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/extract_flagstat/${sample}_extract_flagstat.txt
 ```
 
+### Extra 3
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N extra3_mapping_extract
+#PBS -l select=1:ncpus=1:mem=20GB
+#PBS -l walltime=06:00:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o extra3_mapping_extract.txt
+#PBS -J 1-3
+
+# qsub ../extra3_mapping_extract.pbs
+
+# Set working directory
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping
+
+# Load modules
+module load samtools/1.9
+
+config=/scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/extra3_info.txt
+sample=$(awk -v taskID=$PBS_ARRAY_INDEX '$1==taskID {print $2}' $config) 
+NCPU=1
+
+# Extract reads that only mapped to D. immitis.
+samtools view -b -h -L /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/batch1/analysis/mapping/dimmitis_WSI_2.2.bed /scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/${sample}.sorted.bam > /scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/${sample}_extract.bam
+# Should still be in sorted form
+# -b flag makes sure the output is bam
+# -h flag includes the header in SAM output
+
+samtools view /scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/${sample}_extract.bam | head
+
+# I do not have to sort the bam file again, it should still be sorted.
+
+## QC
+# How many D. immitis reads were extracted?
+
+samtools flagstat /scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/${sample}_extract.bam > /scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/extract_flagstat/${sample}_extract_flagstat.txt
+```
+
 Combine flagstat files for all samples so it's easier to read.
 
 ```bash
@@ -698,6 +934,35 @@ NCPU=1
 samtools index ${sample}_extract.bam
 ```
 
+### Extra 3
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N extra3_mapping_extract_index
+#PBS -l select=1:ncpus=1:mem=10GB
+#PBS -l walltime=02:00:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o extra3_mapping_extract_index.txt
+#PBS -J 1-3
+
+#qsub ../extra3_mapping_extract_index.pbs
+
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping
+
+# Load modules
+module load samtools/1.9
+
+config=/scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/extra3_info.txt
+sample=$(awk -v taskID=$PBS_ARRAY_INDEX '$1==taskID {print $2}' $config) 
+NCPU=1
+
+samtools index ${sample}_extract.bam
+```
+
 
 ## Adding read groups to bam files
 
@@ -732,6 +997,35 @@ module load samtools/1.9
 samtools addreplacerg -r "@RG\tRG:${SAMPLE_NAME}\tID:${SAMPLE_NAME}\tSM:${SAMPLE_NAME}" -o /scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/bams/${SAMPLE_NAME}_rg.bam  /scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/${SAMPLE_NAME}_extract.bam
 ```
 
+### Extra 3
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N extra3_read_groups
+#PBS -l select=1:ncpus=1:mem=20GB
+#PBS -l walltime=02:00:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o extra3_read_groups.txt
+#PBS -J 1-3
+
+# qsub ../extra3_read_groups.pbs
+
+WORKING_DIR=//scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping
+cd "${WORKING_DIR}"
+
+config=/scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/extra3_info.txt
+SAMPLE_NAME=$(awk -v taskID=$PBS_ARRAY_INDEX '$1==taskID {print $2}' $config)
+
+# Load modules
+module load samtools/1.9
+
+samtools addreplacerg -r "@RG\tRG:${SAMPLE_NAME}\tID:${SAMPLE_NAME}\tSM:${SAMPLE_NAME}" -o /scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/bams/${SAMPLE_NAME}_rg.bam  /scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/${SAMPLE_NAME}_extract.bam
+```
+
 
 ## Index the read group bam files
 
@@ -755,6 +1049,42 @@ WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/bams
 cd "${WORKING_DIR}"
 
 config=/scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/info.txt
+
+sample=$(awk -v taskID=$PBS_ARRAY_INDEX '$1==taskID {print $2}' $config) 
+bam=/scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/bams/${sample}_rg.bam
+
+echo "sample is: $sample"
+echo "bam is: $bam"
+
+# Load modules
+module load samtools/1.9
+
+# index bam files
+samtools index ${bam}
+```
+
+### Extra 3
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N extra3_rg_index
+#PBS -l select=1:ncpus=2:mem=10GB
+#PBS -l walltime=01:00:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o extra3_rg_index.txt
+#PBS -J 1-3
+
+# qsub ../extra3_rg_index.pbs
+
+
+WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/bams
+cd "${WORKING_DIR}"
+
+config=/scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/extra3_info.txt
 
 sample=$(awk -v taskID=$PBS_ARRAY_INDEX '$1==taskID {print $2}' $config) 
 bam=/scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/bams/${sample}_rg.bam
@@ -817,7 +1147,50 @@ HaplotypeCaller \
 -ERC GVCF
 ```
 
-So 18/19 samples have finished running, the last sample is still going but I'll do joint variant calling using these 18 samples anyway so I can present preliminary results at the lab meeting tomorrow.
+### Extra 3
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N extra3_variant_calling
+#PBS -l select=1:ncpus=2:mem=20GB
+#PBS -l walltime=250:00:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o extra3_variant_calling.txt
+#PBS -M rosemonde.power@sydney.edu.au
+#PBS -J 1-3
+
+
+# qsub ../extra3_variant_calling.pbs
+
+
+WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/bams
+cd "${WORKING_DIR}"
+
+config=/scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/extra3_info.txt
+ref=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/batch1/analysis/mapping/reference_di_wol_dog.fa
+
+sample=$(awk -v taskID=$PBS_ARRAY_INDEX '$1==taskID {print $2}' $config) 
+bam=/scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/bams/${sample}_rg.bam
+vcf=/scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/vcf/${sample}.g.vcf.gz
+
+# Load modules
+#module load gatk/4.2.1.0
+module load gatk/4.1.4.1
+module load samtools/1.9
+
+
+# make gvcf per sample
+gatk --java-options "-Xmx8g -DGATK_STACKTRACE_ON_USER_EXCEPTION=true" \
+HaplotypeCaller \
+-R ${ref} \
+-I ${bam} \
+-O ${vcf} \
+-ERC GVCF
+```
 
 
 
