@@ -1221,64 +1221,6 @@ cd "${WORKING_DIR}"
 cohort=Dirofilaria_immitis_Dec2023
 ref=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/batch1/analysis/mapping/reference_di_wol_dog.fa
 
-gvcf=/scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/vcf/done/cohort/${cohort}.g.vcf.gz
-vcf=/scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/vcf/done/cohort/${cohort}.vcf.gz
-
-# Load modules
-module load gatk/4.2.1.0
-
-# collect all sample g.vcfs (from all batches) into a list, to make input for CombineGVCFs
-ls /scratch/RDS-FSC-Heartworm_MLR-RW/batch1/analysis/vcf/*.g.vcf.gz /scratch/RDS-FSC-Heartworm_MLR-RW/batch2/analysis/mapping/vcf/*.g.vcf.gz /scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/vcf/done/*.g.vcf.gz > /scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/vcf/done/gvcf.list
-
-args=$(while read line; do
-  echo "-V ${line}"
-done < /scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/vcf/done/gvcf.list)
-
-echo $args
-
-# create cohort gvcf
-gatk --java-options "-Xmx28g -DGATK_STACKTRACE_ON_USER_EXCEPTION=true" \
-        CombineGVCFs \
-        -R ${ref} \
-        ${args} \
-        -O ${gvcf}
-
-
-# Genotype cohort vcf
-gatk --java-options "-Xmx28g -DGATK_STACKTRACE_ON_USER_EXCEPTION=true" \
-        GenotypeGVCFs \
-        -R ${ref} \
-        -V ${gvcf} \
-        -O ${vcf}
-```
-Successfully completed. 
-
-
-All 19 samples have now finished running so I'll do joint variant calling again.
-
-```bash
-#!/bin/bash
-
-# PBS directives 
-#PBS -P RDS-FSC-Heartworm_MLR-RW
-#PBS -N jointcall_variants_all.pbs
-#PBS -l select=1:ncpus=1:mem=50GB
-#PBS -l walltime=20:00:00
-#PBS -m abe
-#PBS -q defaultQ
-#PBS -o jointcall_variants_all.txt
-#PBS -M rosemonde.power@sydney.edu.au
-
-# qsub ../jointcall_variants_all.pbs
-
-# Perform joint genotyping on one or more samples pre-called with HaplotypeCaller
-
-WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/vcf
-cd "${WORKING_DIR}"
-
-cohort=Dirofilaria_immitis_Dec2023
-ref=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/batch1/analysis/mapping/reference_di_wol_dog.fa
-
 gvcf=/scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/vcf/${cohort}.g.vcf.gz
 vcf=/scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/vcf/${cohort}.vcf.gz
 
@@ -1458,6 +1400,8 @@ library(tidyverse)
 library(gridExtra)
 
 setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch3/filter1/snps_qc")
+
+set.seed(123)
 
 # Import data
 ## Nuclear SNPs & indels
@@ -1683,7 +1627,7 @@ fun_variant_summaries(VCF_wb,"wolbachia")
     theme_bw() +
     labs(title=paste0("mitochondrial",": MQRankSum"))
   MQRankSum
-  # Removed 98 rows containing missing values (`geom_point()`).  
+  # Removed 100 rows containing missing values (`geom_point()`).  
   
   
   # gatk hardfilter: SNP SOR < 4 , INDEL SOR > 10
@@ -1764,7 +1708,7 @@ fun_variant_summaries(VCF_wb,"wolbachia")
     theme_bw() +
     labs(title=paste0("mitochondrial",": MQRankSum"))
   MQRankSum
-  # Removed 98 rows containing missing values (`geom_point()`). 
+  # Removed 100 rows containing missing values (`geom_point()`). 
   
   
   # gatk hardfilter: SNP SOR < 4 , INDEL SOR > 10
@@ -1824,14 +1768,14 @@ cd ${WORKING_DIR}
 gatk VariantFiltration \
 --reference ${REFERENCE} \
 --variant Dirofilaria_immitis_Dec2023.nuclearSNPs.vcf \
---filter-expression 'QUAL < 32 || DP < 208 || DP > 15502 || MQ < 28.52 || SOR > 8.454 || QD < 0.310 || FS > 101.460 || MQRankSum < -7.873 || ReadPosRankSum < -9.904 || ReadPosRankSum > 3.610' \
+--filter-expression 'QUAL < 32 || DP < 178 || DP > 15337 || MQ < 27.92 || SOR > 8.396 || QD < 0.310 || FS > 98.425 || MQRankSum < -7.714 || ReadPosRankSum < -9.931 || ReadPosRankSum > 3.590' \
 --filter-name "SNP_filtered" \
 --output Dirofilaria_immitis_Dec2023.nuclearSNPs.filtered.vcf
 
 gatk VariantFiltration \
 --reference ${REFERENCE} \
 --variant Dirofilaria_immitis_Dec2023.nuclearINDELs.vcf \
---filter-expression 'QUAL < 40 || DP < 587 || DP > 11855 || MQ < 36.00 || SOR > 8.155 || QD < 0.410 || FS > 100.408 || MQRankSum < -4.493 || ReadPosRankSum < -10.940 || ReadPosRankSum > 3.134' \
+--filter-expression 'QUAL < 38 || DP < 629 || DP > 12230 || MQ < 36.28 || SOR > 8.121 || QD < 0.410 || FS > 98.740 || MQRankSum < -4.361 || ReadPosRankSum < -10.940 || ReadPosRankSum > 3.160' \
 --filter-name "INDEL_filtered" \
 --output Dirofilaria_immitis_Dec2023.nuclearINDELs.filtered.vcf
 
@@ -1839,14 +1783,14 @@ gatk VariantFiltration \
 gatk VariantFiltration \
 --reference ${REFERENCE} \
 --variant Dirofilaria_immitis_Dec2023.mitoSNPs.vcf \
---filter-expression ' QUAL < 72 || DP < 108550 || DP > 441072 || MQ < 44.94 || SOR > 12.747 || QD < 0.320 || FS > 117.382 || MQRankSum < -11.090 || ReadPosRankSum < -29.780 || ReadPosRankSum > 3.740 ' \
+--filter-expression ' QUAL < 72 || DP < 112843 || DP > 455045 || MQ < 44.84 || SOR > 12.735 || QD < 0.386 || FS > 161.202 || MQRankSum < -11.087 || ReadPosRankSum < -29.759 || ReadPosRankSum > 3.735' \
 --filter-name "SNP_filtered" \
 --output Dirofilaria_immitis_Dec2023.mitoSNPs.filtered.vcf
 
 gatk VariantFiltration \
 --reference ${REFERENCE} \
 --variant Dirofilaria_immitis_Dec2023.mitoINDELs.vcf \
---filter-expression 'QUAL < 40 || DP < 132259 || DP > 412405 || MQ < 45.15 || SOR > 6.112 || QD < 0.024 || FS > 58.326 || MQRankSum < -8.951 || ReadPosRankSum < -18.110 || ReadPosRankSum > 5.350' \
+--filter-expression 'QUAL < 39 || DP < 138404 || DP > 426512 || MQ < 45.26 || SOR > 7.321 || QD < 0.025 || FS > 53.312 || MQRankSum < -13.171 || ReadPosRankSum < -18.135 || ReadPosRankSum > 5.310' \
 --filter-name "INDEL_filtered" \
 --output Dirofilaria_immitis_Dec2023.mitoINDELs.filtered.vcf
 
@@ -1854,14 +1798,14 @@ gatk VariantFiltration \
 gatk VariantFiltration \
 --reference ${REFERENCE} \
 --variant Dirofilaria_immitis_Dec2023.WbSNPs.vcf \
---filter-expression ' QUAL < 31 || DP < 53460 || DP > 85768 || MQ < 40.00 || SOR > 8.254 || QD < 0.320 || FS > 117.223 || MQRankSum < -6.600 || ReadPosRankSum < -11.524 || ReadPosRankSum > 4.508' \
+--filter-expression ' QUAL < 31 || DP < 55226 || DP > 88657 || MQ < 40.00 || SOR > 8.254 || QD < 0.320 || FS > 116.62 || MQRankSum < -6.558 || ReadPosRankSum < -11.518 || ReadPosRankSum > 4.478' \
 --filter-name "SNP_filtered" \
 --output Dirofilaria_immitis_Dec2023.WbSNPs.filtered.vcf
 
 gatk VariantFiltration \
 --reference ${REFERENCE} \
 --variant Dirofilaria_immitis_Dec2023.WbINDELs.vcf \
---filter-expression 'QUAL < 36 || DP < 61848 || DP > 89523 || MQ < 42.29 || SOR > 8.254 || QD < 0.374 || FS > 135.681 || MQRankSum < -4.467 || ReadPosRankSum < -11.877 || ReadPosRankSum > 2.970' \
+--filter-expression 'QUAL < 37 || DP < 63884 || DP > 92402 || MQ < 42.18 || SOR > 8.254 || QD < 0.360 || FS > 135.318 || MQRankSum < -4.425 || ReadPosRankSum < -11.870 || ReadPosRankSum > 2.840' \
 --filter-name "INDEL_filtered" \
 --output Dirofilaria_immitis_Dec2023.WbINDELs.filtered.vcf
 
@@ -1877,12 +1821,12 @@ This is the summary of the filtered variants ('filter.stats'):
 
 | Filtered_VCF | Variants_PASS | Variants_FILTERED |
 | -- | -- | -- | 
-| Dirofilaria_immitis_Dec2023.mitoINDELs.filtered.vcf | 41 | 15 |
-| Dirofilaria_immitis_Dec2023.mitoSNPs.filtered.vcf | 88 | 25 |
-| Dirofilaria_immitis_Dec2023.nuclearINDELs.filtered.vcf | 551019 | 68084 |
-| Dirofilaria_immitis_Dec2023.nuclearSNPs.filtered.vcf | 522229 | 67638 |
-| Dirofilaria_immitis_Dec2023.WbINDELs.filtered.vcf | 5638 | 713 |
-| Dirofilaria_immitis_Dec2023.WbSNPs.filtered.vcf | 4267 | 500 |
+| Dirofilaria_immitis_Dec2023.mitoINDELs.filtered.vcf | 43 | 16 |
+| Dirofilaria_immitis_Dec2023.mitoSNPs.filtered.vcf | 90 | 24 |
+| Dirofilaria_immitis_Dec2023.nuclearINDELs.filtered.vcf | 554174 | 69143 |
+| Dirofilaria_immitis_Dec2023.nuclearSNPs.filtered.vcf | 546844 | 71421 |
+| Dirofilaria_immitis_Dec2023.WbINDELs.filtered.vcf | 5671 | 716 |
+| Dirofilaria_immitis_Dec2023.WbSNPs.filtered.vcf | 4340 | 509 |
 
 
 Filtering looks ok. Didn't lose too many SNPs.
@@ -2001,21 +1945,21 @@ vcftools \
 --recode \
 --recode-INFO-all \
 --out ${VCF%.vcf.gz}.nuclear_SNPs.final
-#After filtering, kept 80 out of 80 Individuals
+#After filtering, kept 83 out of 83 Individuals
 #Outputting VCF file...
-#After filtering, kept 261169 out of a possible 589861 Sites
+#After filtering, kept 256535 out of a possible 618259 Sites
 
 # Changed --maf from 0.05 to 0.02 to follow Javier's code
 
 #--- nuclear SNPs
 vcftools --vcf Dirofilaria_immitis_Dec2023.nuclear_SNPs.final.recode.vcf --remove-indels
-#After filtering, kept 80 out of 80 Individuals
-#After filtering, kept 261169 out of a possible 261169 Sites
+#After filtering, kept 83 out of 83 Individuals
+#After filtering, kept 256535 out of a possible 256535 Sites
 
 #--- nuclear  INDELs
 vcftools --vcf Dirofilaria_immitis_Dec2023.nuclear_SNPs.final.recode.vcf --keep-only-indels
-#After filtering, kept 80 out of 80 Individuals
-#After filtering, kept 0 out of a possible 261169 Sites
+#After filtering, kept 83 out of 83 Individuals
+#After filtering, kept 0 out of a possible 256535 Sites
 
 
 
@@ -2031,20 +1975,20 @@ vcftools \
 --recode \
 --recode-INFO-all \
 --out ${VCF%.vcf.gz}.mito_SNPs.final
-#After filtering, kept 80 out of 80 Individuals
+#After filtering, kept 83 out of 83 Individuals
 #Outputting VCF file...
-#After filtering, kept 47 out of a possible 107 Sites
+#After filtering, kept 46 out of a possible 108 Sites
 
 
 #--- mito SNPs
 vcftools --vcf Dirofilaria_immitis_Dec2023.mito_SNPs.final.recode.vcf --remove-indels
-#After filtering, kept 80 out of 80 Individuals
-#After filtering, kept 47 out of a possible 47 Sites
+#After filtering, kept 83 out of 83 Individuals
+#After filtering, kept 46 out of a possible 46 Sites
 
 #--- mito INDELs
 vcftools --vcf Dirofilaria_immitis_Dec2023.mito_SNPs.final.recode.vcf --keep-only-indels
-#After filtering, kept 80 out of 80 Individuals
-#After filtering, kept 0 out of a possible 47 Sites
+#After filtering, kept 83 out of 83 Individuals
+#After filtering, kept 0 out of a possible 46 Sites
 
 
 
@@ -2059,20 +2003,20 @@ vcftools \
 --recode \
 --recode-INFO-all \
 --out ${VCF%.vcf.gz}.Wb_SNPs.final
-#After filtering, kept 80 out of 80 Individuals
+#After filtering, kept 83 out of 83 Individuals
 #Outputting VCF file...
-#After filtering, kept 483 out of a possible 4761 Sites
+#After filtering, kept 467 out of a possible 4843 Sites
 
 
 #--- Wb SNPs
 vcftools --vcf Dirofilaria_immitis_Dec2023.Wb_SNPs.final.recode.vcf --remove-indels
-#After filtering, kept 80 out of 80 Individuals
-#After filtering, kept 483 out of a possible 483 Sites
+#After filtering, kept 83 out of 83 Individuals
+#After filtering, kept 467 out of a possible 467 Sites
 
 #--- Wb INDELs
 vcftools --vcf Dirofilaria_immitis_Dec2023.Wb_SNPs.final.recode.vcf --keep-only-indels
-#After filtering, kept 80 out of 80 Individuals
-#After filtering, kept 0 out of a possible 483 Sites
+#After filtering, kept 83 out of 83 Individuals
+#After filtering, kept 0 out of a possible 467 Sites
 ```
 
 ### Now, we are filtering by missingness
@@ -2127,7 +2071,7 @@ vcftools --vcf ${VCF%.vcf.gz}.Wb_SNPs.final.recode.vcf --out wb --missing-indv
       ggtitle(title) +
       theme(axis.text.x = element_text(angle = 45, hjust = 1))
     print(plot)
-    ggsave(paste0("plot_missingness_figure",title,".png"))
+    ggsave(paste0("plot_missingness_figure_",title,".png"))
   }
   
   # plotting for each dataset
@@ -2138,10 +2082,10 @@ vcftools --vcf ${VCF%.vcf.gz}.Wb_SNPs.final.recode.vcf --out wb --missing-indv
   fun_plot_missingness(data_wb, "wb_variants")
 ```
 
-In Javier's code, he generated a different sample list for each database and evaluated the max missingness. For now, I will just keep all the samples except Pavia ERR034942-3 (these are paired end, I could've combined them earlier but I already have ERR034941 which is a mate pair library of the same sample).
+In Javier's code, he generated a different sample list for each database and evaluated the max missingness. For now, I will just keep all the samples except Pavia ERR034942-3 (these are paired end, I could've combined them earlier but I already have ERR034941 which is a mate pair library of the same sample). Also now have the extra 3 (JS6665, JS6670, JS6675).
 
 ```bash
-# For nuclear (n=78) - nuclear_samplelist.keep
+# For nuclear (n=81) - nuclear_samplelist.keep
 JS6277
 JS6278
 JS6279
@@ -2220,12 +2164,15 @@ JS6667_DKDN230043096-1A_H7WVCDSX7_L4
 JS6668_DKDN230043097-1A_H7WVCDSX7_L1
 JS6671_DKDN230043100-1A_H7WVCDSX7_L1
 JS6678_DKDN230043107-1A_H7WVCDSX7_L1
+JS6665_DKDN230043094-1A_HFKCLDSX7_L1
+JS6670_DKDN230043099-1A_HFKCLDSX7_L1
+JS6675_DKDN230043104-1A_HFKCLDSX7_L1
 
 
-# For mithochondiral (n=78) - mito_samplelist.keep
+# For mithochondiral (n=81) - mito_samplelist.keep
 #Same as above
 
-# For wb (n=78) - wb_samplelist.keep
+# For wb (n=81) - wb_samplelist.keep
 #same as above
 ```
 
@@ -2263,20 +2210,20 @@ for i in 0.7 0.8 0.9 1; do
 done
 
 # max-missing = 0.7
-#After filtering, kept 78 out of 80 Individuals
-#After filtering, kept 256515 out of a possible 261169 Sites
+#After filtering, kept 81 out of 83 Individuals
+#After filtering, kept 251542 out of a possible 256535 Sites
 
 # max-missing = 0.8
-#After filtering, kept 78 out of 80 Individuals
-#After filtering, kept 253770 out of a possible 261169 Sites
+#After filtering, kept 81 out of 83 Individuals
+#After filtering, kept 249005 out of a possible 256535 Sites
 
 # max-missing = 0.9
-# After filtering, kept 78 out of 80 Individuals
-#After filtering, kept 241218 out of a possible 261169 Sites
+# After filtering, kept 81 out of 83 Individuals
+#After filtering, kept 240259 out of a possible 256535 Sites
 
 # max-missing = 1
-# After filtering, kept 78 out of 80 Individuals
-#After filtering, kept 10514 out of a possible 261169 Sites
+# After filtering, kept 81 out of 83 Individuals
+#After filtering, kept 10479 out of a possible 256535 Sites
 
 
 # For mito variants
@@ -2285,20 +2232,20 @@ for i in 0.7 0.8 0.9 1; do
 done
 
 # max-missing = 0.7
-# After filtering, kept 78 out of 80 Individuals
-#After filtering, kept 47 out of a possible 47 Sites
+# After filtering, kept 81 out of 83 Individuals
+#After filtering, kept 46 out of a possible 46 Sites
 
 # max-missing = 0.8
-# After filtering, kept 78 out of 80 Individuals
-#After filtering, kept 47 out of a possible 47 Sites
+# After filtering, kept 81 out of 83 Individuals
+#After filtering, kept 46 out of a possible 46 Sites
 
 # max-missing = 0.9
-# After filtering, kept 78 out of 80 Individuals
-#After filtering, kept 47 out of a possible 47 Sites
+# After filtering, kept 81 out of 83 Individuals
+#After filtering, kept 46 out of a possible 46 Sites
 
 # max-missing = 1
-# After filtering, kept 78 out of 80 Individuals
-#After filtering, kept 46 out of a possible 47 Sites
+# After filtering, kept 81 out of 83 Individuals
+#After filtering, kept 45 out of a possible 46 Sites
 
 
 # For Wb variants
@@ -2307,20 +2254,20 @@ for i in 0.7 0.8 0.9 1; do
 done
 
 # max-missing = 0.7
-# After filtering, kept 78 out of 80 Individuals
-#After filtering, kept 483 out of a possible 483 Sites
+# After filtering, kept 81 out of 83 Individuals
+#After filtering, kept 467 out of a possible 467 Sites
 
 # max-missing = 0.8
-# After filtering, kept 78 out of 80 Individuals
-#After filtering, kept 483 out of a possible 483 Sites
+# After filtering, kept 81 out of 83 Individuals
+#After filtering, kept 467 out of a possible 467 Sites
 
 # max-missing = 0.9
-# AAfter filtering, kept 78 out of 80 Individuals
-#After filtering, kept 427 out of a possible 483 Sites
+# After filtering, kept 81 out of 83 Individuals
+#After filtering, kept 415 out of a possible 467 Sites
 
 # max-missing = 1
-# After filtering, kept 78 out of 80 Individuals
-#After filtering, kept 2 out of a possible 483 Sites
+# After filtering, kept 81 out of 83 Individuals
+#After filtering, kept 1 out of a possible 467 Sites
 ```
 
 Selecting a max missingness of 0.9 for nuclear, 1 for mito and 0.9 for Wb is sensible.
@@ -2400,19 +2347,19 @@ vcftools --vcf FINAL_SETS/nuclear_samples3x_missing0.9.recode.vcf \
 --chr dirofilaria_immitis_chr3 \
 --chr dirofilaria_immitis_chr4 \
 --recode --out FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4
-# After filtering, kept 78 out of 78 Individuals
+# After filtering, kept 81 out of 81 Individuals
 #Outputting VCF file...
-#After filtering, kept 176163 out of a possible 241218 Sites
+#After filtering, kept 175415 out of a possible 240259 Sites
 
 
 vcftools --vcf FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.vcf --remove-indels
-# After filtering, kept 78 out of 78 Individuals
-#After filtering, kept 176163 out of a possible 176163 Sites
+# After filtering, kept 81 out of 81 Individuals
+#After filtering, kept 175415 out of a possible 175415 Sites
 
 
 vcftools --vcf FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.vcf --keep-only-indels
-# After filtering, kept 78 out of 78 Individuals
-#After filtering, kept 0 out of a possible 176163 Sites- this makes sense because I removed the indels earlier and only focused on the SNPs.
+# After filtering, kept 81 out of 81 Individuals
+#After filtering, kept 0 out of a possible 175415 Sites- this makes sense because I removed the indels earlier and only focused on the SNPs.
 ```
 
 Rename samples to more meaningful names:
@@ -2519,6 +2466,10 @@ JS6667_DKDN230043096-1A_H7WVCDSX7_L4	JS6667
 JS6668_DKDN230043097-1A_H7WVCDSX7_L1	JS6668
 JS6671_DKDN230043100-1A_H7WVCDSX7_L1	JS6671
 JS6678_DKDN230043107-1A_H7WVCDSX7_L1	JS6678
+JS6665_DKDN230043094-1A_HFKCLDSX7_L1	JS6665
+JS6670_DKDN230043099-1A_HFKCLDSX7_L1	JS6670
+JS6675_DKDN230043104-1A_HFKCLDSX7_L1	JS6675
+
 
 
 Check that it worked:
@@ -2556,31 +2507,31 @@ cd /scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/filter/FINAL_SETS
 vcftools --vcf nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf \
 --chr dirofilaria_immitis_chr1 \
 --recode --out nuclear_samples3x_missing0.9.chr1
-#After filtering, kept 78 out of 78 Individuals
+#After filtering, kept 81 out of 81 Individuals
 #Outputting VCF file...
-#After filtering, kept 47238 out of a possible 176163 Sites
+#After filtering, kept 46816 out of a possible 175415 Sites
 
 # chr2
 vcftools --vcf nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf \
 --chr dirofilaria_immitis_chr2 \
 --recode --out nuclear_samples3x_missing0.9.chr2
-# After filtering, kept 78 out of 78 Individuals
+# After filtering, kept 81 out of 81 Individuals
 #Outputting VCF file...
-#After filtering, kept 38930 out of a possible 176163 Sites
+#After filtering, kept 38423 out of a possible 175415 Sites
 
 # chr3
 vcftools --vcf nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf \
 --chr dirofilaria_immitis_chr3 \
 --recode --out nuclear_samples3x_missing0.9.chr3
-# After filtering, kept 78 out of 78 Individuals
+# After filtering, kept 81 out of 81 Individuals
 #Outputting VCF file...
-#After filtering, kept 46341 out of a possible 176163 Sites
+#After filtering, kept 46302 out of a possible 175415 Sites
 
 # chr4
 vcftools --vcf nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf \
 --chr dirofilaria_immitis_chr4 \
 --recode --out nuclear_samples3x_missing0.9.chr4
-# After filtering, kept 78 out of 78 Individuals
+# After filtering, kept 81 out of 81 Individuals
 #Outputting VCF file...
-#After filtering, kept 43654 out of a possible 176163 Sites
+#After filtering, kept 43874 out of a possible 175415 Sites
 ```
