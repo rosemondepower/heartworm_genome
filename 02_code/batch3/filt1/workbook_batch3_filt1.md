@@ -2535,3 +2535,465 @@ vcftools --vcf nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf \
 #Outputting VCF file...
 #After filtering, kept 43874 out of a possible 175415 Sites
 ```
+
+## PCA
+
+```R
+######################################################################
+
+# PCA for filt1
+
+######################################################################
+
+library(tidyverse)
+library(gdsfmt)
+library(SNPRelate)
+library(ggsci)
+library(ggpubr)
+library(reshape2)
+library(viridis)
+library(vcfR)
+library(factoextra)
+library(ggrepel)
+library(ggtree)
+library(poppr)
+library(adegenet)
+library(ape)
+library(RColorBrewer)
+library(ggimage)
+
+
+# Set working directory
+setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch3/filter1/pca/input")
+
+#Preparing the data for plotting
+# Set colours for different cities
+
+red_palette <- brewer.pal(n = 9, name = "YlOrRd")
+blue_palette <- brewer.pal(n = 9, name = "Blues")
+green_palette <- brewer.pal(n = 9, name = "Greens")
+pink_palette <- brewer.pal(n=9, name = "PuRd")
+
+
+scale_colour_pop <- function(...){
+  ggplot2:::manual_scale(
+    'colour', 
+    values = setNames(
+      c(red_palette[9],
+        red_palette[8],
+        red_palette[7],
+        red_palette[6],
+        red_palette[5],
+        green_palette[9],
+        green_palette[8],
+        green_palette[6],
+        green_palette[4],
+        "purple4",
+        "purple3",
+        "mediumpurple1",
+        "mediumpurple",
+        pink_palette[5],
+        blue_palette[9],
+        blue_palette[8],
+        blue_palette[7],
+        blue_palette[6],
+        blue_palette[5],
+        blue_palette[4]),
+      c('Illinois', 'Missouri', 'Georgia', 'Mississippi', 'Louisiana',
+        'San Lorenzo', 'Puerto Armuelles', 'Boca Chica', 'San Jose',
+        'Pavia', 'Bucharest', 'Giurgiu', 'Comana',
+        'Bangkok',
+        'Lockhart River', 'Cairns', 'Townsville', 'Rockhampton', 'Brisbane', 'Sydney')), 
+    ...
+  )
+}
+
+
+
+
+
+
+
+
+#PCA on nuclear variants using genotypes
+snpgdsClose(genofile) # you need this line to close any previous file open, otherwise it won't work if you want to re-run
+vcf.in <- "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch3/filter1/pca/input/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf"
+gds<-snpgdsVCF2GDS(vcf.in, "nucDNA.gds", method="biallelic.only")
+genofile <- snpgdsOpen(gds)
+
+
+pca <-snpgdsPCA(genofile, num.thread=2, autosome.only = F)
+samples <- as.data.frame(pca$sample.id)
+colnames(samples) <- "name"
+
+# Metadata file that describes where the samples come from
+metadata_file <- "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch3/location.csv"
+metadata <- read.csv(metadata_file, header = TRUE)
+
+data <- data.frame(sample.id = pca$sample.id,
+                   EV1 = pca$eigenvect[,1],  
+                   EV2 = pca$eigenvect[,2],
+                   EV3 = pca$eigenvect[,3],
+                   EV4 = pca$eigenvect[,4],
+                   EV5 = pca$eigenvect[,5],
+                   EV6 = pca$eigenvect[,6],
+                   POPULATION = metadata$city,
+                   SAMPLEID = metadata$sample_name,
+                   HOST = metadata$host,
+                   stringsAsFactors = FALSE)
+
+#Generating levels for population and super-population variables
+data$POPULATION <- factor(data$POPULATION, 
+                          levels = c('Illinois', 'Missouri', 'Georgia', 'Mississippi', 'Louisiana',
+                                     'San Lorenzo', 'Puerto Armuelles', 'Boca Chica', 'San Jose',
+                                     'Pavia', 'Bucharest', 'Giurgiu', 'Comana',
+                                     'Bangkok',
+                                     'Lockhart River', 'Cairns', 'Townsville', 'Rockhampton', 'Brisbane', 'Sydney'))
+
+data$HOST <- factor(data$HOST, 
+                          levels = c('Dog', 'Fox', 'Leopard', 'Cat', 'Wildcat', 'Golden jackal'))
+
+
+# Define base plot
+base_plot <- ggplot() +
+  theme_bw() +
+  labs(x = "PC1 variance", y = "PC2 variance")
+
+base_plot
+
+# Set fixed limits for x and y axes
+x_margin <- 0.1  # Adjust this value for the desired x-axis margin
+y_margin <- 0.1  # Adjust this value for the desired y-axis margin
+x_limits <- c(min(data$EV1) - x_margin, max(data$EV1) + x_margin)
+y_limits <- c(min(data$EV2) - y_margin, max(data$EV2) + y_margin)
+
+
+# Function for creating plots
+create_plot <- function(data_subset) {
+  p <- base_plot +
+    geom_point(data = subset(data_subset), aes(EV1, EV2, col = POPULATION), alpha = 0.8, size = 3) +
+    xlim(x_limits) + ylim(y_limits) +  # Set fixed limits for x and y axes
+    scale_colour_pop() +
+    labs(x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
+         y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%")) +
+    theme(legend.key.width = unit(2, "cm"))
+  return(p)
+}
+
+
+# List of data subsets (you can gradually add more samples)
+subset_list <- list(
+  subset(data, POPULATION %in% c("Illinois",  "Missouri", "Georgia", "Mississippi", "Louisiana")),
+  subset(data, POPULATION %in% c("Illinois",  "Missouri", "Georgia", "Mississippi", "Louisiana", "San Lorenzo", "Puerto Armuelles", "Boca Chica", "San Jose")),
+  subset(data, POPULATION %in% c("Illinois",  "Missouri", "Georgia", "Mississippi", "Louisiana", "San Lorenzo", "Puerto Armuelles", "Boca Chica", "San Jose","Pavia", "Bucharest", "Giurgiu", "Comana")),
+  subset(data, POPULATION %in% c("Illinois",  "Missouri", "Georgia", "Mississippi", "Louisiana", "San Lorenzo", "Puerto Armuelles", "Boca Chica", "San Jose", "Pavia", "Bucharest", "Giurgiu", "Comana", "Bangkok")),
+  subset(data, POPULATION %in% c("Illinois",  "Missouri", "Georgia", "Mississippi", "Louisiana", "San Lorenzo", "Puerto Armuelles", "Boca Chica", "San Jose", "Pavia", "Bucharest", "Giurgiu", "Comana", "Bangkok", "Lockhart River", "Cairns", "Townsville", "Rockhampton", "Brisbane", "Sydney"))
+)
+
+
+
+# Set a fixed height and width for all plots
+plot_height <- 6  # Adjust as needed
+plot_width <- 8   # Adjust as needed
+
+# Define a fixed legend width
+legend_width <- 2  # Adjust as needed
+
+# Define fixed x-axis limits
+x_limits <- c(-0.2, 0.4)  # Adjust as needed
+
+
+# Iterate through subsets and create/save plots
+for (i in seq_along(subset_list)) {
+  plot <- create_plot(subset_list[[i]])
+  
+  # Adjust the legend width in the plot
+  plot <- plot + theme(legend.key.width = unit(legend_width, "cm"))
+  
+  # Set fixed x-axis limits
+  plot <- plot + scale_x_continuous(limits = x_limits)
+  
+  ggsave(paste0("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch3/filter1/pca/plot_", i, ".png"), plot, height = plot_height, width = plot_width)
+}
+
+
+
+
+
+
+
+######################################################################
+# Make a PCA using my other code (follows Javier's approach) to make sure I'm getting the same thing. Also get labels on the graph.
+######################################################################
+
+
+
+explained_variance <- 100 * pca$eigenval[!is.na(pca$eigenval)] / sum(pca$eigenval, na.rm = TRUE)
+
+
+# Lets extract the variance associated with the top 4 PCs, so we can use them in our plots.
+# Calculate the total variance (excluding NaN values)
+eig.total <- sum(pca$eigenval, na.rm = TRUE)
+
+
+PC1.variance <- formatC(head(pca$eigenval)[1]/eig.total * 100)
+PC2.variance <- formatC(head(pca$eigenval)[2]/eig.total * 100)
+PC3.variance <- formatC(head(pca$eigenval)[3]/eig.total * 100)
+PC4.variance <- formatC(head(pca$eigenval)[4]/eig.total * 100)
+
+
+PC1.variance
+PC2.variance
+PC3.variance
+PC4.variance
+
+
+# Make PCA plots
+
+# PC1 vs PC2
+PC1_PC2_plot <- ggplot(data, aes(x = EV1, y = EV2, color = POPULATION, label = SAMPLEID)) +
+  theme_bw() +
+  geom_point(alpha = 0.8, size = 2) +
+  geom_text_repel(aes(label = SAMPLEID), box.padding = 0.05, point.padding = 0.01, segment.color = 'grey50', size = 3, hjust = 0, vjust = 0, max.overlaps = Inf, show.legend=FALSE) +
+  labs(x = paste0("PC1 variance: ", round(pca$varprop[1] * 100, digits = 2), "%"),
+       y = paste0("PC2 variance: ", round(pca$varprop[2] * 100, digits = 2), "%")) +
+  scale_colour_pop() +
+  theme(legend.position = "right") +  # Adjust legend position as needed
+  ggtitle("Filter1: PC1 vs PC2")
+
+PC1_PC2_plot
+ggsave(paste0("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch3/filter1/pca/PC1_PC2_plot_sampleid.png"), PC1_PC2_plot, height = 6, width = 8)
+
+
+
+
+
+
+######################################################################
+
+# Per chromosome
+
+######################################################################
+
+
+
+# Chromosome 1
+
+snpgdsClose(genofile_chr1)
+vcf.in_chr1 <- "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch3/filter1/pca/input/nuclear_samples3x_missing0.9.chr1.recode.vcf"
+gds_chr1<-snpgdsVCF2GDS(vcf.in_chr1, "nucDNA_chr1.gds", method="biallelic.only")
+genofile_chr1 <- snpgdsOpen(gds_chr1)
+
+
+pca_chr1 <-snpgdsPCA(genofile_chr1, num.thread=2, autosome.only = F)
+samples_chr1 <- as.data.frame(pca_chr1$sample.id)
+colnames(samples_chr1) <- "name"
+
+data_chr1 <- data.frame(sample.id = pca_chr1$sample.id,
+                        EV1_chr1 = pca_chr1$eigenvect[,1],  
+                        EV2_chr1 = pca_chr1$eigenvect[,2],
+                        EV3_chr1 = pca_chr1$eigenvect[,3],
+                        EV4_chr1 = pca_chr1$eigenvect[,4],
+                        EV5_chr1 = pca_chr1$eigenvect[,5],
+                        EV6_chr1 = pca_chr1$eigenvect[,6],
+                        POPULATION = metadata$city,
+                        SAMPLEID = metadata$sample_name,
+                        stringsAsFactors = FALSE)
+
+#Generating levels for population and super-population variables
+data_chr1$POPULATION <- factor(data_chr1$POPULATION, 
+                               levels = c('Illinois', 'Missouri', 'Georgia', 'Mississippi', 'Louisiana',
+                                          'San Lorenzo', 'Puerto Armuelles', 'Boca Chica', 'San Jose',
+                                          'Pavia', 'Bucharest', 'Giurgiu', 'Comana',
+                                          'Bangkok',
+                                          'Lockhart River', 'Cairns', 'Townsville', 'Rockhampton', 'Brisbane', 'Sydney'))
+
+
+
+# PC1 vs PC2
+PC1_PC2_plot_chr1 <- ggplot(data_chr1, aes(x = EV1_chr1, y = EV2_chr1, color = POPULATION, label = SAMPLEID)) +
+  theme_bw() +
+  geom_point(alpha = 0.8, size = 2) +
+  labs(x = paste0("PC1 variance: ", round(pca_chr1$varprop[1] * 100, digits = 2), "%"),
+       y = paste0("PC2 variance: ", round(pca_chr1$varprop[2] * 100, digits = 2), "%")) +
+  scale_colour_pop() +
+  theme(legend.position = "right") +  # Adjust legend position as needed
+  ggtitle("Filter1: PC1 vs PC2 - Chromosome 1")
+
+PC1_PC2_plot_chr1
+
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch3/filter1/pca/PC1_PC2_plot_chr1.png", PC1_PC2_plot_chr1, height = 6, width = 8)
+
+
+
+# Chromosome 2
+
+snpgdsClose(genofile_chr2)
+vcf.in_chr2 <- "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch3/filter1/pca/input/nuclear_samples3x_missing0.9.chr2.recode.vcf"
+gds_chr2<-snpgdsVCF2GDS(vcf.in_chr2, "nucDNA_chr2.gds", method="biallelic.only")
+genofile_chr2 <- snpgdsOpen(gds_chr2)
+
+
+pca_chr2 <-snpgdsPCA(genofile_chr2, num.thread=2, autosome.only = F)
+samples_chr2 <- as.data.frame(pca_chr2$sample.id)
+colnames(samples_chr2) <- "name"
+
+data_chr2 <- data.frame(sample.id = pca_chr2$sample.id,
+                        EV1_chr2 = pca_chr2$eigenvect[,1],  
+                        EV2_chr2 = pca_chr2$eigenvect[,2],
+                        EV3_chr2 = pca_chr2$eigenvect[,3],
+                        EV4_chr2 = pca_chr2$eigenvect[,4],
+                        EV5_chr2 = pca_chr2$eigenvect[,5],
+                        EV6_chr2 = pca_chr2$eigenvect[,6],
+                        POPULATION = metadata$city,
+                        SAMPLEID = metadata$sample_name,
+                        stringsAsFactors = FALSE)
+
+#Generating levels for population and super-population variables
+data_chr2$POPULATION <- factor(data_chr2$POPULATION, 
+                               levels = c('Illinois', 'Missouri', 'Georgia', 'Mississippi', 'Louisiana',
+                                          'San Lorenzo', 'Puerto Armuelles', 'Boca Chica', 'San Jose',
+                                          'Pavia', 'Bucharest', 'Giurgiu', 'Comana',
+                                          'Bangkok',
+                                          'Lockhart River', 'Cairns', 'Townsville', 'Rockhampton', 'Brisbane', 'Sydney'))
+
+
+
+# PC1 vs PC2
+PC1_PC2_plot_chr2 <- ggplot(data_chr2, aes(x = EV1_chr2, y = EV2_chr2, color = POPULATION, label = SAMPLEID)) +
+  theme_bw() +
+  geom_point(alpha = 0.8, size = 2) +
+  labs(x = paste0("PC1 variance: ", round(pca_chr2$varprop[1] * 100, digits = 2), "%"),
+       y = paste0("PC2 variance: ", round(pca_chr2$varprop[2] * 100, digits = 2), "%")) +
+  scale_colour_pop() +
+  theme(legend.position = "right") +  # Adjust legend position as needed
+  ggtitle("Filter1: PC1 vs PC2 - Chromosome 2")
+
+PC1_PC2_plot_chr2
+
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch3/filter1/pca/PC1_PC2_plot_chr2.png", PC1_PC2_plot_chr2, height = 6, width = 8)
+
+
+
+
+# Chromosome 3
+
+snpgdsClose(genofile_chr3)
+vcf.in_chr3 <- "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch3/filter1/pca/input/nuclear_samples3x_missing0.9.chr3.recode.vcf"
+gds_chr3<-snpgdsVCF2GDS(vcf.in_chr3, "nucDNA_chr3.gds", method="biallelic.only")
+genofile_chr3 <- snpgdsOpen(gds_chr3)
+
+
+pca_chr3 <-snpgdsPCA(genofile_chr3, num.thread=2, autosome.only = F)
+samples_chr3 <- as.data.frame(pca_chr3$sample.id)
+colnames(samples_chr3) <- "name"
+
+data_chr3 <- data.frame(sample.id = pca_chr3$sample.id,
+                        EV1_chr3 = pca_chr3$eigenvect[,1],  
+                        EV2_chr3 = pca_chr3$eigenvect[,2],
+                        EV3_chr3 = pca_chr3$eigenvect[,3],
+                        EV4_chr3 = pca_chr3$eigenvect[,4],
+                        EV5_chr3 = pca_chr3$eigenvect[,5],
+                        EV6_chr3 = pca_chr3$eigenvect[,6],
+                        POPULATION = metadata$city,
+                        SAMPLEID = metadata$sample_name,
+                        stringsAsFactors = FALSE)
+
+#Generating levels for population and super-population variables
+data_chr3$POPULATION <- factor(data_chr3$POPULATION, 
+                               levels = c('Illinois', 'Missouri', 'Georgia', 'Mississippi', 'Louisiana',
+                                          'San Lorenzo', 'Puerto Armuelles', 'Boca Chica', 'San Jose',
+                                          'Pavia', 'Bucharest', 'Giurgiu', 'Comana',
+                                          'Bangkok',
+                                          'Lockhart River', 'Cairns', 'Townsville', 'Rockhampton', 'Brisbane', 'Sydney'))
+
+
+
+# PC1 vs PC2
+PC1_PC2_plot_chr3 <- ggplot(data_chr3, aes(x = EV1_chr3, y = EV2_chr3, color = POPULATION, label = SAMPLEID)) +
+  theme_bw() +
+  geom_point(alpha = 0.8, size = 2) +
+  labs(x = paste0("PC1 variance: ", round(pca_chr3$varprop[1] * 100, digits = 2), "%"),
+       y = paste0("PC2 variance: ", round(pca_chr3$varprop[2] * 100, digits = 2), "%")) +
+  scale_colour_pop() +
+  theme(legend.position = "right") +  # Adjust legend position as needed
+  ggtitle("Filter1: PC1 vs PC2 - Chromosome 3")
+
+PC1_PC2_plot_chr3
+
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch3/filter1/pca/PC1_PC2_plot_chr3.png", PC1_PC2_plot_chr3, height = 6, width = 8)
+
+
+# Chromosome 4
+
+snpgdsClose(genofile_chr4)
+vcf.in_chr4 <- "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch3/filter1/pca/input/nuclear_samples3x_missing0.9.chr4.recode.vcf"
+gds_chr4<-snpgdsVCF2GDS(vcf.in_chr4, "nucDNA_chr4.gds", method="biallelic.only")
+genofile_chr4 <- snpgdsOpen(gds_chr4)
+
+
+pca_chr4 <-snpgdsPCA(genofile_chr4, num.thread=2, autosome.only = F)
+samples_chr4 <- as.data.frame(pca_chr4$sample.id)
+colnames(samples_chr4) <- "name"
+
+data_chr4 <- data.frame(sample.id = pca_chr4$sample.id,
+                        EV1_chr4 = pca_chr4$eigenvect[,1],  
+                        EV2_chr4 = pca_chr4$eigenvect[,2],
+                        EV3_chr4 = pca_chr4$eigenvect[,3],
+                        EV4_chr4 = pca_chr4$eigenvect[,4],
+                        EV5_chr4 = pca_chr4$eigenvect[,5],
+                        EV6_chr4 = pca_chr4$eigenvect[,6],
+                        POPULATION = metadata$city,
+                        SAMPLEID = metadata$sample_name,
+                        stringsAsFactors = FALSE)
+
+#Generating levels for population and super-population variables
+data_chr4$POPULATION <- factor(data_chr4$POPULATION, 
+                               levels = c('Illinois', 'Missouri', 'Georgia', 'Mississippi', 'Louisiana',
+                                          'San Lorenzo', 'Puerto Armuelles', 'Boca Chica', 'San Jose',
+                                          'Pavia', 'Bucharest', 'Giurgiu', 'Comana',
+                                          'Bangkok',
+                                          'Lockhart River', 'Cairns', 'Townsville', 'Rockhampton', 'Brisbane', 'Sydney'))
+
+
+
+# PC1 vs PC2
+PC1_PC2_plot_chr4 <- ggplot(data_chr4, aes(x = EV1_chr4, y = EV2_chr4, color = POPULATION, label = SAMPLEID)) +
+  theme_bw() +
+  geom_point(alpha = 0.8, size = 2) +
+  labs(x = paste0("PC1 variance: ", round(pca_chr4$varprop[1] * 100, digits = 2), "%"),
+       y = paste0("PC2 variance: ", round(pca_chr4$varprop[2] * 100, digits = 2), "%")) +
+  scale_colour_pop() +
+  theme(legend.position = "right") +  # Adjust legend position as needed
+  ggtitle("Filter1: PC1 vs PC2 - Chromosome 4")
+
+PC1_PC2_plot_chr4
+
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch3/filter1/pca/PC1_PC2_plot_chr4.png", PC1_PC2_plot_chr4, height = 6, width = 8)
+
+
+
+
+
+######################################################################
+# PCA based on the host
+######################################################################
+
+
+
+
+PC1_PC2_plot_host <- ggplot(data, aes(x = EV1, y = EV2, color = POPULATION, label = HOST)) +
+  theme_bw() +
+  geom_point(alpha = 0.8, size = 2) +
+  labs(x = paste0("PC1 variance: ", round(pca$varprop[1] * 100, digits = 2), "%"),
+       y = paste0("PC2 variance: ", round(pca$varprop[2] * 100, digits = 2), "%")) +
+  geom_text_repel(aes(label = HOST), box.padding = 0.05, point.padding = 0.01, segment.color = 'grey50', size = 3, hjust = 0, vjust = 0, max.overlaps = Inf, show.legend=FALSE) +
+  scale_colour_pop() +
+  theme(legend.position = "right") +  # Adjust legend position as needed
+  ggtitle("Filter1: PC1 vs PC2 HOST")
+
+PC1_PC2_plot_host
+
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch3/filter1/pca/PC1_PC2_plot_host.png", PC1_PC2_plot_host, height = 6, width = 8)
+
+```
