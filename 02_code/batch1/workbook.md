@@ -3174,6 +3174,10 @@ dt-script -P RDS-FSC-Heartworm_MLR-RW \
 -m 50GB \
 --from /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/vcf/Dirofilaria_immitis_Sep2023.g.vcf.gz \
 --to /rds/PRJ-Heartworm_MLR/scratch/RDS-FSC-Heartworm_MLR-RW/mapping/extra_data/analysis/mapping/vcf/Dirofilaria_immitis_Sep2023.g.vcf.gz
+
+dt-script -P RDS-FSC-Heartworm_MLR-RW \
+--from /scratch/RDS-FSC-Heartworm_MLR-RW/batch3 \
+--to /rds/PRJ-Heartworm_MLR/scratch
 ```
 
 

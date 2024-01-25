@@ -2,6 +2,7 @@
 
 ## Run NGSADmix
 
+module load bsub.py/0.42.1
 bsub.py 10 admixture "../admixture.sh"
 
 ```bash
@@ -16,7 +17,7 @@ cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/BATCH3/02_VARIANTS/ADMIXT
 
 mkdir CHROMOSOMES_PL
 
-ln -s ../FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf
+ln -s ../FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf #next time, don't copy the vcf file into this folder, it probably messed up the symbolic link
 
 cat ../../../01_REF/dimmitis_WSI_2.2.fa.fai | cut -f1 | grep -v "chrX\|scaffold\|Wb\|MtDNA" | while read -r CHR; do
      vcftools --vcf ../FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf --max-missing 1 --out CHROMOSOMES_PL/${CHR} --BEAGLE-PL --chr ${CHR};
@@ -87,7 +88,7 @@ plot_admixture <- function(data,title) {
   metadata <- read.delim("metadata.txt", header=F)
   names(metadata) <- c("sampleID", "country", "city") #assign column name
   
-  desired_city_order <- c("SYD", "BNE", "ROK", "TSV", "CNS", "LHR", "BKK", "GA", "IL", "MO", "MS", "LA", "PAV", "BUC", "GIU", "SL", "PA", "BC") 
+  desired_city_order <- c("SYD", "BNE", "ROK", "TSV", "CNS", "LHR", "BKK", "GA", "IL", "MO", "MS", "LA", "PAV", "BUC", "GIU", "COM", "SLZ", "PAM", "BOC", "SJO") 
   metadata$city <- factor(metadata$city, levels = desired_city_order)
   
   
