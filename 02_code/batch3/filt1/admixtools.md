@@ -76,12 +76,14 @@ export PATH="/nfs/users/nfs_r/rp24/miniconda3/envs/admixtools/bin"
 # load packages
 library(tidyverse)
 library(admixr)
+library(ggplot2)
 
 # set data prefix
 data_prefix <- "/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/BATCH3/02_VARIANTS/ADMIXTOOLS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED"
 
 # read in data
 snps <- eigenstrat(data_prefix)
+snps
 
 #count SNPs
 ##The count_snps function can be useful for quality control, weighting of admixture statistics (D, f4, etc.) in regression analyses etc.
@@ -106,25 +108,38 @@ snp_info
 # Now we can calculate some statistics...
 
 
+
+
 # D statistic (ABBA-BABA test)
 
-# set pop names
-pops <- c("USA", "Italy", "Australia", "Thailand", "Panama", "Costa Rica", "Romania")
-
 # Q1: Do pops from Central America show evidence of closer genetic affinity with pops from Europe compared to elsewhere?
-
 ##Using the admixr package we can then calculate our D statistic simply by running:
-result <- d(W = "Australia", X = "Yoruba", Y = "Panama", Z = "Panama", data = snps)
-# Z is the outgroup
-
-Australian heartworms show evidence of closer genetic affinity with pops from Asia admixture with Asia?
-
-##Using the admixr package we can then calculate our D statistic simply by running:
-result <- d(W = "Australia", X = "Thailand", Y = "Romania", Z = "Repens", data = snps)
+result <- d(W = "", X = "", Y = "", Z = "", data = snps)
 # Z is the outgroup
 
 
+# Q2: Do Australian heartworms show evidence of closer genetic affinity with pops from Asia?
+result <- d(W = "Australia", X = "Romania", Y = "Thailand", Z = "Panama", data = snps)
+# Z is the outgroup
 
+head(result)
+
+#plot
+plot_dstat <- ggplot(result, aes(fct_reorder(W, D), D, color = abs(Zscore) > 2)) +
+  geom_point() +
+  geom_hline(yintercept = 0, linetype = 2) +
+  geom_errorbar(aes(ymin = D - 2 * stderr, ymax = D + 2 * stderr))
+
+ggsave("plot_dstat.pdf", plot = plot_dstat)
+
+#We can see that the D values for Australia are significantly different from 0, meaning that the data rejects the null hypothesis of no Thailand ancestry in Australians. So this suggests that Thailand admixed with the ancestors of present-day Australian worms.
+
+
+
+
+
+
+# f4 statistic 
 
 
 
