@@ -112,19 +112,24 @@ snp_info
 
 # D statistic (ABBA-BABA test)
 
-# Q1: Do pops from Central America show evidence of closer genetic affinity with pops from Europe compared to elsewhere?
+## "Significant departure of D from zero indicates an excess of allele sharing between the first and the third population (positive D), or an excess of allele sharing between the second and the third population (negative D). If we get D that is not significantly different from 0, this suggests that the first and second populations form a clade, and don’t differ in the rate of allele sharing with the third population (this is the null hypothesis that the data is compared against)."
+
+
+# Q1: Do Australian heartworms and Thailand heartworms share more alleles with one another than expected by chance? Use D. repens as outgroup.
 ##Using the admixr package we can then calculate our D statistic simply by running:
-result <- d(W = "", X = "", Y = "", Z = "", data = snps)
+
+# D(non-Europe pops W,African,Neanderthal,Chimp).
+result <- d(W = "Australia", X = "USA", Y = "Thailand", Z = "D.repens", data = snps)
 # Z is the outgroup
 
 
-# Q2: Do Australian heartworms show evidence of closer genetic affinity with pops from Asia?
-result <- d(W = "Australia", X = "Romania", Y = "Thailand", Z = "Panama", data = snps)
+# Q2: Do Central American heartworms show evidence of closer genetic affinity with pops from Europe?
+result <- d(W = "Panama", X = "Thailand", Y = "Romania", Z = "D.repens", data = snps)
 # Z is the outgroup
 
 head(result)
 
-#plot
+# plot
 plot_dstat <- ggplot(result, aes(fct_reorder(W, D), D, color = abs(Zscore) > 2)) +
   geom_point() +
   geom_hline(yintercept = 0, linetype = 2) +
@@ -132,7 +137,16 @@ plot_dstat <- ggplot(result, aes(fct_reorder(W, D), D, color = abs(Zscore) > 2))
 
 ggsave("plot_dstat.pdf", plot = plot_dstat)
 
-#We can see that the D values for Australia are significantly different from 0, meaning that the data rejects the null hypothesis of no Thailand ancestry in Australians. So this suggests that Thailand admixed with the ancestors of present-day Australian worms.
+# flip axes
+plot_dstat2 <- ggplot(result, aes(fct_reorder(W, D), D, color = abs(Zscore) > 2)) +
+  geom_point() +
+  geom_hline(yintercept = 0, linetype = 2) +
+  geom_errorbar(aes(ymin = D - 2 * stderr, ymax = D + 2 * stderr)) +
+  coord_flip()
+
+ggsave("plot_dstat2.pdf", plot = plot_dstat2)
+
+## We can see that the D values for Australia are significantly different from 0, meaning that the data rejects the null hypothesis of no Thailand ancestry in Australians. So this suggests that Thailand admixed with the ancestors of present-day Australian worms.
 
 
 
@@ -141,7 +155,57 @@ ggsave("plot_dstat.pdf", plot = plot_dstat)
 
 # f4 statistic 
 
+## Very similar to D statistic
+## "Significant departure of f4 from 0 can be interpreted as evidence of gene flow."
+## "You might be wondering why we have both f4 and D if they are so similar. The truth is that f4 is, among other things, directly informative about the amount of shared genetic drift (“branch length”) between pairs of populations, which is a very useful theoretical property. Other than that, it’s often a matter of personal preference and so admixr provides functions for calculating both."
 
+result <- f4(W = pops, X = "Yoruba", Y = "Vindija", Z = "Chimp", data = snps)
+
+head(result)
+
+'
+
+'
+
+# f4-ratio statistic
+
+## If the D and f4 stats told us that a certain population carries ancestry from another population, what if we want to know how MUCH of this ancestry they have? What proportion of their genomes is of this origin?
+
+result <- f4ratio(X = pops, A = "Altai", B = "Vindija", C = "Yoruba", O = "Chimp", data = snps)
+
+head(result)
+# The ancestry proportion (a number between 0 and 1) is given in the alpha column
+
+ggplot(result, aes(fct_reorder(X, alpha), alpha, color = abs(Zscore) > 2)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = alpha - 2 * stderr, ymax = alpha + 2 * stderr)) +
+  geom_hline(yintercept = 0, linetype = 2) +
+  labs(y = "Neandertal ancestry proportion", x = "present-day individual")
+
+
+
+
+# f3 statistic
+
+## Let's say we are interested in relative divergence times between pairs of HW populations, and we want to know in which approximate order they split off from each other. To address this question, we can use f3 statistic by fixing the C outgroup as D. repens, and calculating pairwise f3 stats between all D. immitis populations.
+
+pops <- c("Australia", "USA", "Thailand", "Panama", "Costa_Rica", "Italy", "Romania")
+
+result <- f3(A = pops, B = pops, C = "D_repens", data = snps)
+#or
+result <- f3(A = "Europe", B = pops, C = "D_repens", data = snps)
+
+head(result)
+
+# sort the population labels according to an increasing f3 value relative to French/lowest one
+ordered <- filter(result, A == "Mbuti", B != "Mbuti") %>% arrange(f3) %>% .[["B"]] %>% c("Mbuti")
+
+# plot heatmap of pairwise f3 values
+result %>%
+  filter(A != B) %>%
+  mutate(A = factor(A, levels = ordered),
+         B = factor(B, levels = ordered)) %>%
+  ggplot(aes(A, B)) + geom_tile(aes(fill = f3))
 
 
 
