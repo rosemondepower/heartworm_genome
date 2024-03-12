@@ -363,7 +363,9 @@ cd /scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping
 module load bwa/0.7.17
 
 # map the reads, with a separate mapping job for each sample
-bwa mem /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/batch1/analysis/mapping/reference_di_wol_dog.fa \
+bwa mem \
+-R '@RG\tID:${SAMPLE_NAME}\tSM:${SAMPLE_NAME}\tPL:illumina' \
+/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/batch1/analysis/mapping/reference_di_wol_dog.fa \
 -t $NCPUS \
 ../trimmomatic/${sample}_1_trimpaired.fq.gz \
 ../trimmomatic/${sample}_2_trimpaired.fq.gz \
@@ -417,3 +419,261 @@ samtools index ${sample}.sorted.bam
 samtools flagstat ${sample}.sorted.bam > flagstat2/${sample}_flagstat2.txt
 ```
 
+
+Combine flagstat files for all samples so it's easier to read.
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N multiqc_flagstat1
+#PBS -l select=1:ncpus=1:mem=1GB
+#PBS -l walltime=00:10:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o multiqc_flagstat1.txt
+
+# Submit job
+# qsub ../multiqc_flagstat1.sh
+
+cd /project/RDS-FSC-Heartworm_MLR-RW/MultiQC
+
+# Load modules
+module load git/2.25.0
+module load python/3.9.15
+
+multiqc /scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping/flagstat1/*_flagstat1.txt -o /scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping/flagstat1
+```
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N multiqc_flagstat2
+#PBS -l select=1:ncpus=1:mem=1GB
+#PBS -l walltime=00:10:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o multiqc_flagstat2.txt
+
+# Submit job
+# qsub ../multiqc_flagstat2.sh
+
+cd /project/RDS-FSC-Heartworm_MLR-RW/MultiQC
+
+# Load modules
+module load git/2.25.0
+module load python/3.9.15
+
+multiqc /scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping/flagstat2/*_flagstat2.txt -o /scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping/flagstat2
+```
+
+
+
+## Extract reads that mapped to the *D. immitis* genome
+
+If I mapped to the *D. immitis* and dog genomes separately, there could be reads that mapped to both genomes. To avoid this, I mapped to the combined D. immitis/dog genome. I can now extract the reads that mapped to only the *D. immitis* genome and use this for downstream analyses.
+
+### D. immitis without Wolbachia:
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N mapping_extract_di
+#PBS -l select=1:ncpus=1:mem=20GB
+#PBS -l walltime=06:00:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o mapping_extract_di.txt
+#PBS -J 1-9
+
+# qsub ../mapping_extract_di.pbs
+
+# Set working directory
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping
+
+# Load modules
+module load samtools/1.17
+
+config=/scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping/info.txt
+sample=$(awk -v taskID=$PBS_ARRAY_INDEX '$1==taskID {print $2}' $config) 
+NCPU=1
+
+# Extract reads that only mapped to D. immitis.
+samtools view -b -h -L /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/batch1/analysis/mapping/dimmitis_WSI_2.2_noWb.bed /scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping/${sample}.sorted.bam > /scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping/${sample}_extract_di.bam
+# Should still be in sorted form
+# -b flag makes sure the output is bam
+# -h flag includes the header in SAM output
+
+samtools view /scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping/${sample}_extract_di.bam | head
+
+# I do not have to sort the bam file again, it should still be sorted.
+
+## QC
+# How many D. immitis reads were extracted?
+
+samtools flagstat /scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping/${sample}_extract_di.bam > /scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping/extract_di_flagstat/${sample}_extract_di_flagstat.txt
+```
+
+
+### Wolbachia
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N mapping_extract_Wb
+#PBS -l select=1:ncpus=1:mem=20GB
+#PBS -l walltime=06:00:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o mapping_extract_Wb.txt
+#PBS -J 1-9
+
+# qsub ../mapping_extract_Wb.pbs
+
+# Set working directory
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping
+
+# Load modules
+module load samtools/1.17
+
+config=/scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping/info.txt
+sample=$(awk -v taskID=$PBS_ARRAY_INDEX '$1==taskID {print $2}' $config) 
+NCPU=1
+
+# Extract reads that only mapped to D. immitis.
+samtools view -b -h -L /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/batch1/analysis/mapping/dimmitis_WSI_2.2_Wb.bed /scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping/${sample}.sorted.bam > /scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping/${sample}_extract_Wb.bam
+# Should still be in sorted form
+# -b flag makes sure the output is bam
+# -h flag includes the header in SAM output
+
+samtools view /scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping/${sample}_extract_Wb.bam | head
+
+# I do not have to sort the bam file again, it should still be sorted.
+
+## QC
+# How many D. immitis reads were extracted?
+
+samtools flagstat /scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping/${sample}_extract_Wb.bam > /scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping/extract_Wb_flagstat/${sample}_extract_Wb_flagstat.txt
+```
+
+
+### Dog
+
+I can now extract the reads that mapped to only the dog genome to see how much contamination there is.
+
+Get bed file for dog genome:
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N mapping_bed_dog
+#PBS -l select=1:ncpus=1:mem=10GB
+#PBS -l walltime=01:00:30
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o mapping_bed_dog.txt
+
+# qsub ../mapping_bed_dog.sh
+
+# Set working directory
+cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/batch1/analysis/mapping
+
+# Load modules
+module load samtools/1.17
+
+# Index the reference file (from Steve's paper) using samtools faidx
+samtools faidx /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/batch1/reference/GCA_014441545.1_ROS_Cfam_1.0_genomic.fna
+
+# Get the scaffolds/positions.
+head /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/batch1/reference/GCA_014441545.1_ROS_Cfam_1.0_genomic.fna
+# Column 1 is the chromosome/scaffold, column 2 is how long it is, then there's some other info.
+
+# Get chromosome, then start and end positions
+awk '{print $1, "1", $2}' OFS="\t" /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/batch1/reference/GCA_014441545.1_ROS_Cfam_1.0_genomic.fna.fai | head
+
+# Save this info as a bed file
+awk '{print $1, "1", $2}' OFS="\t" /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/batch1/reference/GCA_014441545.1_ROS_Cfam_1.0_genomic.fna.fai > /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/batch1/reference/GCA_014441545.1_ROS_Cfam_1.0_genomic.bed
+# Now we have a nice bed file that has info telling us where things are
+```
+
+Now extract dog reads:
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N mapping_extract_dog
+#PBS -l select=1:ncpus=1:mem=20GB
+#PBS -l walltime=06:00:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o mapping_extract_dog.txt
+#PBS -J 1-9
+
+# qsub ../mapping_extract_dog.pbs
+
+# Set working directory
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping
+
+# Load modules
+module load samtools/1.17
+
+config=/scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping/info.txt
+sample=$(awk -v taskID=$PBS_ARRAY_INDEX '$1==taskID {print $2}' $config) 
+NCPU=1
+
+# Extract reads that only mapped to D. immitis.
+samtools view -b -h -L /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/batch1/analysis/mapping/GCA_014441545.1_ROS_Cfam_1.0_genomic.bed /scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping/${sample}.sorted.bam > /scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping/${sample}_extract_dog.bam
+# Should still be in sorted form
+# -b flag makes sure the output is bam
+# -h flag includes the header in SAM output
+
+samtools view /scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping/${sample}_extract_dog.bam | head
+
+# I do not have to sort the bam file again, it should still be sorted.
+
+## QC
+# How many D. immitis reads were extracted?
+
+samtools flagstat /scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping/${sample}_extract_dog.bam > /scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping/extract_dog_flagstat/${sample}_extract_dog_flagstat.txt
+```
+
+Combine flagstat files for all samples so it's easier to read.
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N multiqc_extract_flagstat
+#PBS -l select=1:ncpus=1:mem=1GB
+#PBS -l walltime=00:30:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o multiqc_extract_flagstat.txt
+
+# Submit job
+# qsub ../multiqc_extract_flagstat.sh
+
+cd /project/RDS-FSC-Heartworm_MLR-RW/MultiQC
+
+# Load modules
+module load git/2.25.0
+module load python/3.9.15
+
+multiqc /scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping/extract_di_flagstat/*_extract_di_flagstat.txt -o /scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping/extract_di_flagstat
+
+multiqc /scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping/extract_Wb_flagstat/*_extract_Wb_flagstat.txt -o /scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping/extract_Wb_flagstat
+
+multiqc /scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping/extract_dog_flagstat/*_extract_dog_flagstat.txt -o /scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping/extract_dog_flagstat
+```

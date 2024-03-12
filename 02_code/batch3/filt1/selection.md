@@ -208,4 +208,108 @@ vcftools --vcf $VCF --bed USA_Australia.outliers.bed --out USA_Australia_fst_out
 '  Read 1580 BED file entries.
 After filtering, kept 1579 out of a possible 175415 Sites
 '
+
+#Create a list of outlier SNP IDs
+grep -v "#" USA_Australia_fst_outliers.recode.vcf | awk '{print $1 "\t" $2}' > USA_Australia_fst_outlier_pos.txt # from this list of SNP files, just grab the SNP positions. Cutting off all the header. There's 1579 SNPs.
+wc -l USA_Australia_fst_outlier_pos.txt # yep we've got 61, which is what we were expecting.
+```
+
+
+
+# Bayescan
+
+BayeScan identifies outlier SNPs based on allele frequencies.
+
+We need to convert into these old Bayescan filetypes, but we still use them very frequently. To do this, we will use PGDspider.
+
+```bash
+cd ..
+mkdir BAYESCAN
+cut -f1,2 $METADATA > hw_metadata_INDPOP.txt
+cd BAYESCAN
+nano VCF_PGD.spid
+
+'# VCF Parser questions 
+PARSER_FORMAT=VCF
+# Only output SNPs with a phred-scaled quality of at least: 
+VCF_PARSER_QUAL_QUESTION=
+# Select population definition file:
+VCF_PARSER_POP_FILE_QUESTION=../hw_metadata_INDPOP.txt
+# What is the ploidy of the data?
+VCF_PARSER_PLOIDY_QUESTION=DIPLOID
+# Do you want to include a file with population definitions?
+VCF_PARSER_POP_QUESTION=true
+# Output genotypes as missing if the phred-scale genotype quality is below:
+VCF_PARSER_GTQUAL_QUESTION=
+# Do you want to include non-polymorphic SNPs?
+VCF_PARSER_MONOMORPHIC_QUESTION=false
+# Only output following individuals (ind1, ind2, ind4, ...):
+VCF_PARSER_IND_QUESTION=
+# Only input following regions (refSeqName:start:end, multiple regions: whitespace separated):
+VCF_PARSER_REGION_QUESTION=
+# Output genotypes as missing if the read depth of a position for the sample is below:
+VCF_PARSER_READ_QUESTION=
+# Take most likely genotype if "PL" or "GL" is given in the genotype field?
+VCF_PARSER_PL_QUESTION=false
+# Do you want to exclude loci with only missing data?
+VCF_PARSER_EXC_MISSING_LOCI_QUESTION=false
+
+# PGD Writer questions
+WRITER_FORMAT=PGD'
+
+# this is pretty standard code, but you will need to update the file locations. Press ctrl+x, y, enter
+
+
+#load module
+module load quay.io/biocontainers/pgdspider/2.1.1.5--hdfd78af_1/module
+
+#run the step 1 of the conversion
+PGDSpider2-cli -inputfile $VCF -inputformat VCF -outputfile starling_3populations.pgd -outputformat  PGD -spid VCF_PGD.spid #first it converts to universal PHD spdier format, then have long list of about 30 diff types you can convert into. This one covnerts to intermediate input file. We provide a spid so it knows which individuals belong to which populations. "PGDSpider configuration file not found! Loading default configuration." --> that's ok, we gave it some information.
+
+#run the step 2 of the conversion
+PGDSpider2-cli -inputfile starling_3populations.pgd -inputformat PGD -outputfile starling_3populations.bs -outputformat GESTE_BAYE_SCAN #there's a big list of what you need to convert it to for bayescan format. They have automatically made a new spid file for us with default setting which is good enough for us, we don't need to tell it that it's diploidy etc. They made a template for us.
+
+head starling_3populations.bs
+#Looks like this:
+'[loci]=5007
+
+[populations]=3
+
+[pop]=1
+ 1      12      2       9 3
+ 2      20      2       11 9
+ 3      18      2       15 3
+ 4      20      2       0 20
+ 5      22      2       2 20
+'
+#kind of doesn't matter in the context of this program which is defined ancestor allele which one is ref/alt etc. But usually 1st = ref, 2nd = alternate. 
+
+
+#load bayescan
+module load quay.io/biocontainers/bayescan/2.0.1--h9f5acd7_4
+
+#run bayescan. 
+bayescan2 ./starling_3populations.bs -od ./ -threads 2 -n 5000 -thin 10 -nbp 20 -pilot 5000 -burn 50000 -pr_odds 10
+# Bayesian works cyclically, it looks at experimental evidence and feedbacks to improve its prediction - convergence - how we know if it works, we feed into it and it gets smarter and smarter. Prediciton of which sites in your genome are likely to be under selection and which ones are not. If it doesn't reach covnergece, it just can't reach an answer.
+# Typically ignore the first 50,000 iterations because it takes a while for the program to find tis feet and start converging onto something that makes sense.
+
+# If you're having trouble converging, change the chain. Only fiddle with these if you know what you're doing and have a reason.
+
+# takes a while to run, so we're cutting it off and using pre-cooked data
+cp $DIR/workshop_material/Ev1_SelectionMetaAnalysis/workshop_files/backup_files/starling_3population_AccRte.txt .
+cp $DIR/workshop_material/Ev1_SelectionMetaAnalysis/workshop_files/backup_files/starling_3population_Verif.txt .
+cp $DIR/workshop_material/Ev1_SelectionMetaAnalysis/workshop_files/backup_files/starling_3population_fst.txt .
+cp $DIR/workshop_material/Ev1_SelectionMetaAnalysis/workshop_files/backup_files/starling_3population.sel .
+
+wc -l starling_3population.sel
+'5000'
+# representing fsts across all diff cyles
+
+less starling_3population_AccRte.txt
+# things are starting to stabilise, oscillated up and down. If it doesn't stagnate, sign that something has gone wrong with the covnergece.
+
+wc -l starling_3population_fst.txt
+'5008' each line must correspond to a SNP
+
+R
 ```
