@@ -71,46 +71,22 @@ For nuclear, we will select only the defined Chr (chrX and chr1 to chr4)
 # PBS directives 
 #PBS -P RDS-FSC-Heartworm_MLR-RW
 #PBS -N mtDNA_nuclear
-#PBS -l select=1:ncpus=1:mem=1GB
-#PBS -l walltime=00:04:00
-#PBS -m e
-#PBS -q defaultQ
-#PBS -o mtDNA_nuclear.txt
-#PBS -J 1-31
-
-# qsub ../mtDNA_nuclear.pbs
-
-cd /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/coverage_di_wol_dog/COV_STATS
-
-# Merge the 100000_windows.cov and .chr.cov files together for each sample?
-#Set the filename based on the PBS Array Index
-sample_name=`sed -n "${PBS_ARRAY_INDEX}{p;q}" /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/sample_list_v2`
-
-cat ${sample_name}.sorted.100000_window.cov ${sample_name}.sorted.chr.cov > ${sample_name}.sorted.chr.cov.merged.100000_window.cov
-```
-
-```bash
-#!/bin/bash
-
-# PBS directives 
-#PBS -P RDS-FSC-Heartworm_MLR-RW
-#PBS -N mtDNA_nuclear2
 #PBS -l select=1:ncpus=1:mem=4GB
 #PBS -l walltime=00:10:00
 #PBS -m e
 #PBS -q defaultQ
-#PBS -o mtDNA_nuclear2.txt
+#PBS -o mtDNA_nuclear.txt
 
-# qsub ../mtDNA_nuclear2.pbs
+# qsub ../mtDNA_nuclear.pbs
 
-cd /scratch/RDS-FSC-Heartworm_MLR-RW/mapping/coverage_di_wol_dog/COV_STATS
+cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/batch1/analysis/mapping/coverage_di_wol_dog/COV_STATS
 # Load modules
 module load datamash/1.7
 
 # extract mtDNA and nuclear (mean & stddev) data
 for i in *.chr.cov; do
-	name=${i%.chr.cov};
-	nuc=$(grep -v "scaffold\|Wb\|Mt" ${i%.merged.chr.cov}.merged.100000_window.cov | datamash mean 5 sstdev 5 );
+	name=${i%.sorted.chr.cov};
+	nuc=$(grep -v "scaffold\|Wb\|Mt\|CM025\|JAA" ${i%.sorted.chr.cov}.sorted.100000_window.cov | datamash mean 5 sstdev 5 );
 	mtDNA=$(grep "chrMtDNA" ${i} | cut -f5 );
 	Wb=$(grep 'chrWb' ${i} | cut -f5 ); 
 	echo -e "${name}\t${nuc}\t${mtDNA}\t${Wb}";

@@ -547,7 +547,7 @@ config=/scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping/info.txt
 sample=$(awk -v taskID=$PBS_ARRAY_INDEX '$1==taskID {print $2}' $config) 
 NCPU=1
 
-# Extract reads that only mapped to D. immitis.
+# Extract reads that only mapped to Wolbachia
 samtools view -b -h -L /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/batch1/analysis/mapping/dimmitis_WSI_2.2_Wb.bed /scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping/${sample}.sorted.bam > /scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping/${sample}_extract_Wb.bam
 # Should still be in sorted form
 # -b flag makes sure the output is bam
@@ -676,4 +676,267 @@ multiqc /scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping/extract_di_flagsta
 multiqc /scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping/extract_Wb_flagstat/*_extract_Wb_flagstat.txt -o /scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping/extract_Wb_flagstat
 
 multiqc /scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping/extract_dog_flagstat/*_extract_dog_flagstat.txt -o /scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping/extract_dog_flagstat
+```
+
+
+## Coverage
+
+Adopted the code from Javier's paper - acknowledge this in methods.
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N coverage
+#PBS -l select=3:ncpus=1:mem=50GB
+#PBS -l walltime=24:00:00
+#PBS -m abe
+#PBS -q defaultQ
+#PBS -o coverage.txt
+
+# qsub ../coverage.sh
+
+WORKING_DIR=/scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping
+cd ${WORKING_DIR}
+
+WINDOW='100000'
+
+module load bamtools/2.5.1
+module load bedtools/2.31.0
+module load samtools/1.17
+
+for i in /scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping/*sorted.bam; do
+
+bamtools header -in ${i} | grep "^@SQ" | awk -F'[:\t]' '{printf $3"\t"1"\t"$5"\n"}' OFS="\t" > ${i%.bam}.chr.bed
+bamtools header -in ${i} | grep "^@SQ" | awk -F'[:\t]' '{printf $3"\t"$5"\n"}' OFS="\t" > ${i%.bam}.chr.genome
+
+bedtools makewindows -g ${i%.bam}.chr.genome -w ${WINDOW} > ${i%.bam}.${WINDOW}_window.bed
+
+samtools bedcov -Q 20 ${i%.bam}.chr.bed ${i} | awk -F'\t' '{printf $1"\t"$2"\t"$3"\t"$4"\t"$4/($3-$2)"\n"}' OFS="\t" > ${i%.bam}.chr.cov
+samtools bedcov -Q 20 ${i%.bam}.${WINDOW}_window.bed ${i} | awk -F'\t' '{printf $1"\t"$2"\t"$3"\t"$4"\t"$4/($3-$2)"\n"}' OFS="\t" > ${i%.bam}.${WINDOW}_window.cov
+
+rm ${i%.bam}.chr.bed ${i%.bam}.${WINDOW}_window.bed ${i%.bam}.chr.genome;
+
+done
+
+for i in *.chr.cov; do 
+
+printf "${i}\n" > ${i}.tmp | awk '{print $5}' OFS="\t" ${i} >> ${i}.tmp;
+
+done
+
+paste *.tmp > coverage_stats.summary
+```
+```bash
+# moved all relevant coverage files into coverage folder
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping/coverage
+# remove temporary files
+rm *.tmp
+```
+
+
+### Generate quantitative stats on coverage for supplementary tables etc
+Extract mtDNA, Wb and nuclear (mean & stddev) data
+
+For nuclear, we will select only the defined Chr (chrX and chr1 to chr4)
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N coverage_stats
+#PBS -l select=1:ncpus=1:mem=4GB
+#PBS -l walltime=00:10:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o coverage_stats.txt
+
+# qsub ../coverage_stats.sh
+
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/MF/analysis/mapping/coverage
+# Load modules
+module load datamash/1.7
+
+# extract mtDNA and nuclear (mean & stddev) data
+for i in *sorted.chr.cov; do
+	name=${i%.sorted.chr.cov};
+	nuc=$(grep -v "scaffold\|Wb\|Mt\|CM025\|JAA" ${i%.sorted.chr.cov}.sorted.100000_window.cov | datamash mean 5 sstdev 5 );
+	mtDNA=$(grep "chrMtDNA" ${i} | cut -f5 );
+	Wb=$(grep 'chrWb' ${i} | cut -f5 ); 
+	echo -e "${name}\t${nuc}\t${mtDNA}\t${Wb}";
+done > 'mito_wolb_cov.stats'
+```
+Transferred all the relevant files into the R_analysis folder on my computer for further analysis in R. Now we'll generate some plots and stats.
+
+Coverage in R:
+
+```R
+# HW WGS Coverage
+
+# load libraries
+library(tidyverse)
+library(ggpubr)
+library(ggsci)
+library(stringr)
+
+setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/HW_WGS_1/Artemis/coverage")
+
+#first, I have to read the nuclear cov stat and estimate the mean and sd
+#then, to add it to 'mito_wolb_cov.stats
+
+nuc_mito_wb_cov <- read.table('mito_wolb_cov.stats', header = F) %>% as_tibble()
+
+colnames(nuc_mito_wb_cov) <- c('ID', 'nuc_cov', 'sd_nuc_cov', 'mito_cov', 'wb_cov')
+
+write_csv(nuc_mito_wb_cov, 'nuc_mit_wb_cov.csv')
+
+# nuclear, mitochondrial and Wb DNA coverage ratio
+
+n_m <- ggplot(nuc_mito_wb_cov, aes(x=ID, y=mito_cov/nuc_cov)) +
+  geom_point() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  labs(title = "Nuc. to mito. genome coverage ratio", y = "Coverage Ratio")
+n_m
+
+n_wb <- ggplot(nuc_mito_wb_cov, aes(x=ID, y=wb_cov/nuc_cov)) +
+  geom_point() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  labs(title = "Nuc. to Wolb. genome coverage ratio", y = "Coverage Ratio")
+n_wb
+
+m_wb <- ggplot(nuc_mito_wb_cov, aes(x=ID, y=mito_cov/wb_cov)) +
+  geom_point() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  labs(title = "Mito. to Wolb. genome coverage ratio", y = "Coverage Ratio")
+m_wb
+
+ggarrange(n_m, n_wb, m_wb, ncol = 3)
+ggsave("cov_ratios.png", height=6, width=20)
+
+
+# list file names
+file_names.window <- list.files(path = "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/HW_WGS_1/Artemis/coverage",pattern = ".sorted.100000_window.cov")
+
+# load data using file names, and make a formatted data frame
+setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/HW_WGS_1/Artemis/coverage")
+
+data <- purrr::map_df(file_names.window, function(x) {
+  data <- read.delim(x, header = F, sep="\t")
+  data$V1 <- str_replace(data$V1, 'dirofilaria_immitis_', '')
+  data <- tibble::rowid_to_column(data, "NUM")
+  cbind(sample_name = gsub(".sorted.100000_window.cov","",x), data)
+})
+colnames(data) <- c("ID", "NUM", "CHR", "START", "END", 
+                    "RAW_COVERAGE", "PROPORTION_COVERAGE")
+
+
+
+# D. immitis coverage
+
+# remove scaffolds, mitochondrial and wolbachia genome
+data_nuc <- dplyr::filter(data, !grepl("scaffold|MtDNA|Wb|JAAUVH|CM025",CHR))
+# Also remove chromosomes called JAAUVH010000344 and CM025130.1 etc. - they are part of the dog genome. Removing them here is totally fine.
+
+# data$SEX <- str_detect(data$SCAF,"Trichuris_trichiura_1_")
+
+
+# plot the general cov for each sample
+ggplot(data_nuc, aes(NUM, PROPORTION_COVERAGE/(median(PROPORTION_COVERAGE)), group = ID, col = CHR)) +
+  geom_point(size=0.5) +
+  labs( x = "Genome position" , y = "Relative coverage per 100kb window") +
+  theme_bw() + theme(strip.text.x = element_text(size = 6)) +
+  facet_wrap(~ID, scales = "free_y")
+
+ggsave("ALL_genomewide_prop_median_coverage_allsamples.png", height=11.25, width=15)
+
+
+# this shows the proportion of coverage relative to the median coverage of all samples. Let's also just look at the proportion coverage by itself (not in relation to anything else).
+ggplot(data_nuc, aes(NUM, PROPORTION_COVERAGE, group = ID, col = CHR)) +
+  geom_point(size=0.5) +
+  labs( x = "Genome position" , y = "Raw coverage per 100kb window") +
+  theme_bw() + theme(strip.text.x = element_text(size = 6)) +
+  facet_wrap(~ID, scales = "free_y")
+
+
+# include line for the mean
+mean_coverage_per_sample <- aggregate(PROPORTION_COVERAGE ~ ID, data = data_nuc, FUN = mean)
+
+data_nuc <- merge(data_nuc, mean_coverage_per_sample, by = "ID", suffixes = c("", "_mean"))
+
+ggplot(data_nuc, aes(NUM, PROPORTION_COVERAGE, group = ID, col = CHR)) +
+  geom_point(size=0.5) +
+  geom_hline(aes(yintercept = PROPORTION_COVERAGE_mean), linetype = "dashed", color = "black") +
+  labs( x = "Genome position" , y = "Raw coverage per 100kb window") +
+  theme_bw() + theme(strip.text.x = element_text(size = 6)) +
+  facet_wrap(~ID, scales = "free_y")
+
+ggsave("ALL_genomewide_prop_coverage_allsamples.png", height=11.25, width=15)
+
+
+
+
+
+# Let's see only the chrX to explore the sex of the sample
+#Plotting with the chr1 helps to see differences
+data_nuc %>%
+  filter(., grepl("chrX|chr1",CHR)) %>%
+  ggplot(aes(NUM, PROPORTION_COVERAGE/(median(PROPORTION_COVERAGE)), group = ID, col = CHR)) +
+  geom_point(size=0.2) +
+  labs( x = "Genome position" , y = "Relative coverage per 100kb window") +
+  theme_bw() + theme(strip.text.x = element_text(size = 6)) +
+  facet_wrap(~ID, scales = "free_y")
+
+ggsave("chrXtochr1_genomewide_coverage_allsamples.png", height=11.25, width=15)
+
+
+
+###### Wolbachia coverage
+
+# remove D. immitis and dog genome
+data_wb <- dplyr::filter(data, !grepl("scaffold|MtDNA|chrX|chr1|chr2|chr3|chr4|JAAUVH|CM025",CHR))
+
+# plot cov for each sample
+ggplot(data_wb, aes(NUM, PROPORTION_COVERAGE/(median(PROPORTION_COVERAGE)), group = ID, col = CHR)) +
+  geom_point(size=0.5) +
+  labs( x = "Genome position" , y = "Relative coverage per 100kb window") +
+  theme_bw() + theme(strip.text.x = element_text(size = 6)) +
+  facet_wrap(~ID, scales = "free_y")
+
+ggsave("wb_prop_median_coverage_allsamples.png", height=11.25, width=15)
+
+# plot cov for proportionsnwithout relation to the median
+ggplot(data_wb, aes(NUM, PROPORTION_COVERAGE), group = ID, col = CHR) +
+  geom_point(size=0.5) +
+  labs( x = "Genome position" , y = "Relative coverage per 100kb window") +
+  theme_bw() + theme(strip.text.x = element_text(size = 6)) +
+  facet_wrap(~ID, scales = "free_y")
+
+ggsave("wb_prop_coverage_allsamples.png", height=11.25, width=15)
+
+
+###### mtDNA
+
+# remove D. immitis and dog genome
+data_mtDNA <- dplyr::filter(data, !grepl("scaffold|Wb|chrX|chr1|chr2|chr3|chr4|JAAUVH|CM025",CHR))
+
+# plot cov for each sample
+ggplot(data_mtDNA, aes(NUM, PROPORTION_COVERAGE/(median(PROPORTION_COVERAGE)), group = ID, col = CHR)) +
+  geom_point(size=0.5) +
+  labs( x = "Genome position" , y = "Relative coverage per 100kb window") +
+  theme_bw() + theme(strip.text.x = element_text(size = 6)) +
+  facet_wrap(~ID, scales = "free_y")
+
+ggsave("mtDNA_prop_median_coverage_allsamples.png", height=11.25, width=15)
+
+# plot cov for proportionsnwithout relation to the median
+ggplot(data_mtDNA, aes(NUM, PROPORTION_COVERAGE), group = ID, col = CHR) +
+  geom_point(size=0.5) +
+  labs( x = "Genome position" , y = "Relative coverage per 100kb window") +
+  theme_bw() + theme(strip.text.x = element_text(size = 6)) +
+  facet_wrap(~ID, scales = "free_y")
+
+ggsave("mtDNA_prop_coverage_allsamples.png", height=11.25, width=15)
+## the window sizes are just too large to plot the mitochondrial and Wolbachia coverage. 
 ```
