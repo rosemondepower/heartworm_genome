@@ -29,3 +29,43 @@ bsub.py --queue normal --threads 4 10 oncho_choi_data "${i}";
 done
 ```
 
+## Get reference sequences ready
+
+- Human: used genome assembly GRCh38.p14
+- Oncho: used Oncho genome on WormBase ParaSite: Bioproject PRJEB513
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N mapping_prep
+#PBS -l select=1:ncpus=1:mem=15GB
+#PBS -l walltime=01:30:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o mapping_prep.txt
+
+# qsub ../mapping_prep.pbs
+
+# Set working directory
+cd /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/data/analysis/mapping
+
+# Load modules
+module load bwa/0.7.17
+
+# Combine the 2 references
+cat dimmitis_WSI_2.2.fa GCA_014441545.1_ROS_Cfam_1.0_genomic.fna > reference_di_wol_dog.fa 
+# Already did this step in the test run. Can just copy over the joined reference file.
+# cp /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_test/data/analysis/mapping/reference_di_wol_dog.fa .
+
+# Also copy over the D. immitis/Wol reference
+# cp /project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_test/data/analysis/mapping/dimmitis_WSI_2.2.fa .
+# Already did these steps prior.
+
+# index reference sequence
+bwa index reference_di_wol_dog.fa
+
+# Perform mapping, sam-to-bam conversion, filtering, and indexing. Need to have separate table with the relevant sample names I want. Then need to use variables to replace the sample names. This will reduce time/effort and minimise typos. I could make a loop, but since I will be running it on the Artemis server as a job, it may be best to write out a script.
+```
+
