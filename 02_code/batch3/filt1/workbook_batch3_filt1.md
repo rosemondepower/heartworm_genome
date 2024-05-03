@@ -2997,3 +2997,34 @@ PC1_PC2_plot_host
 ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch3/filter1/pca/PC1_PC2_plot_host.png", PC1_PC2_plot_host, height = 6, width = 8)
 
 ```
+
+
+## Make mtDNA PCA without filtering
+
+```bash
+#!/bin/bash
+
+# PBS directives 
+#PBS -P RDS-FSC-Heartworm_MLR-RW
+#PBS -N snps_qc6
+#PBS -l select=1:ncpus=1:mem=10GB
+#PBS -l walltime=00:20:00
+#PBS -m e
+#PBS -q defaultQ
+#PBS -o snps_qc6.txt
+
+# qsub ../snps_qc6.pbs
+
+# load modules
+module load vcftools/0.1.14
+
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/filter
+
+vcftools --vcf /scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/filter/Dirofilaria_immitis_Dec2023.mitoSNPs.vcf \
+     --keep mito_samplelist.keep \
+     --recode --recode-INFO-all \
+     --out mito_nofilt
+```
+
+module load bcftools/1.11
+bcftools reheader -s FINAL_SETS/rename.txt /scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/filter/mito_nofilt.recode.vcf -o /scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/filter/mito_nofilt.recode.RENAMED.vcf

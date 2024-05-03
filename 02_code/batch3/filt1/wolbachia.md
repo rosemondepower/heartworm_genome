@@ -248,3 +248,30 @@ for (i in seq_along(subset_list)) {
 }
 
 ```
+
+## Investigating Wolbachia SNPs
+
+I have about 400 Wolbachia SNPs. I want to identify their position, extract the region 200bp upstream and downstream, then align or BLAST these regions against the original annotated di2.2 Wolbachia reference genome.
+
+```bash
+# load modules
+module load bcftools/1.11
+module load bedtools/2.29.2
+
+VCF=/scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/filter/FINAL_SETS/wb_samples3x_missing0.9.recode.RENAMED.vcf
+REF=/project/RDS-FSC-Heartworm_MLR-RW/HW_WGS_ALL/batch1/analysis/mapping/dimmitis_WSI_2.2_chrWb.fa
+
+cd /scratch/RDS-FSC-Heartworm_MLR-RW/batch3/analysis/mapping/wol
+
+# Extract SNP positions
+bcftools query -f '%CHROM\t%POS\n' ${VCF} > wol_snps.txt
+
+# Get coordinates of regions 200bp upstream and downstream of each SNP
+awk '{print $1"\t"($2-200)"\t"($2+200)}' wol_snps.txt > wol_snps200.bed
+
+# Extract these SNP regions from the Wolbachia WSI_2.2 reference genome
+bedtools getfasta -fi ${REF} -bed wol_snps200.bed -fo wol_snps.fa
+
+# Now align these sequences to the original di2.2 Wolbachia reference genome / BLAST them to see whether they fall into any important gene regions.
+
+```
