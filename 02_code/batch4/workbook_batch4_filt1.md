@@ -413,6 +413,7 @@ After inspecting the tables, everything matches up. We have the same number of l
 We want to get some stats on the raw data.
 
 ```bash
+# set variables
 WORKING_DIR=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA
 OUT_DIR=${WORKING_DIR}/03_ANALYSIS/01_PREP/FASTQC/RAW
 cd ${OUT_DIR}
@@ -424,12 +425,11 @@ FASTQ_LIST=${OUT_DIR}/fastq.list
 
 # load modules
 module load fastqc/0.12.1--hdfd78af_0
-module load multiqc/1.17--pyhdfd78af_1
 
 # set up run files
 n=1
 while read SAMPLE; do
-echo -e "fastqc -t 2 -o ${OUT_DIR} ${WORKING_DIR}/02_FASTQ/${SAMPLE}" > run_fastqc_raw_${SAMPLE}.tmp.job_${n};
+echo -e "fastqc -t 1 -o ${OUT_DIR} ${WORKING_DIR}/02_FASTQ/${SAMPLE}" > run_fastqc_raw_${SAMPLE}.tmp.job_${n};
 let "n+=1";
 done < ${FASTQ_LIST}
 
@@ -437,22 +437,31 @@ chmod a+x run_fastqc_raw*
 
 #run
 for i in run_fastqc_raw*; do
-    bsub.py --threads 2 1 ${i} "./${i}";
+    bsub.py --threads 1 4 ${i} "./${i}";
 done
 
 # clean up
 mkdir LOGS
-mv run_fastqc_raw_*.e run_fastqc_raw_*.o > LOGS
+mv run_fastqc_raw_*.e run_fastqc_raw_*.o LOGS
 rm run_fastqc_raw_*
 
+# check for any errors
+cd LOGS
+grep -i "Exited" *.o
+grep -i "error" *.e
+
 # multiqc
+# Load module
+module load multiqc/1.17--pyhdfd78af_1
+module load bsub.py/0.42.1
 multiqc ${OUT_DIR} -o ${OUT_DIR}
 ```
 
 
-### Trimmomatic
+## Trimmomatic
 
 ```bash
+# set variables
 WORKING_DIR=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA
 IN_DIR=${WORKING_DIR}/02_FASTQ
 cd ${WORKING_DIR}/03_ANALYSIS/01_PREP
@@ -477,7 +486,7 @@ SHORT_SAMPLE=$(basename "$LONG_SAMPLE_1" | cut -d'_' -f1) # sample name only
 JOB_FILE="run_trimmomatic_${SHORT_SAMPLE}.tmp.job_${n}"
 
 echo -e "trimmomatic PE \
--threads 10 \
+-threads 1 \
 -phred33 \
 ${IN_DIR}/${LONG_SAMPLE_1} \
 ${IN_DIR}/${LONG_SAMPLE_2} \
@@ -491,12 +500,155 @@ chmod a+x run_trimmomatic*
 
 #run
 for i in run_trimmomatic*; do
-    bsub.py --threads 10 20 ${i} "./${i}";
+    bsub.py --threads 1 20 ${i} "./${i}";
 done
 
-# forgot to reset job numbers to n=1 but that's fine.
 
 # SLIDINGWINDOW:10:20 means it will scan the read with a 10-base wide sliding window, cutting when the average quality per base drops below 20.
 
 # Instead of SLIDINGWINDOW, in my previous practice code I used 'AVGQUAL:30 MINLEN:150'.
+```
+
+
+## FastQC after trimming
+
+Check to see how the data looks after trimming.
+
+```bash
+# set variables
+WORKING_DIR=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA
+cd ${WORKING_DIR}/03_ANALYSIS/01_PREP/FASTQC
+mkdir TRIMMED
+cd TRIMMED
+OUT_DIR=${WORKING_DIR}/03_ANALYSIS/01_PREP/FASTQC/TRIMMED
+IN_DIR=${WORKING_DIR}/03_ANALYSIS/01_PREP/TRIMMOMATIC
+
+# make a list of the files
+for file in ${IN_DIR}/*trimpaired.fq.gz; do
+  basename ${file}
+done > ${OUT_DIR}/fastq.list
+FASTQ_LIST=${OUT_DIR}/fastq.list
+
+# load modules
+module load fastqc/0.12.1--hdfd78af_0
+
+# set up run files
+n=1
+while read SAMPLE; do
+echo -e "fastqc -t 1 -o ${OUT_DIR} ${IN_DIR}/${SAMPLE}" > run_fastqc_trimmed_${SAMPLE}.tmp.job_${n};
+let "n+=1";
+done < ${FASTQ_LIST}
+
+chmod a+x run_fastqc_raw*
+
+#run
+for i in run_fastqc_trimmed*; do
+    bsub.py --threads 1 4 ${i} "./${i}";
+done
+
+# clean up
+mkdir LOGS
+mv run_fastqc_trimmed_*.e run_fastqc_trimmed_*.o LOGS
+rm run_fastqc_trimmed_*
+
+# check for any errors
+cd LOGS
+grep -i "Exited" *.o
+grep -i "error" *.e
+
+# multiqc
+# Load module
+module load multiqc/1.17--pyhdfd78af_1
+module load bsub.py/0.42.1
+multiqc ${OUT_DIR} -o ${OUT_DIR}
+```
+
+## Prep reference genome
+
+We want to map the reads to 3 different genomes:
+- Nuclear & mitochondrial D. immitis
+- D. immitis-associated Wolbachia endosymbiont
+- Domestic dog *Canis lupus familiaris* (GenBank accession: GCA_014441545) # This is the one used in: https://doi.org/10.1016/j.ijpara.2023.07.006 
+
+```bash
+cd ${WORKING_DIR}/01_REF
+
+# Load modules
+module load bwa/0.7.17-r1188
+
+# Download dimmitis_WSI_2.2 genome (contains nuclear, mitochondrial and Wolbachia genomes of D. immitis)
+wget ftp://ngs.sanger.ac.uk/production/pathogens/sd21/dimmitis_genome/dimmitis_WSI_2.2.fa
+
+# Download dog genome (GenBank accession: GCA_014441545)
+wget ftp://ftp.ncbi.nlm.nih.gov/genomes/all/GCF/014/441/545/GCF_014441545.1_ROS_Cfam_1.0/GCF_014441545.1_ROS_Cfam_1.0_genomic.fna.gz
+# check md5
+if [ "$(md5sum GCF_014441545.1_ROS_Cfam_1.0_genomic.fna.gz | awk '{ print $1 }')" == "f12c773440593411b2ad1378e1b2905b" ]; then echo "MD5 checksum matches."; else echo "MD5 checksum does not match."; fi
+## MD5 checksum matches.
+# unzip
+gunzip GCF_014441545.1_ROS_Cfam_1.0_genomic.fna.gz
+
+# Combine reference genomes
+cat dimmitis_WSI_2.2.fa GCF_014441545.1_ROS_Cfam_1.0_genomic.fna > reference_di_wol_dog.fa
+
+# index reference genome
+bsub.py 4 reference_index "bwa index reference_di_wol_dog.fa"
+```
+
+
+### Map trimmed reads to combined D. immitis & Wol & dog genome
+
+- cat the 2 references together
+- map reads to the combined reference
+- samtools to pull out DI scaffolds I want
+- do stats before filtering, so I can see how many were mapped, then how many after filtering etc. Do before samtools view -q 15.
+
+
+## Map trimmed reads to combined D. immitis/Wol/dog genome
+
+
+```bash
+# set variables
+WORKING_DIR=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA
+REF= ${WORKING_DIR}/01_REF/reference_di_wol_dog.fa
+IN_DIR=${WORKING_DIR}/03_ANALYSIS/01_PREP/TRIMMOMATIC
+OUT_DIR=${WORKING_DIR}/03_ANALYSIS/02_MAP
+
+cd ${OUT_DIR}
+
+# make a list of the sample names
+for file in ${IN_DIR}/*trimpaired.fq.gz; do
+  basename ${file} | cut -d'_' -f1 | sort | uniq
+done > ${OUT_DIR}/sample.list
+SAMPLE_LIST=${OUT_DIR}/sample.list
+
+# Load modules
+module load bwa/0.7.17-r1188
+
+# set up run files
+n=1
+while read SAMPLE; do
+echo -e "bwa mem ${REF} \
+-t 8 \
+${IN_DIR}/${SAMPLE}_1_trimpaired.fq.gz \
+${IN_DIR}/${SAMPLE}_2_trimpaired.fq.gz \
+> ${OUT_DIR}/${SAMPLE}.tmp.sam" > run_mapping_${SAMPLE}.tmp.job_${n};
+let "n+=1";
+done < ${SAMPLE_LIST}
+
+chmod a+x run_mapping_*
+
+#run
+for i in run_mapping_*; do
+    bsub.py --threads 8 10 ${i} "./${i}";
+done
+
+# clean up
+mkdir LOGS
+mv run_mapping_*.e run_mapping_*.o LOGS
+rm run_mapping_*
+
+# check for any errors
+cd LOGS
+grep -i "Exited" *.o
+grep -i "error" *.e
 ```
