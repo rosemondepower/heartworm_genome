@@ -19,7 +19,7 @@ fastq-dump --split-files --origfmt --gzip SRR13154014
 fastq-dump --split-files --origfmt --gzip SRR13154013
 
 # Gandasegui paper data: https://doi.org/10.1016/j.ijpara.2023.07.006
-# (Shi 2020)
+# (Shin 2020)
 wget -nc ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR105/039/SRR10533239/SRR10533239_2.fastq.gz
 wget -nc ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR105/036/SRR10533236/SRR10533236_2.fastq.gz
 wget -nc ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR105/038/SRR10533238/SRR10533238_1.fastq.gz
@@ -425,6 +425,7 @@ FASTQ_LIST=${OUT_DIR}/fastq.list
 
 # load modules
 module load fastqc/0.12.1--hdfd78af_0
+module load bsub.py/0.42.1
 
 # set up run files
 n=1
@@ -448,13 +449,15 @@ rm run_fastqc_raw_*
 # check for any errors
 cd LOGS
 grep -i "Exited" *.o
-grep -i "error" *.e
+grep -i "Successfully completed" *.o | wc -l
+grep -i "Error" *.e
+# All ok
 
 # multiqc
 # Load module
 module load multiqc/1.17--pyhdfd78af_1
 module load bsub.py/0.42.1
-multiqc ${OUT_DIR} -o ${OUT_DIR}
+bsub.py 4 multiqc_raw "multiqc ${OUT_DIR} -o ${OUT_DIR}"
 ```
 
 
@@ -507,6 +510,18 @@ done
 # SLIDINGWINDOW:10:20 means it will scan the read with a 10-base wide sliding window, cutting when the average quality per base drops below 20.
 
 # Instead of SLIDINGWINDOW, in my previous practice code I used 'AVGQUAL:30 MINLEN:150'.
+
+# clean up
+mkdir LOGS
+mv run_trimmomatic_*.e run_trimmomatic_*.o LOGS
+rm run_trimmomatic_*
+
+# check for any errors
+cd LOGS
+grep -i "Exited" *.o
+grep -i "Successfully completed." *.o | wc -l
+grep -i "error" *.e
+# no errors
 ```
 
 
@@ -530,6 +545,7 @@ done > ${OUT_DIR}/fastq.list
 FASTQ_LIST=${OUT_DIR}/fastq.list
 
 # load modules
+module load bsub.py/0.42.1
 module load fastqc/0.12.1--hdfd78af_0
 
 # set up run files
@@ -539,7 +555,7 @@ echo -e "fastqc -t 1 -o ${OUT_DIR} ${IN_DIR}/${SAMPLE}" > run_fastqc_trimmed_${S
 let "n+=1";
 done < ${FASTQ_LIST}
 
-chmod a+x run_fastqc_raw*
+chmod a+x run_fastqc_trimmed*
 
 #run
 for i in run_fastqc_trimmed*; do
@@ -605,21 +621,24 @@ bsub.py 4 reference_index "bwa index reference_di_wol_dog.fa"
 
 ## Map trimmed reads to combined D. immitis/Wol/dog genome
 
+### Looping method
+
+The below method is fine, but it submits separate jobs for each sample. There will be many pending jobs, which may take some time.
 
 ```bash
 # set variables
 WORKING_DIR=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA
-REF= ${WORKING_DIR}/01_REF/reference_di_wol_dog.fa
+REF=${WORKING_DIR}/01_REF/reference_di_wol_dog.fa
 IN_DIR=${WORKING_DIR}/03_ANALYSIS/01_PREP/TRIMMOMATIC
-OUT_DIR=${WORKING_DIR}/03_ANALYSIS/02_MAP
+OUT_DIR=${WORKING_DIR}/03_ANALYSIS/02_MAP/bwa-mem
 
 cd ${OUT_DIR}
 
 # make a list of the sample names
-for file in ${IN_DIR}/*trimpaired.fq.gz; do
-  basename ${file} | cut -d'_' -f1 | sort | uniq
-done > ${OUT_DIR}/sample.list
-SAMPLE_LIST=${OUT_DIR}/sample.list
+for file in ${IN_DIR}/*.fq.gz; do
+  basename ${file} | cut -d'_' -f1
+done | sort | uniq > ${OUT_DIR}/samples.list
+SAMPLE_LIST=${OUT_DIR}/samples.list
 
 # Load modules
 module load bwa/0.7.17-r1188
@@ -627,8 +646,9 @@ module load bwa/0.7.17-r1188
 # set up run files
 n=1
 while read SAMPLE; do
-echo -e "bwa mem ${REF} \
--t 8 \
+echo "bwa mem ${REF} \
+-t 2 \
+-R '@RG\tID:${SAMPLE}\tSM:${SAMPLE}' \
 ${IN_DIR}/${SAMPLE}_1_trimpaired.fq.gz \
 ${IN_DIR}/${SAMPLE}_2_trimpaired.fq.gz \
 > ${OUT_DIR}/${SAMPLE}.tmp.sam" > run_mapping_${SAMPLE}.tmp.job_${n};
@@ -639,16 +659,214 @@ chmod a+x run_mapping_*
 
 #run
 for i in run_mapping_*; do
-    bsub.py --threads 8 10 ${i} "./${i}";
+    bsub.py --threads 2 20 ${i} "./${i}";
+done
+```
+
+### Nextflow pipeline - quicker
+
+Alternatively, I can try using Steve's new Nextflow mapping pipeline which is pretty quick. It will run many samples at a time.
+
+- It requires a manifest: a comma delimited file containing sample name, path to read 1, and path to read 2.
+- Example manifest can be found at: /nfs/users/nfs_s/sd21/lustre_link/haemonchus_contortus/EPRINOMECTIN/MAPPING_WGS/eprinomectin_wgs.mapping.manifest
+- Uses minimap2 as a mapper and GATK/Samtools/Sambamba for further processing.
+- Help with the module can be found at: https://ssg-confluence.internal.sanger.ac.uk/display/PaMI/mapping-helminth (internal website)
+
+![Nextflow mapping-helminth pipeline](images/mapping-helminth_flowchart.png)
+
+#### Test using 1 sample
+
+```bash
+# Load modules
+module load bsub.py/0.42.1
+module load mapping-helminth/v1.0.9
+
+# Set variables
+WORKING_DIR=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA
+REF= ${WORKING_DIR}/01_REF/reference_di_wol_dog.fa
+IN_DIR=${WORKING_DIR}/03_ANALYSIS/02_MAP/test
+
+cd ${IN_DIR}
+
+# Run pipeline
+bsub.py 4 mapping_test "mapping-helminth --input ${IN_DIR}/test_wgs.mapping.manifest --reference ${REF}"
+```
+
+#### Run for all samples
+
+```bash
+# Load modules
+module load bsub.py/0.42.1
+module load mapping-helminth/v1.0.9
+
+# Set variables
+WORKING_DIR=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA
+REF=${WORKING_DIR}/01_REF/reference_di_wol_dog.fa
+IN_DIR=${WORKING_DIR}/03_ANALYSIS/01_PREP/TRIMMOMATIC
+OUT_DIR=${WORKING_DIR}/03_ANALYSIS/02_MAP
+
+cd ${OUT_DIR}
+
+# Get sample list
+for file in ${IN_DIR}/*.fq.gz; do
+  basename ${file} | cut -d'_' -f1
+done | sort | uniq > ${OUT_DIR}/samples.list
+SAMPLE_LIST=${OUT_DIR}/samples.list
+
+# Prep manifest
+echo "ID,R1,R2" > wgs.mapping.manifest
+while read SAMPLE; do
+echo "${SAMPLE},${IN_DIR}/${SAMPLE}_1_trimpaired.fq.gz,${IN_DIR}/${SAMPLE}_2_trimpaired.fq.gz" >> wgs.mapping.manifest;
+done < ${SAMPLE_LIST}
+
+# Run pipeline
+bsub.py --threads 20 20 mapping "mapping-helminth --input ${IN_DIR}/wgs.mapping.manifest --reference ${REF}"
+```
+
+## Extract reads that mapped to the *D. immitis* genome
+
+If I mapped to the *D. immitis* and dog genomes separately, there could be reads that mapped to both genomes. To avoid this, I mapped to the combined D. immitis/dog genome. I can now extract the reads that mapped to only the *D. immitis* genome and use this for downstream analyses.
+
+
+```bash
+WORKING_DIR=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA
+OUT_DIR=${WORKING_DIR}/03_ANALYSIS/02_MAP/EXTRACT
+REF=${WORKING_DIR}/01_REF/dimmitis_WSI_2.2.fa
+SAMPLE_LIST=${WORKING_DIR}/03_ANALYSIS/02_MAP/samples.list
+
+# Set working directory
+cd ${WORKING_DIR}/01_REF
+
+# Load modules
+module load samtools/1.14--hb421002_0
+
+# Index the reference file (from Steve's paper) using samtools faidx
+samtools faidx ${REF}
+
+# Get the scaffolds/positions.
+head ${REF}.fai
+# Column 1 is the chromosome/scaffold, column 2 is how long it is, then there's some other info.
+
+# Get chromosome, then start and end positions
+awk '{print $1, "1", $2}' OFS="\t" ${REF}.fai | head
+
+# Save this info as a bed file
+awk '{print $1, "1", $2}' OFS="\t" ${REF}.fai > dimmitis_WSI_2.2.bed
+BED=${WORKING_DIR}/01_REF/dimmitis_WSI_2.2.bed
+# Now we have a nice bed file that has info telling us where things are
+
+
+# Extract reads that only mapped to D. immitis.
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/02_MAP
+
+n=1
+while read SAMPLE; do
+echo "samtools view --threads 4 --bam --with-header --target-file ${BED} /lustre/scratch125/pam/teams/team333/sd21/dirofilaria_immitis/POPGEN/NEWDATA_2024/results/${SAMPLE}/${SAMPLE}.bam > ${OUT_DIR}/${SAMPLE}_extract.bam" > run_extract_${SAMPLE}.tmp.job_${n};
+let "n+=1";
+done < ${SAMPLE_LIST}
+# Should still be in sorted form
+# -b flag makes sure the output is bam
+# -h flag includes the header in SAM output
+
+chmod a+x run_extract_*
+
+#run
+for i in run_extract_*; do
+    bsub.py --threads 4 20 ${i} "./${i}";
 done
 
-# clean up
 mkdir LOGS
-mv run_mapping_*.e run_mapping_*.o LOGS
-rm run_mapping_*
+mv run_extract_*.e run_extract_*.o LOGS
+rm run_extract_*
 
 # check for any errors
 cd LOGS
 grep -i "Exited" *.o
+grep -i "Successfully completed." *.o | wc -l
 grep -i "error" *.e
+# All ok
+
+
+# I do not have to sort the bam file again, it should still be sorted.
+
+## QC
+# How many D. immitis reads were extracted?
+
+bsub.py 4 extract_flagstat "../extract_flagstat.sh"
+
+while read SAMPLE; do
+samtools flagstat ${OUT_DIR}/${SAMPLE}_extract.bam > ${OUT_DIR}/${SAMPLE}_extract_flagstat.txt;
+done < ${SAMPLE_LIST}
 ```
+
+
+## Index the extracted bam files
+
+```bash
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/02_MAP
+
+n=1
+while read SAMPLE; do
+echo "samtools index ${OUT_DIR}/${SAMPLE}_extract.bam" > run_extract_index_${SAMPLE}.tmp.job_${n};
+let "n+=1";
+done < ${SAMPLE_LIST}
+
+chmod a+x run_extract_index_*
+
+#run
+for i in run_extract_index_*; do
+    bsub.py --threads 2 10 ${i} "./${i}";
+done
+
+# check for any errors
+grep -i "Exited" *.o
+grep -i "Successfully completed." *.o | wc -l
+grep -i "error" *.e
+# All ok
+
+mv run_extract_index*.e run_extract_index*.o LOGS
+rm run_extract_index*
+```
+
+
+## Variant calling
+
+### GVCFs per sample
+
+```bash
+WORKING_DIR=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA
+OUT_DIR=${WORKING_DIR}/03_ANALYSIS/04_VARIANTS/GVCFs
+REF=${WORKING_DIR}/01_REF/dimmitis_WSI_2.2.fa
+SAMPLE_LIST=${WORKING_DIR}/03_ANALYSIS/02_MAP/samples.list
+
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS
+
+# Load modules
+module load gatk/4.1.4.1
+
+# Make .dict file for reference sequence
+bsub.py 2 ref_dict "gatk CreateSequenceDictionary -R ${REF} -O ${WORKING_DIR}/01_REF/dimmitis_WSI_2.2.dict"
+
+# create jobs
+n=1
+while read SAMPLE; do
+  echo "gatk HaplotypeCaller \
+    --reference ${REF} \
+    --input ${WORKING_DIR}/03_ANALYSIS/02_MAP/EXTRACT/${SAMPLE}_extract.bam \
+    -output ${OUT_DIR}/${SAMPLE}.g.vcf.gz \
+    --heterozygosity 0.015 \
+    --indel-heterozygosity 0.01 \
+    --annotation DepthPerAlleleBySample --annotation Coverage --annotation ExcessHet --annotation FisherStrand --annotation MappingQualityRankSumTest --annotation StrandOddsRatio --annotation RMSMappingQuality --annotation ReadPosRankSumTest --annotation DepthPerSampleHC --annotation QualByDepth \
+    --min-base-quality-score 20 --minimum-mapping-quality 30 --standard-min-confidence-threshold-for-calling 30 \
+    --emit-ref-confidence GVCF" > run_gatk_haplo_${SAMPLE}.tmp.job_${n};
+  let "n+=1";
+  done < ${SAMPLE_LIST}
+
+chmod a+x run_gatk_haplo_*
+
+# run
+for i in run_gatk_haplo_*; do
+    bsub.py --threads 4 20 ${i} "./${i}";
+done
+```
+
