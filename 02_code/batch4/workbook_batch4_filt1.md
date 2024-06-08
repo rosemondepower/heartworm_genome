@@ -833,9 +833,10 @@ rm run_extract_index*
 
 ### GVCFs per sample
 
+run GATK haplotype caller to perform variant calling per sample.
 ```bash
 WORKING_DIR=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA
-OUT_DIR=${WORKING_DIR}/03_ANALYSIS/04_VARIANTS/GVCFs
+OUT_DIR=${WORKING_DIR}/03_ANALYSIS/04_VARIANTS/GVCFS
 REF=${WORKING_DIR}/01_REF/dimmitis_WSI_2.2.fa
 SAMPLE_LIST=${WORKING_DIR}/03_ANALYSIS/02_MAP/samples.list
 
@@ -853,11 +854,23 @@ while read SAMPLE; do
   echo "gatk HaplotypeCaller \
     --reference ${REF} \
     --input ${WORKING_DIR}/03_ANALYSIS/02_MAP/EXTRACT/${SAMPLE}_extract.bam \
-    -output ${OUT_DIR}/${SAMPLE}.g.vcf.gz \
+    --output ${OUT_DIR}/${SAMPLE}.g.vcf.gz \
     --heterozygosity 0.015 \
     --indel-heterozygosity 0.01 \
-    --annotation DepthPerAlleleBySample --annotation Coverage --annotation ExcessHet --annotation FisherStrand --annotation MappingQualityRankSumTest --annotation StrandOddsRatio --annotation RMSMappingQuality --annotation ReadPosRankSumTest --annotation DepthPerSampleHC --annotation QualByDepth \
-    --min-base-quality-score 20 --minimum-mapping-quality 30 --standard-min-confidence-threshold-for-calling 30 \
+    --annotation DepthPerAlleleBySample \
+    --annotation Coverage \
+    --annotation ExcessHet \
+    --annotation FisherStrand \
+    --annotation MappingQualityRankSumTest \
+    --annotation StrandOddsRatio \
+    --annotation RMSMappingQuality \
+    --annotation ReadPosRankSumTest \
+    --annotation DepthPerSampleHC \
+    --annotation QualByDepth \
+    --min-base-quality-score 20 \
+    --minimum-mapping-quality 30 \
+    --standard-min-confidence-threshold-for-calling 30 \
+    --native-pair-hmm-threads 16 \
     --emit-ref-confidence GVCF" > run_gatk_haplo_${SAMPLE}.tmp.job_${n};
   let "n+=1";
   done < ${SAMPLE_LIST}
@@ -866,7 +879,94 @@ chmod a+x run_gatk_haplo_*
 
 # run
 for i in run_gatk_haplo_*; do
-    bsub.py --threads 4 20 ${i} "./${i}";
+    bsub.py --threads 16 30 ${i} "./${i}";
 done
+
+
+#######################
+bsub.py --threads 4 30 test "gatk HaplotypeCaller \
+    --reference /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/01_REF/dimmitis_WSI_2.2.fa \
+    --input /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/02_MAP/EXTRACT/AUS_BNE_AD_001_extract.bam \
+    --output /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/test/AUS_BNE_AD_001.g.vcf.gz \
+    --heterozygosity 0.015 \
+    --indel-heterozygosity 0.01 \
+    --annotation DepthPerAlleleBySample \
+    --annotation Coverage \
+    --annotation ExcessHet \
+    --annotation FisherStrand \
+    --annotation MappingQualityRankSumTest \
+    --annotation StrandOddsRatio \
+    --annotation RMSMappingQuality \
+    --annotation ReadPosRankSumTest \
+    --annotation DepthPerSampleHC \
+    --annotation QualByDepth \
+    --min-base-quality-score 20 \
+    --minimum-mapping-quality 30 \
+    --standard-min-confidence-threshold-for-calling 30 \
+    --native-pair-hmm-threads 4 \
+    --emit-ref-confidence GVCF"
+```
+
+
+
+
+
+
+
+
+
+```bash
+cd ${WORKING_DIR}/03_ANALYSIS/04_VARIANTS/GVCFS
+# create bam list using full path to bams - this allows bams to be anywhere
+ls ${WORKING_DIR}/03_ANALYSIS/02_MAP/EXTRACT/*_extract.bam > ${WORKING_DIR}/03_ANALYSIS/04_VARIANTS/bam.list
+BAM_LIST=${WORKING_DIR}/03_ANALYSIS/04_VARIANTS/bam.list
+#indexing the ref
+REF=${WORKING_DIR}/01_REF/dimmitis_WSI_2.2.fa
+REF_DIR=${WORKING_DIR}/01_REF
+
+# make a sequences list to allow splitting jobs per scaffold/contig
+grep ">" ${REF} | sed -e 's/>//g' > ${WORKING_DIR}/03_ANALYSIS/04_VARIANTS/sequences.list
+SEQUENCE=${WORKING_DIR}/03_ANALYSIS/04_VARIANTS/sequences.list
+ulimit -c unlimited
+
+#generate, run and submit the jobs
+while read BAM; do \
+	n=1
+	SAMPLE=$( echo ${BAM} | awk -F '/' '{print $NF}' | sed -e 's/_extract.bam//g' )
+	mkdir ${SAMPLE}_GATK_HC_GVCF
+	mkdir ${SAMPLE}_GATK_HC_GVCF/LOGFILES
+	echo "gatk GatherVcfsCloud \\" > ${SAMPLE}_GATK_HC_GVCF/run_gather_${SAMPLE}_gvcf
+	while read SEQUENCE; do
+	echo -e "gatk HaplotypeCaller \\
+          --input ${BAM} \\
+          --output ${SAMPLE}_GATK_HC_GVCF/${n}.${SAMPLE}.${SEQUENCE}.tmp.gvcf.gz \\
+          --reference ${REF} \\
+          --intervals ${SEQUENCE} \\
+          --heterozygosity 0.015 \\
+          --indel-heterozygosity 0.01 \\
+          --annotation DepthPerAlleleBySample --annotation Coverage --annotation ExcessHet --annotation FisherStrand --annotation MappingQualityRankSumTest --annotation StrandOddsRatio --annotation RMSMappingQuality --annotation ReadPosRankSumTest --annotation DepthPerSampleHC --annotation QualByDepth \\
+          --min-base-quality-score 20 --minimum-mapping-quality 30 --standard-min-confidence-threshold-for-calling 30 \\
+          --native-pair-hmm-threads 2 \\
+          --emit-ref-confidence GVCF " > ${SAMPLE}_GATK_HC_GVCF/run_hc_${SAMPLE}.${SEQUENCE}.tmp.job_${n};
+	echo -e "--input ${PWD}/${SAMPLE}_GATK_HC_GVCF/${n}.${SAMPLE}.${SEQUENCE}.tmp.gvcf.gz \\" >> ${SAMPLE}_GATK_HC_GVCF/run_gather_${SAMPLE}_gvcf;
+	let "n+=1"; done < ${WORKING_DIR}/03_ANALYSIS/04_VARIANTS/sequences.list;
+	echo -e "--output ${PWD}/${SAMPLE}_GATK_HC_GVCF/${SAMPLE}.gvcf.gz; tabix -p vcf ${PWD}/${SAMPLE}_GATK_HC_GVCF/${SAMPLE}.gvcf.gz" >> ${SAMPLE}_GATK_HC_GVCF/run_gather_${SAMPLE}_gvcf;
+	echo -e "rm ${PWD}/${SAMPLE}_GATK_HC_GVCF/*.tmp.* && \\
+          mv ${PWD}/${SAMPLE}_GATK_HC_GVCF/*.[oe] ${PWD}/${SAMPLE}_GATK_HC_GVCF/LOGFILES && \\
+          cd ${PWD} && \\
+          mv ${PWD}/${SAMPLE}_GATK_HC_GVCF ${PWD}/${SAMPLE}_GATK_HC_GVCF_complete" > ${SAMPLE}_GATK_HC_GVCF/run_clean_${SAMPLE};
+
+	chmod a+x ${SAMPLE}_GATK_HC_GVCF/run_*
+	# setup job conditions
+	JOBS=$( ls -1 ${SAMPLE}_GATK_HC_GVCF/run_hc_* | wc -l )
+	ID="U$(date +%s)"
+	#submit job array to call variants put scaffold / contig
+	bsub -q long -R'span[hosts=1] select[mem>15000] rusage[mem=15000]' -n 2 -M15000 -J GATK_HC_${ID}_[1-${JOBS}]%100 -e ${SAMPLE}_GATK_HC_GVCF/GATK_HC_${ID}_[1-${JOBS}].e -o ${SAMPLE}_GATK_HC_GVCF/GATK_HC_${ID}_[1-${JOBS}].o "./${SAMPLE}_GATK_HC_GVCF/run_hc_${SAMPLE}.*job_\$LSB_JOBINDEX"
+	#submit job to gather gvcfs into a single, per sample gvcf
+	bsub -q normal -w "done(GATK_HC_${ID}_[1-$JOBS])" -R'span[hosts=1] select[mem>500] rusage[mem=500]' -n 1 -M500 -J GATK_HC_${ID}_gather_gvcfs -e ${SAMPLE}_GATK_HC_GVCF/GATK_HC_${ID}_gather_gvcfs.e -o ${SAMPLE}_GATK_HC_GVCF/GATK_HC_${ID}_gather_gvcfs.o "./${SAMPLE}_GATK_HC_GVCF/run_gather_${SAMPLE}_gvcf"
+	# clean up
+	bsub -q normal -w "done(GATK_HC_${ID}_gather_gvcfs)" -R'span[hosts=1] select[mem>500] rusage[mem=500]' -n 1 -M500 -J GATK_HC_${ID}_clean -e ${SAMPLE}_GATK_HC_GVCF/GATK_HC_${ID}_clean.e -o ${SAMPLE}_GATK_HC_GVCF/GATK_HC_${ID}_clean.o "./${SAMPLE}_GATK_HC_GVCF/run_clean_${SAMPLE}"
+	sleep 1
+done < ${BAM_LIST}
 ```
 
