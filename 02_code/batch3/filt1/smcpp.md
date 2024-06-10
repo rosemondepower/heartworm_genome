@@ -6,12 +6,12 @@ module load smcpp/1.15.3-c1
 module load common-apps/htslib/1.9.229
 module load bcftools/1.14--h88f3f91_0
 
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/OTHER/BATCH3/02_VARIANTS/SMCPP
+
 # prep VCF file
 bgzip /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/OTHER/BATCH3/02_VARIANTS/FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf
 tabix -p vcf /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/OTHER/BATCH3/02_VARIANTS/FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf.gz
 VCF=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/OTHER/BATCH3/02_VARIANTS/FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.RENAMED.vcf.gz
-
-cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/OTHER/BATCH3/02_VARIANTS/SMCPP
 
 # Get sample names for each population
 ASIA=$(awk -F'\t' '$2 == "Thailand" {print $1}' location.txt | paste -sd ',')
@@ -19,6 +19,14 @@ AUS=$(awk -F'\t' '$2 == "Australia" {print $1}' location.txt | paste -sd ',')
 CAM=$(awk -F'\t' '$2 == "Panama" || $2 == "Costa Rica" {print $1}' location.txt | paste -sd ',')
 EUR=$(awk -F'\t' '$2 == "Italy" || $2 == "Romania" {print $1}' location.txt | paste -sd ',')
 USA=$(awk -F'\t' '$2 == "USA" {print $1}' location.txt | paste -sd ',')
+declare -A populations
+populations=(
+  [ASIA]=$ASIA
+  [AUS]=$AUS
+  [CAM]=$CAM
+  [EUR]=$EUR
+  [USA]=$USA
+)
 
 ## There may be missing genotypes designated as '.', whereas smc++ expects it to be './.' - so see if there are any lines like this:
 zcat ${VCF} | \
@@ -101,49 +109,85 @@ tabix -p vcf modified.vcf.gz
 VCF_MOD=modified.vcf.gz
 
 # Convert VCF to the SMC++ input format with vcf2smc
-smc++ vcf2smc ${VCF_MOD} chr1_ASIA.smc.gz dirofilaria_immitis_chr1 ASIA:${ASIA}
-smc++ vcf2smc ${VCF_MOD} chr1_AUS.smc.gz dirofilaria_immitis_chr1 AUS:${AUS}
-smc++ vcf2smc ${VCF_MOD} chr1_CAM.smc.gz dirofilaria_immitis_chr1 CAM:${CAM}
-smc++ vcf2smc ${VCF_MOD} chr1_EUR.smc.gz dirofilaria_immitis_chr1 EUR:${EUR}
-smc++ vcf2smc ${VCF_MOD} chr1_USA.smc.gz dirofilaria_immitis_chr1 USA:${USA}
-
-smc++ vcf2smc ${VCF} chr2_ASIA.smc.gz chr2 ASIA:${ASIA}
-smc++ vcf2smc ${VCF} chr2_AUS.smc.gz chr2 AUS:${AUS}
-smc++ vcf2smc ${VCF} chr2_CAM.smc.gz chr2 CAM:${CAM}
-smc++ vcf2smc ${VCF} chr2_EUR.smc.gz chr2 EUR:${EUR}
-smc++ vcf2smc ${VCF} chr2_USA.smc.gz chr2 USA:${USA}
-
-smc++ vcf2smc ${VCF} chr3_ASIA.smc.gz chr3 ASIA:${ASIA}
-smc++ vcf2smc ${VCF} chr3_AUS.smc.gz chr3 AUS:${AUS}
-smc++ vcf2smc ${VCF} chr3_CAM.smc.gz chr3 CAM:${CAM}
-smc++ vcf2smc ${VCF} chr3_EUR.smc.gz chr3 EUR:${EUR}
-smc++ vcf2smc ${VCF} chr3_USA.smc.gz chr3 USA:${USA}
-
-smc++ vcf2smc ${VCF} chr4_ASIA.smc.gz chr4 ASIA:${ASIA}
-smc++ vcf2smc ${VCF} chr4_AUS.smc.gz chr4 AUS:${AUS}
-smc++ vcf2smc ${VCF} chr4_CAM.smc.gz chr4 CAM:${CAM}
-smc++ vcf2smc ${VCF} chr4_EUR.smc.gz chr4 EUR:${EUR}
-smc++ vcf2smc ${VCF} chr4_USA.smc.gz chr4 USA:${USA}
+for chr in {1..4}; do
+  smc++ vcf2smc ${VCF_MOD} chr${chr}_ASIA.smc.gz dirofilaria_immitis_chr${chr} ASIA:${ASIA}
+  smc++ vcf2smc ${VCF_MOD} chr${chr}_AUS.smc.gz dirofilaria_immitis_chr${chr} AUS:${AUS}
+  smc++ vcf2smc ${VCF_MOD} chr${chr}_CAM.smc.gz dirofilaria_immitis_chr${chr} CAM:${CAM}
+  smc++ vcf2smc ${VCF_MOD} chr${chr}_EUR.smc.gz dirofilaria_immitis_chr${chr} EUR:${EUR}
+  smc++ vcf2smc ${VCF_MOD} chr${chr}_USA.smc.gz dirofilaria_immitis_chr${chr} USA:${USA};
+done
 # each call to vcf2smc processes a single contig. VCFs containing multiple contigs should be processed via multiple separate runs.
 
-# Fit the model using Estimate and plot
-# chr 1
-smc++ estimate -o /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/OTHER/BATCH3/02_VARIANTS/SMCPP 6.66e-9 chr1_ASIA.smc.gz
-smc++ plot plot.png model.final.json
+# Fit the model using Estimate
+## Mutation rate for C. elegans is 2.1x10^-8 mutations/site/generation (https://doi.org/10.1038/nature02697).
+for chr in {1..4}; do
+  smc++ estimate --timepoints 0 100000 -o /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/OTHER/BATCH3/02_VARIANTS/SMCPP/chr${chr}_ASIA_model 2.1e-8 chr${chr}_ASIA.smc.gz
+  smc++ estimate --timepoints 0 100000 -o /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/OTHER/BATCH3/02_VARIANTS/SMCPP/chr${chr}_AUS_model 2.1e-8 chr${chr}_AUS.smc.gz
+  smc++ estimate --timepoints 0 100000 -o /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/OTHER/BATCH3/02_VARIANTS/SMCPP/chr${chr}_CAM_model 2.1e-8 chr${chr}_CAM.smc.gz
+  smc++ estimate --timepoints 0 100000 -o /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/OTHER/BATCH3/02_VARIANTS/SMCPP/chr${chr}_EUR_model 2.1e-8 chr${chr}_EUR.smc.gz
+  smc++ estimate --timepoints 0 100000 -o /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/OTHER/BATCH3/02_VARIANTS/SMCPP/chr${chr}_USA_model 2.1e-8 chr${chr}_USA.smc.gz;
+done
+
+# plot models
+## Use generation time of D. immitis ~ 1
+# separately
+for chr in {1..4}; do
+  smc++ plot -g 1 chr${chr}_ASIA_model/chr${chr}_ASIA_plot.png chr${chr}_ASIA_model/model.final.json
+  smc++ plot -g 1 chr${chr}_AUS_model/chr${chr}_AUS_plot.png chr${chr}_AUS_model/model.final.json
+  smc++ plot -g 1 chr${chr}_CAM_model/chr${chr}_CAM_plot.png chr${chr}_CAM_model/model.final.json
+  smc++ plot -g 1 chr${chr}_EUR_model/chr${chr}_EUR_plot.png chr${chr}_EUR_model/model.final.json
+  smc++ plot -g 1 chr${chr}_USA_model/chr${chr}_USA_plot.png chr${chr}_USA_model/model.final.json;
+done
+
+# combined per chromosome
+for chr in {1..4}; do
+  smc++ plot -g 1 chr${chr}_plot.png chr${chr}_ASIA_model/model.final.json chr${chr}_AUS_model/model.final.json chr${chr}_CAM_model/model.final.json chr${chr}_EUR_model/model.final.json chr${chr}_USA_model/model.final.json;
+done
+```
+
+
+# Clean split models
+
+The split command fits two-population clean split models (assumes no ongoing gene flow between the two populations after they diverged)
+
+```bash
+# Create datasets containing the joint frequency spectrum for both populations. Run split.
+## ASIA & AUS
+for chr in {1..4}; do
+mkdir split/ASIA_AUS/chr${chr}
+smc++ vcf2smc ${VCF_MOD} split/ASIA_AUS/chr${chr}/chr${chr}_ASIA_AUS.smc.gz dirofilaria_immitis_chr${chr} ASIA:${ASIA} AUS:${AUS}
+smc++ vcf2smc ${VCF_MOD} split/ASIA_AUS/chr${chr}/chr${chr}_AUS_ASIA.smc.gz dirofilaria_immitis_chr${chr} AUS:${AUS} ASIA:${ASIA}
+smc++ split --timepoints 0 100000 -o split/ASIA_AUS/chr${chr} chr${chr}_ASIA_model/model.final.json chr${chr}_AUS_model.json/model.final.json split/ASIA_AUS/chr${chr}/*.smc.gz
+smc++ plot split/ASIA_AUS/chr${chr}/chr${chr}_ASIA_AUS.pdf split/ASIA_AUS/chr${chr}/model.final.json;
+done
+
+## ASIA & CAM
+for chr in {1..4}; do
+mkdir split/ASIA_CAM/chr${chr}
+smc++ vcf2smc ${VCF_MOD} split/ASIA_CAM/chr${chr}/chr${chr}_ASIA_CAM.smc.gz dirofilaria_immitis_chr${chr} ASIA:${ASIA} CAM:${CAM}
+smc++ vcf2smc ${VCF_MOD} split/ASIA_CAM/chr${chr}/chr${chr}_CAM_ASIA.smc.gz dirofilaria_immitis_chr${chr} CAM:${CAM} ASIA:${ASIA}
+smc++ split -o split/ASIA_CAM/chr${chr} chr${chr}_ASIA_model.json/model.final.json chr${chr}_CAM_model.json/model.final.json split/ASIA_CAM/chr${chr}/*.smc.gz
+smc++ plot split/ASIA_CAM/chr${chr}/chr${chr}_ASIA_CAM.pdf split/ASIA_CAM/chr${chr}/model.final.json;
+done
+
+## ASIA & EUR
+
+## ASIA & USA
+
+## AUS & CAM
+
+## AUS & EUR
+
+## AUS & USA
+
+## CAM & EUR
+
+## CAM & USA
+
+## EUR & USA
 
 
 
 
-smc++ estimate -o /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/OTHER/BATCH3/02_VARIANTS/SMC 6.66e-9 chr1_AUS.smc.gz
-smc++ estimate -o /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/OTHER/BATCH3/02_VARIANTS/SMC 6.66e-9 chr1_CAM.smc.gz 
-smc++ estimate -o /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/OTHER/BATCH3/02_VARIANTS/SMC 6.66e-9 chr1_EUR.smc.gz 
-smc++ estimate -o /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/OTHER/BATCH3/02_VARIANTS/SMC 6.66e-9 chr1_USA.smc.gz
-
-# chr 2
-smc++ estimate -o /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/OTHER/BATCH3/02_VARIANTS/SMC 6.66e-9 chr2_ASIA.smc.gz chr2_AUS.smc.gz chr2_CAM.smc.gz chr2_EUR.smc.gz chr2_USA.smc.gz
-# chr 3
-smc++ estimate -o /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/OTHER/BATCH3/02_VARIANTS/SMC 6.66e-9 chr3_ASIA.smc.gz chr3_AUS.smc.gz chr3_CAM.smc.gz chr3_EUR.smc.gz chr3_USA.smc.gz
-# chr 4
-smc++ estimate -o /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/OTHER/BATCH3/02_VARIANTS/SMC 6.66e-9 chr4_ASIA.smc.gz chr4_AUS.smc.gz chr4_CAM.smc.gz chr4_EUR.smc.gz chr1_USA.smc.gz
 
 ```
