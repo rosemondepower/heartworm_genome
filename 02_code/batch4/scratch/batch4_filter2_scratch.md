@@ -5,24 +5,8 @@ Filter the VCF file with moderate stringency.
 ## SNPs QC
 
 ```bash
-# Load modules
-module load vcftools/0.1.16-c4
-module load bsub.py/0.42.1
-module load common-apps/htslib/1.9.229
-
-VCF=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/DIMMITIS_POPGEN.cohort.2024-06-10.vcf.gz
-
 # Copy VCF into my own folder
 cp /lustre/scratch125/pam/teams/team333/sd21/dirofilaria_immitis/POPGEN/NEWDATA_2024/VARIANTS/gatk_hc_DIMMITIS_POPGEN/GATK_HC_MERGED/DIMMITIS* /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2
-
-cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS
-
-# Remove outgroup samples so I have a VCF of D. immitis samples only
-bsub.py 2 vcf_no_outgroups "vcftools --gzvcf ${VCF} --keep dimmitis_samplelist.keep --recode --recode-INFO-all --out DIMMITIS_POPGEN.cohort.2024-06-10.NO_OUTGROUPS"
-bsub.py --done "vcf_no_outgroups" 1 vcf_no_outgroups_bgzip "bgzip DIMMITIS_POPGEN.cohort.2024-06-10.NO_OUTGROUPS.recode.vcf"
-bsub.py --done "vcf_no_outgroups_bgzip" 1 vcf_no_outgroups_index "tabix -p vcf DIMMITIS_POPGEN.cohort.2024-06-10.NO_OUTGROUPS.recode.vcf.gz"
-# Update VCF environmental variable
-VCF=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/DIMMITIS_POPGEN.cohort.2024-06-10.NO_OUTGROUPS.recode.vcf.gz
 ```
 
 ### Querying SNP and INDEL QC profiles to determine thresholds for filters
@@ -30,18 +14,20 @@ VCF=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/
 Adopted from Javier's paper.
 
 ```bash
-bsub.py --done "vcf_no_outgroups_index" 10 run_snps_qc "run_snps_qc.sh"
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/00_SCRIPTS/LOGS
+module load bsub.py/0.42.1
+bsub.py 10 FILTER2_snps_qc "../FILTER2_snps_qc.sh"
 ```
 
 ```bash
 # Load modules
 module load gatk/4.1.4.1
 
-WORKING_DIR=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS
+WORKING_DIR=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2
 
 # set reference, vcf, and mitochondrial and Wb contig
 REFERENCE=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/01_REF/dimmitis_WSI_2.2.fa
-VCF=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/DIMMITIS_POPGEN.cohort.2024-06-10.NO_OUTGROUPS.recode.vcf.gz
+VCF=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/DIMMITIS_POPGEN.cohort.2024-06-10.vcf.gz
 MIT_CONTIG=dirofilaria_immitis_chrMtDNA
 WB_CONTIG=dirofilaria_immitis_chrWb
 cd ${WORKING_DIR}
@@ -99,51 +85,44 @@ gatk SelectVariants \
 # make a table of nuclear SNP data
 gatk VariantsToTable \
 --reference ${REFERENCE} \
---variant DIMMITIS_POPGEN.cohort.2024-06-10.NO_OUTGROUPS.recode.nuclearSNPs.vcf \
+--variant DIMMITIS_POPGEN.cohort.2024-06-10.nuclearSNPs.vcf \
 --fields CHROM --fields POS --fields QUAL --fields QD --fields DP --fields MQ --fields MQRankSum --fields FS --fields ReadPosRankSum --fields SOR \
 --output GVCFall_nuclearSNPs.table
 
 # make a table of nuclear INDEL data
 gatk VariantsToTable \
 --reference ${REFERENCE} \
---variant DIMMITIS_POPGEN.cohort.2024-06-10.NO_OUTGROUPS.recode.nuclearINDELs.vcf \
+--variant DIMMITIS_POPGEN.cohort.2024-06-10.nuclearINDELs.vcf \
 --fields CHROM --fields POS --fields QUAL --fields QD --fields DP --fields MQ --fields MQRankSum --fields FS --fields ReadPosRankSum --fields SOR \
 --output GVCFall_nuclearINDELs.table
 
 # make a table of mito SNP data
 gatk VariantsToTable \
 --reference ${REFERENCE} \
---variant DIMMITIS_POPGEN.cohort.2024-06-10.NO_OUTGROUPS.recode.mitoSNPs.vcf \
+--variant DIMMITIS_POPGEN.cohort.2024-06-10.mitoSNPs.vcf \
 --fields CHROM --fields POS --fields QUAL --fields QD --fields DP --fields MQ --fields MQRankSum --fields FS --fields ReadPosRankSum --fields SOR \
 --output GVCFall_mitoSNPs.table
 
 # make a table of mito INDEL data
 gatk VariantsToTable \
 --reference ${REFERENCE} \
---variant DIMMITIS_POPGEN.cohort.2024-06-10.NO_OUTGROUPS.recode.mitoINDELs.vcf \
+--variant DIMMITIS_POPGEN.cohort.2024-06-10.mitoINDELs.vcf \
 --fields CHROM --fields POS --fields QUAL --fields QD --fields DP --fields MQ --fields MQRankSum --fields FS --fields ReadPosRankSum --fields SOR \
 --output GVCFall_mitoINDELs.table
 
 # make a table of Wb SNP data
 gatk VariantsToTable \
 --reference ${REFERENCE} \
---variant DIMMITIS_POPGEN.cohort.2024-06-10.NO_OUTGROUPS.recode.WbSNPs.vcf \
+--variant DIMMITIS_POPGEN.cohort.2024-06-10.WbSNPs.vcf \
 --fields CHROM --fields POS --fields QUAL --fields QD --fields DP --fields MQ --fields MQRankSum --fields FS --fields ReadPosRankSum --fields SOR \
 --output GVCFall_WbSNPs.table
 
 # make a table of Wb INDEL data
 gatk VariantsToTable \
 --reference ${REFERENCE} \
---variant DIMMITIS_POPGEN.cohort.2024-06-10.NO_OUTGROUPS.recode.WbINDELs.vcf \
+--variant DIMMITIS_POPGEN.cohort.2024-06-10.WbINDELs.vcf \
 --fields CHROM --fields POS --fields QUAL --fields QD --fields DP --fields MQ --fields MQRankSum --fields FS --fields ReadPosRankSum --fields SOR \
 --output GVCFall_WbINDELs.table
-```
-
-```bash
-#Move all of these files into NO_OUTGROUPS subdirectory:
-cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS
-mkdir LOGS
-mv *.o *.e LOGS
 ```
 
 
@@ -502,12 +481,14 @@ fun_variant_summaries(VCF_wb,"wolbachia")
 
 ### Attending to the quantiles, thresholds for specific parameters are established
 
+bsub.py 10 FILTER2_snps_qc2 "../FILTER2_snps_qc2.sh"
+
 ```bash
 # load modules
 module load bsub.py/0.42.1
 module load gatk/4.1.4.1
 
-WORKING_DIR=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS
+WORKING_DIR=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2
 cd ${WORKING_DIR}
 
 # set reference
@@ -516,47 +497,47 @@ REFERENCE=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/01_REF/dimmitis_WS
 #Nuclear
 bsub.py 1 filter_nuclearSNPs "gatk VariantFiltration \
 --reference ${REFERENCE} \
---variant DIMMITIS_POPGEN.cohort.2024-06-10.NO_OUTGROUPS.recode.nuclearSNPs.vcf \
+--variant DIMMITIS_POPGEN.cohort.2024-06-10.nuclearSNPs.vcf \
 --filter-expression 'QUAL < 40 || DP < 1837 || DP > 11933 || MQ < 21.54 || SOR > 7.111 || QD < 0.790 || FS > 8.239 || MQRankSum < -5.801 || ReadPosRankSum < -2.750 || ReadPosRankSum > 2.260' \
 --filter-name "SNP_filtered" \
---output DIMMITIS_POPGEN.cohort.2024-06-10.NO_OUTGROUPS.nuclearSNPs.filtered.vcf"
+--output DIMMITIS_POPGEN.cohort.2024-06-10.nuclearSNPs.filtered.vcf"
 
 bsub.py 1 filter_nuclearINDELS "gatk VariantFiltration \
 --reference ${REFERENCE} \
---variant DIMMITIS_POPGEN.cohort.2024-06-10.NO_OUTGROUPS.recode.nuclearINDELs.vcf \
+--variant DIMMITIS_POPGEN.cohort.2024-06-10.nuclearINDELs.vcf \
 --filter-expression 'QUAL < 46 || DP < 729 || DP > 12604 || MQ < 22.88 || SOR > 6.804 || QD < 1.000 || FS > 7.139 || MQRankSum < -4.812 || ReadPosRankSum < -4.175 || ReadPosRankSum > 1.960' \
 --filter-name "INDEL_filtered" \
---output DIMMITIS_POPGEN.cohort.2024-06-10.NO_OUTGROUPS.nuclearINDELs.filtered.vcf"
+--output DIMMITIS_POPGEN.cohort.2024-06-10.nuclearINDELs.filtered.vcf"
 
 #Mitochondrial
 bsub.py 1 filter_mitoSNPs "gatk VariantFiltration \
 --reference ${REFERENCE} \
---variant DIMMITIS_POPGEN.cohort.2024-06-10.NO_OUTGROUPS.recode.mitoSNPs.vcf \
+--variant DIMMITIS_POPGEN.cohort.2024-06-10.mitoSNPs.vcf \
 --filter-expression 'QUAL < 65 || DP < 198542 || DP > 656364 || MQ < 20.92 || SOR > 12.401 || QD < 3.756 || FS > 41.860 || MQRankSum < -5.622 || ReadPosRankSum < -3.002 || ReadPosRankSum > 5.450' \
 --filter-name "SNP_filtered" \
---output DIMMITIS_POPGEN.cohort.2024-06-10.NO_OUTGROUPS.mitoSNPs.filtered.vcf"
+--output DIMMITIS_POPGEN.cohort.2024-06-10.mitoSNPs.filtered.vcf"
 
 bsub.py 1 filter_mitoINDELS "gatk VariantFiltration \
 --reference ${REFERENCE} \
---variant DIMMITIS_POPGEN.cohort.2024-06-10.NO_OUTGROUPS.recode.mitoINDELs.vcf \
+--variant DIMMITIS_POPGEN.cohort.2024-06-10.mitoINDELs.vcf \
 --filter-expression 'QUAL < 54 || DP < 199124 || DP > 651242 || MQ < 21.36 || SOR > 14.639 || QD < 0.288 || FS > 82.546 || MQRankSum < -7.924 || ReadPosRankSum < -7.413 || ReadPosRankSum > 6.156' \
 --filter-name "INDEL_filtered" \
---output DIMMITIS_POPGEN.cohort.2024-06-10.NO_OUTGROUPS.mitoINDELs.filtered.vcf"
+--output DIMMITIS_POPGEN.cohort.2024-06-10.mitoINDELs.filtered.vcf"
 
 #Wolbachia
 bsub.py 1 filter_WbSNPs "gatk VariantFiltration \
 --reference ${REFERENCE} \
---variant DIMMITIS_POPGEN.cohort.2024-06-10.NO_OUTGROUPS.recode.WbSNPs.vcf \
+--variant DIMMITIS_POPGEN.cohort.2024-06-10.WbSNPs.vcf \
 --filter-expression 'QUAL < 51 || DP < 93233 || DP > 140644 || MQ < 22.00 || SOR > 11.661 || QD < 1.790 || FS > 46.417 || MQRankSum < -15.512 || ReadPosRankSum < -6.172 || ReadPosRankSum > 13.109' \
 --filter-name "SNP_filtered" \
---output DIMMITIS_POPGEN.cohort.2024-06-10.NO_OUTGROUPS.WbSNPs.filtered.vcf"
+--output DIMMITIS_POPGEN.cohort.2024-06-10.WbSNPs.filtered.vcf"
 
 bsub.py 1 filter_WbINDELS "gatk VariantFiltration \
 --reference ${REFERENCE} \
---variant DIMMITIS_POPGEN.cohort.2024-06-10.NO_OUTGROUPS.recode.WbINDELs.vcf \
+--variant DIMMITIS_POPGEN.cohort.2024-06-10.WbINDELs.vcf \
 --filter-expression 'QUAL < 42 || DP < 93229 || DP > 145276 || MQ < 22.017 || SOR > 11.268 || QD < 1.210 || FS > 59.215 || MQRankSum < -6.717 || ReadPosRankSum < -6.413 || ReadPosRankSum > 6.017' \
 --filter-name "INDEL_filtered" \
---output DIMMITIS_POPGEN.cohort.2024-06-10.NO_OUTGROUPS.WbINDELs.filtered.vcf"
+--output DIMMITIS_POPGEN.cohort.2024-06-10.WbINDELs.filtered.vcf"
 
 # once done, count the filtered sites - funny use of "|" allows direct markdown table format
 echo -e "| Filtered_VCF | Variants_PASS | Variants_FILTERED |\n| -- | -- | -- | " > filter.stats
@@ -565,22 +546,20 @@ for i in *filtered.vcf; do
      name=${i}; pass=$( grep -E 'PASS' ${i} | wc -l ); filter=$( grep -E 'filter' ${i} | wc -l );
      echo -e "| ${name} | ${pass} | ${filter} |" >> filter.stats
 done
-
-mv *.o *.e LOGS
 ```
 This is the summary of the filtered variants ('filter.stats'):
 
 | Filtered_VCF | Variants_PASS | Variants_FILTERED |
 | -- | -- | -- | 
-| DIMMITIS_POPGEN.cohort.2024-06-10.NO_OUTGROUPS.mitoINDELs.filtered.vcf | 240 | 31 |
-| DIMMITIS_POPGEN.cohort.2024-06-10.NO_OUTGROUPS.mitoSNPs.filtered.vcf | 1512 | 142 |
-| DIMMITIS_POPGEN.cohort.2024-06-10.NO_OUTGROUPS.nuclearINDELs.filtered.vcf | 747704 | 85802 |
-| DIMMITIS_POPGEN.cohort.2024-06-10.NO_OUTGROUPS.nuclearSNPs.filtered.vcf | 1773799 | 190122 |
-| DIMMITIS_POPGEN.cohort.2024-06-10.NO_OUTGROUPS.WbINDELs.filtered.vcf | 8898 | 731 |
-| DIMMITIS_POPGEN.cohort.2024-06-10.NO_OUTGROUPS.WbSNPs.filtered.vcf | 69956 | 5109 |
+| DIMMITIS_POPGEN.cohort.2024-06-10.mitoINDELs.filtered.vcf | 240 | 31 |
+| DIMMITIS_POPGEN.cohort.2024-06-10.mitoSNPs.filtered.vcf | 1512 | 142 |
+| DIMMITIS_POPGEN.cohort.2024-06-10.nuclearINDELs.filtered.vcf | 747704 | 85802 |
+| DIMMITIS_POPGEN.cohort.2024-06-10.nuclearSNPs.filtered.vcf | 1773799 | 190122 |
+| DIMMITIS_POPGEN.cohort.2024-06-10.WbINDELs.filtered.vcf | 8898 | 731 |
+| DIMMITIS_POPGEN.cohort.2024-06-10.WbSNPs.filtered.vcf | 69956 | 5109 |
 
 
-Filtering looks ok.
+Filtering looks ok. Didn't lose too many SNPs.
 
 Usually we would merge the SNP and INDEL files together to make a joined VCF. However, I want to disregard the indels moving forward and only focus on the SNPs. Some downstream tools don't like having indels in there.
 
@@ -592,7 +571,7 @@ Usually we would merge the SNP and INDEL files together to make a joined VCF. Ho
 bsub.py 1 filter_nuclear_GT \
 "gatk VariantFiltration \
 --reference ${REFERENCE} \
---variant ${VCF%.recode.vcf.gz}.nuclearSNPs.filtered.vcf \
+--variant ${VCF%.vcf.gz}.nuclearSNPs.filtered.vcf \
 --genotype-filter-expression ' DP < 3 '  \
 --genotype-filter-name "DP_lt3" \
 --output ${VCF%.vcf.gz}.nuclearSNPs.DPfiltered.vcf"
@@ -608,7 +587,7 @@ bsub.py --done "filter_nuclear_GT" 1 filter_nuclear_GT2 \
 bsub.py 1 filter_mito_GT \
 "gatk VariantFiltration \
 --reference ${REFERENCE} \
---variant ${VCF%.recode.vcf.gz}.mitoSNPs.filtered.vcf \
+--variant ${VCF%.vcf.gz}.mitoSNPs.filtered.vcf \
 --genotype-filter-expression ' DP < 3 '  \
 --genotype-filter-name "DP_lt3" \
 --output ${VCF%.vcf.gz}.mitoSNPs.DPfiltered.vcf"
@@ -624,7 +603,7 @@ bsub.py --done "filter_mito_GT" 1 filter_mito_GT2 \
 bsub.py 1 filter_Wb_GT \
 "gatk VariantFiltration \
 --reference ${REFERENCE} \
---variant ${VCF%.recode.vcf.gz}.WbSNPs.filtered.vcf \
+--variant ${VCF%.vcf.gz}.WbSNPs.filtered.vcf \
 --genotype-filter-expression ' DP < 3 '  \
 --genotype-filter-name "DP_lt3" \
 --output ${VCF%.vcf.gz}.WbSNPs.DPfiltered.vcf"
@@ -640,14 +619,9 @@ bsub.py --done "filter_Wb_GT" 1 filter_Wb_GT2 \
 
 ### Now we apply a set of standard filters for population genomics
 
-bsub.py 10 run_standard_filt "run_standard_filt.sh"
-
 ```bash
 # load modules
 module load vcftools/0.1.16-c4
-
-cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS
-VCF=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/DIMMITIS_POPGEN.cohort.2024-06-10.NO_OUTGROUPS.recode.vcf.gz
 
 #Nuclear variants
 vcftools \
@@ -661,18 +635,20 @@ vcftools \
 --recode \
 --recode-INFO-all \
 --out ${VCF%.vcf.gz}.nuclear_SNPs.final
-#After filtering, kept 136 out of 136 Individuals
-#After filtering, kept 268519 out of a possible 1963913 Sites
+#After filtering, kept 141 out of 141 Individuals
+#After filtering, kept 268781 out of a possible 1963913 Sites
 
 #--- nuclear SNPs
-vcftools --vcf DIMMITIS_POPGEN.cohort.2024-06-10.NO_OUTGROUPS.recode.nuclear_SNPs.final.recode.vcf --remove-indels
-#After filtering, kept 136 out of 136 Individuals
-#After filtering, kept 268519 out of a possible 268519 Sites
+vcftools --vcf DIMMITIS_POPGEN.cohort.2024-06-10.nuclear_SNPs.final.recode.vcf --remove-indels
+#After filtering, kept 141 out of 141 Individuals
+#After filtering, kept 268781 out of a possible 268781 Sites
 
 #--- nuclear  INDELs
-vcftools --vcf DIMMITIS_POPGEN.cohort.2024-06-10.NO_OUTGROUPS.recode.nuclear_SNPs.final.recode.vcf --keep-only-indels
-#After filtering, kept 136 out of 136 Individuals
-#After filtering, kept 0 out of a possible 268519 Sites
+vcftools --vcf DIMMITIS_POPGEN.cohort.2024-06-10.nuclear_SNPs.final.recode.vcf --keep-only-indels
+#After filtering, kept 141 out of 141 Individuals
+#After filtering, kept 0 out of a possible 268781 Sites
+
+
 
 
 #Mitochondrial variants
@@ -686,18 +662,20 @@ vcftools \
 --recode \
 --recode-INFO-all \
 --out ${VCF%.vcf.gz}.mito_SNPs.final
-#After filtering, kept 136 out of 136 Individuals
-#After filtering, kept 32 out of a possible 1646 Sites
+#After filtering, kept 141 out of 141 Individuals
+#After filtering, kept 500 out of a possible 1646 Sites
+
 
 #--- mito SNPs
-vcftools --vcf DIMMITIS_POPGEN.cohort.2024-06-10.NO_OUTGROUPS.recode.mito_SNPs.final.recode.vcf --remove-indels
-#After filtering, kept 136 out of 136 Individuals
-#After filtering, kept 32 out of a possible 32 Sites
+vcftools --vcf DIMMITIS_POPGEN.cohort.2024-06-10.mito_SNPs.final.recode.vcf --remove-indels
+#After filtering, kept 141 out of 141 Individuals
+#After filtering, kept 500 out of a possible 500 Sites
 
 #--- mito INDELs
-vcftools --vcf DIMMITIS_POPGEN.cohort.2024-06-10.NO_OUTGROUPS.recode.mito_SNPs.final.recode.vcf --keep-only-indels
-#After filtering, kept 136 out of 136 Individuals
-#After filtering, kept 0 out of a possible 32 Sites
+vcftools --vcf DIMMITIS_POPGEN.cohort.2024-06-10.mito_SNPs.final.recode.vcf --keep-only-indels
+#After filtering, kept 141 out of 141 Individuals
+#After filtering, kept 0 out of a possible 500 Sites
+
 
 
 #wolbachia variants
@@ -711,18 +689,19 @@ vcftools \
 --recode \
 --recode-INFO-all \
 --out ${VCF%.vcf.gz}.Wb_SNPs.final
-#After filtering, kept 136 out of 136 Individuals
-#After filtering, kept 291 out of a possible 75057 Sites
+#After filtering, kept 141 out of 141 Individuals
+#After filtering, kept 25923 out of a possible 75057 Sites
+
 
 #--- Wb SNPs
-vcftools --vcf DIMMITIS_POPGEN.cohort.2024-06-10.NO_OUTGROUPS.recode.Wb_SNPs.final.recode.vcf --remove-indels
-#After filtering, kept 136 out of 136 Individuals
-#After filtering, kept 291 out of a possible 291 Sites
+vcftools --vcf DIMMITIS_POPGEN.cohort.2024-06-10.Wb_SNPs.final.recode.vcf --remove-indels
+#After filtering, kept 141 out of 141 Individuals
+#After filtering, kept 25923 out of a possible 25923 Sites
 
 #--- Wb INDELs
-vcftools --vcf DIMMITIS_POPGEN.cohort.2024-06-10.NO_OUTGROUPS.recode.Wb_SNPs.final.recode.vcf --keep-only-indels
-#After filtering, kept 136 out of 136 Individuals
-#After filtering, kept 0 out of a possible 291 Sites
+vcftools --vcf DIMMITIS_POPGEN.cohort.2024-06-10.Wb_SNPs.final.recode.vcf --keep-only-indels
+#After filtering, kept 141 out of 141 Individuals
+#After filtering, kept 0 out of a possible 25923 Sites
 ```
 
 ### Now, we are filtering by missingness
@@ -767,137 +746,7 @@ vcftools --vcf ${VCF%.vcf.gz}.Wb_SNPs.final.recode.vcf --out wb --missing-indv
 In Javier's code, he generated a different sample list for each database and evaluated the max missingness. For now, I will just keep all the samples.
 
 ```bash
-# For nuclear (n=127) - nuclear_samplelist.keep
-## remove samples with missingness less than 0.5
-AUS_BNE_AD_001
-AUS_BNE_AD_002
-AUS_BNE_AD_003
-AUS_BNE_AD_003_R
-AUS_BNE_AD_004
-AUS_BNE_AD_006
-AUS_BNE_AD_008
-AUS_BNE_AD_009
-AUS_CNS_AD_001
-AUS_CNS_AD_002
-AUS_LHR_AD_001
-AUS_ROK_AD_001
-AUS_SYD_AD_001
-AUS_SYD_AD_002
-AUS_SYD_AD_003
-AUS_SYD_AD_004
-AUS_SYD_AD_005
-AUS_SYD_AD_005_R
-AUS_SYD_AD_006
-AUS_SYD_AD_007
-AUS_SYD_AD_008
-AUS_SYD_AD_008_R
-AUS_SYD_AD_009
-AUS_SYD_AD_010
-AUS_SYD_AD_011
-AUS_SYD_AD_012
-AUS_SYD_AD_013
-AUS_SYD_AD_014
-AUS_SYD_AD_015
-AUS_TVS_AD_001
-AUS_TVS_AD_002
-AUS_TVS_AD_003
-AUS_TVS_AD_004
-AUS_TVS_AD_005
-AUS_TVS_AD_006
-AUS_TVS_AD_007
-AUS_TVS_AD_008
-AUS_TVS_AD_010
-AUS_TVS_AD_011
-AUS_TVS_AD_012
-AUS_TVS_AD_013
-AUS_TVS_AD_014
-AUS_TVS_AD_015
-AUS_TVS_AD_016
-AUS_TVS_AD_017
-AUS_TVS_AD_018
-AUS_TVS_AD_019
-CRI_SJO_AD_001
-GRC_XAN_AD_001
-GRC_XAN_AD_002
-GRC_XAN_AD_003
-GRC_XAN_AD_004
-GRC_XAN_AD_005
-GRC_XAN_AD_006
-GRC_XAN_AD_007
-GRC_XAN_AD_008
-GRC_XAN_AD_009
-GRC_XAN_AD_010
-GRC_XAN_AD_011
-GRC_XAN_AD_012
-ITA_NEA_AD_001
-ITA_NEA_AD_002
-ITA_NEA_AD_003
-ITA_PAV_AD_001
-MYS_SEL_AD_001
-PAN_BOC_AD_001
-PAN_BOC_AD_002
-PAN_BOC_AD_003
-PAN_BOC_AD_004
-PAN_BOC_AD_005
-PAN_PUE_AD_001
-PAN_PUE_AD_002
-PAN_PUE_AD_003
-PAN_PUE_AD_004
-PAN_PUE_AD_004_R
-PAN_PUE_AD_005
-PAN_PUE_AD_006
-PAN_SLO_AD_001
-PAN_SLO_AD_002
-PAN_SLO_AD_003
-ROU_BUC_AD_001
-ROU_COM_AD_001
-ROU_GIU_AD_001
-THA_BKK_AD_001
-THA_BKK_AD_002
-THA_BKK_AD_003
-THA_BKK_AD_004
-THA_BKK_AD_005
-THA_BKK_AD_006
-USA_FLO_AD_001
-USA_FLO_AD_002
-USA_FLO_AD_003
-USA_FLO_AD_004
-USA_FLO_AD_005
-USA_FLO_AD_006
-USA_FLO_AD_007
-USA_FLO_AD_008
-USA_FLO_AD_009
-USA_FLO_AD_010
-USA_FLO_AD_011
-USA_FLO_AD_012
-USA_FLO_AD_013
-USA_FLO_AD_014
-USA_FLO_AD_015
-USA_FLO_AD_016
-USA_GEO_AD_001
-USA_ILL_AD_001
-USA_ILL_AD_002
-USA_LOU_AD_001
-USA_LOU_AD_002
-USA_MIS_AD_001
-USA_MIS_AD_002
-USA_TEX_AD_001
-USA_TEX_AD_002
-USA_TEX_AD_003
-USA_TEX_AD_004
-USA_TEX_AD_005
-USA_TEX_AD_006
-USA_TEX_AD_007
-USA_TEX_AD_008
-USA_TEX_AD_009
-USA_TEX_AD_010
-USA_TEX_AD_011
-USA_TEX_AD_012
-USA_TEX_AD_013
-USA_TEX_AD_014
-USA_TEX_AD_015
-
-# For mithochondiral (n=130) - mito_samplelist.keep
+# For nuclear (n=141) - nuclear_samplelist.keep
 AUS_BNE_AD_001
 AUS_BNE_AD_002
 AUS_BNE_AD_003
@@ -963,6 +812,8 @@ GRC_XAN_AD_012
 ITA_NEA_AD_001
 ITA_NEA_AD_002
 ITA_NEA_AD_003
+ITA_NEA_AD_004
+ITA_NEA_AD_005
 ITA_PAV_AD_001
 MYS_SEL_AD_001
 MYS_SEL_AD_001_R
@@ -984,6 +835,7 @@ PAN_SLO_AD_003
 ROU_BUC_AD_001
 ROU_COM_AD_001
 ROU_GIU_AD_001
+ROU_GIU_AD_001_R
 THA_BKK_AD_001
 THA_BKK_AD_002
 THA_BKK_AD_003
@@ -1007,10 +859,15 @@ USA_FLO_AD_014
 USA_FLO_AD_015
 USA_FLO_AD_016
 USA_GEO_AD_001
+USA_GEO_MF_001
+USA_GEO_MF_002
 USA_ILL_AD_001
 USA_ILL_AD_002
+USA_ILL_MF_001
 USA_LOU_AD_001
 USA_LOU_AD_002
+USA_LOU_MF_001
+USA_MIP_MF_001
 USA_MIS_AD_001
 USA_MIS_AD_002
 USA_TEX_AD_001
@@ -1028,164 +885,41 @@ USA_TEX_AD_012
 USA_TEX_AD_013
 USA_TEX_AD_014
 USA_TEX_AD_015
+USA_WIS_AD_001
+VNM_HAI_AD_001
+VNM_HAN_AD_001
 
-# For wb (n=122) - wb_samplelist.keep
-AUS_BNE_AD_001
-AUS_BNE_AD_002
-AUS_BNE_AD_003
-AUS_BNE_AD_003_R
-AUS_BNE_AD_004
-AUS_BNE_AD_005
-AUS_BNE_AD_006
-AUS_BNE_AD_008
-AUS_BNE_AD_009
-AUS_CNS_AD_001
-AUS_CNS_AD_002
-AUS_LHR_AD_001
-AUS_ROK_AD_001
-AUS_SYD_AD_001
-AUS_SYD_AD_003
-AUS_SYD_AD_004
-AUS_SYD_AD_005
-AUS_SYD_AD_005_R
-AUS_SYD_AD_006
-AUS_SYD_AD_007
-AUS_SYD_AD_008
-AUS_SYD_AD_008_R
-AUS_SYD_AD_009
-AUS_SYD_AD_010
-AUS_SYD_AD_011
-AUS_SYD_AD_012
-AUS_SYD_AD_013
-AUS_SYD_AD_014
-AUS_SYD_AD_015
-AUS_TVS_AD_001
-AUS_TVS_AD_002
-AUS_TVS_AD_003
-AUS_TVS_AD_004
-AUS_TVS_AD_005
-AUS_TVS_AD_006
-AUS_TVS_AD_007
-AUS_TVS_AD_008
-AUS_TVS_AD_009
-AUS_TVS_AD_010
-AUS_TVS_AD_011
-AUS_TVS_AD_012
-AUS_TVS_AD_013
-AUS_TVS_AD_014
-AUS_TVS_AD_015
-AUS_TVS_AD_016
-AUS_TVS_AD_017
-AUS_TVS_AD_018
-AUS_TVS_AD_019
-CRI_SJO_AD_001
-GRC_XAN_AD_001
-GRC_XAN_AD_002
-GRC_XAN_AD_003
-GRC_XAN_AD_004
-GRC_XAN_AD_005
-GRC_XAN_AD_006
-GRC_XAN_AD_007
-GRC_XAN_AD_008
-GRC_XAN_AD_009
-GRC_XAN_AD_010
-GRC_XAN_AD_012
-ITA_NEA_AD_001
-ITA_NEA_AD_002
-ITA_NEA_AD_003
-ITA_PAV_AD_001
-PAN_BOC_AD_002
-PAN_BOC_AD_004
-PAN_BOC_AD_005
-PAN_PUE_AD_001
-PAN_PUE_AD_002
-PAN_PUE_AD_003
-PAN_PUE_AD_004
-PAN_PUE_AD_004_R
-PAN_PUE_AD_005
-PAN_PUE_AD_006
-PAN_SLO_AD_001
-PAN_SLO_AD_002
-PAN_SLO_AD_003
-ROU_BUC_AD_001
-ROU_GIU_AD_001
-THA_BKK_AD_001
-THA_BKK_AD_002
-THA_BKK_AD_003
-THA_BKK_AD_005
-THA_BKK_AD_006
-USA_FLO_AD_001
-USA_FLO_AD_002
-USA_FLO_AD_003
-USA_FLO_AD_004
-USA_FLO_AD_005
-USA_FLO_AD_006
-USA_FLO_AD_007
-USA_FLO_AD_008
-USA_FLO_AD_009
-USA_FLO_AD_010
-USA_FLO_AD_011
-USA_FLO_AD_012
-USA_FLO_AD_013
-USA_FLO_AD_014
-USA_FLO_AD_015
-USA_FLO_AD_016
-USA_GEO_AD_001
-USA_ILL_AD_001
-USA_ILL_AD_002
-USA_LOU_AD_001
-USA_LOU_AD_002
-USA_MIS_AD_001
-USA_MIS_AD_002
-USA_TEX_AD_001
-USA_TEX_AD_002
-USA_TEX_AD_003
-USA_TEX_AD_004
-USA_TEX_AD_005
-USA_TEX_AD_006
-USA_TEX_AD_007
-USA_TEX_AD_008
-USA_TEX_AD_009
-USA_TEX_AD_010
-USA_TEX_AD_011
-USA_TEX_AD_012
-USA_TEX_AD_013
-USA_TEX_AD_014
-USA_TEX_AD_015
+# For mithochondiral (n=141) - mito_samplelist.keep
+#Same as above
+
+# For wb (n=141) - wb_samplelist.keep
+#same as above
 ```
 
 
 ### Let's check different thresholds for each dataset
 
-bsub.py 2 run_check_thresh "run_check_thresh.sh"
-
 ```bash
-# load modules
-module load vcftools/0.1.16-c4
-
-cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS
-VCF=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/DIMMITIS_POPGEN.cohort.2024-06-10.NO_OUTGROUPS.recode.vcf.gz
-
 # For nuclear variants
 for i in 0.7 0.8 0.9 1; do
      vcftools --vcf ${VCF%.vcf.gz}.nuclear_SNPs.final.recode.vcf --keep nuclear_samplelist.keep --max-missing ${i} ;
 done
 
 # max-missing = 0.7
-#After filtering, kept 127 out of 136 Individuals
-#After filtering, kept 267937 out of a possible 268519 Sites
+#After filtering, kept 141 out of 141 Individuals
+#After filtering, kept 267769 out of a possible 268781 Sites
 
 # max-missing = 0.8
-#After filtering, kept 127 out of 136 Individuals
-#After filtering, kept 267135 out of a possible 268519 Sites
+#After filtering, kept 141 out of 141 Individuals
+#After filtering, kept 266159 out of a possible 268781 Sites
 
 # max-missing = 0.9
-#After filtering, kept 127 out of 136 Individuals
-#After filtering, kept 265312 out of a possible 268519 Sites
+# After filtering, kept 141 out of 141 Individuals
+#After filtering, kept 230039 out of a possible 268781 Sites
 
 # max-missing = 1
-#After filtering, kept 127 out of 136 Individuals
-#After filtering, kept 196719 out of a possible 268519 Sites
+# After filtering, kept 141 out of 141 Individuals
+#After filtering, kept 0 out of a possible 268781 Sites
 
 
 # For mito variants
@@ -1194,20 +928,20 @@ for i in 0.7 0.8 0.9 1; do
 done
 
 # max-missing = 0.7
-#After filtering, kept 130 out of 136 Individuals
-#After filtering, kept 32 out of a possible 32 Sites
+# After filtering, kept 141 out of 141 Individuals
+#After filtering, kept 500 out of a possible 500 Sites
 
 # max-missing = 0.8
-#After filtering, kept 130 out of 136 Individuals
-#After filtering, kept 32 out of a possible 32 Sites
+# After filtering, kept 141 out of 141 Individuals
+#After filtering, kept 500 out of a possible 500 Sites
 
 # max-missing = 0.9
-#After filtering, kept 130 out of 136 Individuals
-#After filtering, kept 32 out of a possible 32 Sites
+# After filtering, kept 141 out of 141 Individuals
+#After filtering, kept 500 out of a possible 500 Sites
 
 # max-missing = 1
-#After filtering, kept 130 out of 136 Individuals
-#After filtering, kept 30 out of a possible 32 Sites
+# After filtering, kept 141 out of 141 Individuals
+#After filtering, kept 0 out of a possible 500 Sites
 
 
 # For Wb variants
@@ -1216,40 +950,32 @@ for i in 0.7 0.8 0.9 1; do
 done
 
 # max-missing = 0.7
-#After filtering, kept 122 out of 136 Individuals
-#After filtering, kept 291 out of a possible 291 Sites
+# After filtering, kept 141 out of 141 Individuals
+#After filtering, kept 25923 out of a possible 25923 Sites
 
 # max-missing = 0.8
-#After filtering, kept 122 out of 136 Individuals
-#After filtering, kept 291 out of a possible 291 Sites
+# After filtering, kept 141 out of 141 Individuals
+#After filtering, kept 25921 out of a possible 25923 Sites
 
 # max-missing = 0.9
-#After filtering, kept 122 out of 136 Individuals
-#After filtering, kept 291 out of a possible 291 Sites
+# After filtering, kept 141 out of 141 Individuals
+#After filtering, kept 11533 out of a possible 25923 Sites
 
 # max-missing = 1
-#After filtering, kept 122 out of 136 Individuals
-#After filtering, kept 114 out of a possible 291 Sites
+# After filtering, kept 141 out of 141 Individuals
+#After filtering, kept 0 out of a possible 25923 Sites
 ```
 
-Selecting a max missingness of 0.9 for nuclear, 0.9 for mito and 0.9 for Wb is sensible.
-
-bsub.py 1 run_thresh "run_thresh.sh"
+Selecting a max missingness of 0.8 for nuclear, 0.9 for mito and 0.8 for Wb is sensible.
 
 ```bash
-# load modules
-module load vcftools/0.1.16-c4
-
-cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS
-VCF=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/DIMMITIS_POPGEN.cohort.2024-06-10.NO_OUTGROUPS.recode.vcf.gz
 mkdir FINAL_SETS
-
 # For nuclear
 vcftools --vcf ${VCF%.vcf.gz}.nuclear_SNPs.final.recode.vcf \
      --keep nuclear_samplelist.keep \
-     --max-missing 0.9 \
+     --max-missing 0.8 \
      --recode --recode-INFO-all \
-     --out FINAL_SETS/nuclear_samples3x_missing0.9
+     --out FINAL_SETS/nuclear_samples3x_missing0.8
 
 # For mito
 vcftools --vcf ${VCF%.vcf.gz}.mito_SNPs.final.recode.vcf \
@@ -1261,67 +987,110 @@ vcftools --vcf ${VCF%.vcf.gz}.mito_SNPs.final.recode.vcf \
 # For wb
 vcftools --vcf ${VCF%.vcf.gz}.Wb_SNPs.final.recode.vcf \
      --keep wb_samplelist.keep \
-     --max-missing 0.9 \
+     --max-missing 0.8 \
      --recode --recode-INFO-all \
-     --out FINAL_SETS/wb_samples3x_missing0.9
+     --out FINAL_SETS/wb_samples3x_missing0.8
 ```
 
 
-### Select only the variants in the chr 1 to chr4, avoiding the chrX and the scaffolds. And select chr1-4 separately.
-
-bsub.py 2 run_select_chr "run_select_chr.sh"
+### Also, we will select only the variants in the chr 1 to chr4, avoiding the chrX and the scaffolds
 
 ```bash
-# load modules
-module load vcftools/0.1.16-c4
-
-cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/FINAL_SETS
-
-vcftools --vcf nuclear_samples3x_missing0.9.recode.vcf \
+vcftools --vcf FINAL_SETS/nuclear_samples3x_missing0.8.recode.vcf \
 --chr dirofilaria_immitis_chr1 \
 --chr dirofilaria_immitis_chr2 \
 --chr dirofilaria_immitis_chr3 \
 --chr dirofilaria_immitis_chr4 \
---recode --out nuclear_samples3x_missing0.9.chr1to4
-#After filtering, kept 127 out of 127 Individuals
-#After filtering, kept 197055 out of a possible 265312 Sites
+--recode --out FINAL_SETS/nuclear_samples3x_missing0.8.chr1to4
+# After filtering, kept 141 out of 141 Individuals
+#After filtering, kept 197643 out of a possible 266159 Sites
 
-vcftools --vcf nuclear_samples3x_missing0.9.chr1to4.recode.vcf --remove-indels
-#After filtering, kept 127 out of 127 Individuals
-#After filtering, kept 197055 out of a possible 197055 Sites
 
-vcftools --vcf nuclear_samples3x_missing0.9.chr1to4.recode.vcf --keep-only-indels
-#After filtering, kept 127 out of 127 Individuals
-#After filtering, kept 0 out of a possible 197055 Sites - this makes sense because I removed the indels earlier and only focused on the SNPs.
+vcftools --vcf FINAL_SETS/nuclear_samples3x_missing0.8.chr1to4.recode.vcf --remove-indels
+# After filtering, kept 141 out of 141 Individuals
+# After filtering, kept 197643 out of a possible 197643 Sites
 
+
+vcftools --vcf FINAL_SETS/nuclear_samples3x_missing0.8.chr1to4.recode.vcf --keep-only-indels
+# After filtering, kept 141 out of 141 Individuals
+#After filtering, kept 0 out of a possible 197643 Sites- this makes sense because I removed the indels earlier and only focused on the SNPs.
+```
+
+
+## Select variants for chr1, chr2, chr3 and chr4 (SEPARATELY)
+
+```bash
+cd FINAL_SETS
 
 # chr1
-vcftools --vcf nuclear_samples3x_missing0.9.recode.vcf \
+vcftools --vcf nuclear_samples3x_missing0.8.chr1to4.recode.vcf \
 --chr dirofilaria_immitis_chr1 \
---recode --out nuclear_samples3x_missing0.9.chr1
-#After filtering, kept 127 out of 127 Individuals
-#After filtering, kept 50170 out of a possible 265312 Sites
+--recode --out nuclear_samples3x_missing0.8.chr1
+# After filtering, kept 141 out of 141 Individuals
+#After filtering, kept 50341 out of a possible 197643 Sites
 
 # chr2
-vcftools --vcf nuclear_samples3x_missing0.9.recode.vcf \
+vcftools --vcf nuclear_samples3x_missing0.8.chr1to4.recode.vcf \
 --chr dirofilaria_immitis_chr2 \
---recode --out nuclear_samples3x_missing0.9.chr2
-#After filtering, kept 127 out of 127 Individuals
-#After filtering, kept 45141 out of a possible 265312 Sites
+--recode --out nuclear_samples3x_missing0.8.chr2
+# After filtering, kept 141 out of 141 Individuals
+#After filtering, kept 45268 out of a possible 197643 Sites
 
 # chr3
-vcftools --vcf nuclear_samples3x_missing0.9.recode.vcf \
+vcftools --vcf nuclear_samples3x_missing0.8.chr1to4.recode.vcf \
 --chr dirofilaria_immitis_chr3 \
---recode --out nuclear_samples3x_missing0.9.chr3
-#After filtering, kept 127 out of 127 Individuals
-#After filtering, kept 50993 out of a possible 265312 Sites
+--recode --out nuclear_samples3x_missing0.8.chr3
+# After filtering, kept 141 out of 141 Individuals
+#After filtering, kept 51135 out of a possible 197643 Sites
 
 # chr4
-vcftools --vcf nuclear_samples3x_missing0.9.recode.vcf \
+vcftools --vcf nuclear_samples3x_missing0.8.chr1to4.recode.vcf \
 --chr dirofilaria_immitis_chr4 \
---recode --out nuclear_samples3x_missing0.9.chr4
-#After filtering, kept 127 out of 127 Individuals
-#After filtering, kept 50751 out of a possible 265312 Sites
+--recode --out nuclear_samples3x_missing0.8.chr4
+# After filtering, kept 141 out of 141 Individuals
+#After filtering, kept 50899 out of a possible 197643 Sites
+```
+
+## Get VCF without the outgroups (D. immitis only)
+
+```bash
+vcftools --vcf nuclear_samples3x_missing0.8.chr1to4.recode.vcf \
+--keep dimmitis_samplelist.keep \
+--recode --out nuclear_samples3x_missing0.8.chr1to4.DIMMITIS
+#After filtering, kept 136 out of 141 Individuals
+#After filtering, kept 197643 out of a possible 197643 Sites
+
+# chr 1
+vcftools --vcf nuclear_samples3x_missing0.8.chr1to4.recode.vcf \
+--keep dimmitis_samplelist.keep \
+--chr dirofilaria_immitis_chr1 \
+--recode --out nuclear_samples3x_missing0.8.chr1.DIMMITIS
+#After filtering, kept 136 out of 141 Individuals
+#After filtering, kept 50341 out of a possible 197643 Sites
+
+# chr 2
+vcftools --vcf nuclear_samples3x_missing0.8.chr1to4.recode.vcf \
+--keep dimmitis_samplelist.keep \
+--chr dirofilaria_immitis_chr2 \
+--recode --out nuclear_samples3x_missing0.8.chr2.DIMMITIS
+#After filtering, kept 136 out of 141 Individuals
+#After filtering, kept 45268 out of a possible 197643 Sites
+
+# chr 3
+vcftools --vcf nuclear_samples3x_missing0.8.chr1to4.recode.vcf \
+--keep dimmitis_samplelist.keep \
+--chr dirofilaria_immitis_chr3 \
+--recode --out nuclear_samples3x_missing0.8.chr3.DIMMITIS
+#After filtering, kept 136 out of 141 Individuals
+#After filtering, kept 51135 out of a possible 197643 Sites
+
+# chr 4
+vcftools --vcf nuclear_samples3x_missing0.8.chr1to4.recode.vcf \
+--keep dimmitis_samplelist.keep \
+--chr dirofilaria_immitis_chr4 \
+--recode --out nuclear_samples3x_missing0.8.chr4.DIMMITIS
+#After filtering, kept 136 out of 141 Individuals
+#After filtering, kept 50899 out of a possible 197643 Sites
 ```
 
 
