@@ -360,6 +360,36 @@ smc++ estimate --timepoints 0 1000000 -o USA/ 2.7e-9 DATA/USA.*.smc.gz
 smc++ plot -g 5 -c SMCPP_USA.png USA/model.final.json
 ```
 
+# See if I can adjust the x limits of the plots
+
+bsub.py 2 run_smcpp_replot "run_smcpp_replot.sh"
+
+```bash
+# Load modules
+module load smcpp/1.15.3-c1
+
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/SMCPP
+
+# Get sample names for each population
+ASIA=$(awk -F'_' '$1 == "MYS" || $1 == "THA" {print}' nuclear_samplelist.keep | paste -sd ',')
+AUS=$(awk -F'_' '$1 == "AUS" {print}' nuclear_samplelist.keep | paste -sd ',')
+CAM=$(awk -F'_' '$1 == "PAN" || $1 == "CRI" {print}' nuclear_samplelist.keep | paste -sd ',')
+EUR=$(awk -F'_' '$1 == "GRC" || $1 == "ITA" || $1 == "ROU" {print}' nuclear_samplelist.keep | paste -sd ',')
+USA=$(awk -F'_' '$1 == "USA" {print}' nuclear_samplelist.keep | paste -sd ',')
+declare -A populations
+populations=(
+  [ASIA]=$ASIA
+  [AUS]=$AUS
+  [CAM]=$CAM
+  [EUR]=$EUR
+  [USA]=$USA
+)
+
+# USA
+smc++ estimate --timepoints 1 1000000 -o USA_replot/ 2.7e-9 DATA/USA.*.smc.gz
+smc++ plot -g 5 -c SMCPP_USA_replot.png USA_replot/model.final.json
+```
+
 
 ########################################################################################
 ```bash
