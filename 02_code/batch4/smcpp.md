@@ -98,7 +98,7 @@ tabix -p vcf smcpp.vcf.gz
 
 # Plot per population 
 
-bsub.py 10 run_smcpp "run_smcpp.sh"
+bsub.py --queue long 10 run_smcpp "run_smcpp.sh"
 
 ```bash
 # Load modules
@@ -146,7 +146,7 @@ done
 
 # Fit the model using Estimate
 ## # mutation rate (C.elegans) = 2.7e-9 (https://doi.org/10.1073/pnas.0904895106)
-smc++ estimate --timepoints 0 1000000 -o ASIA/ 2.7e-9 DATA/ASIA.*.smc.gz
+smc++ estimate --timepoints 1 1000000 -o ASIA/ 2.7e-9 DATA/ASIA.*.smc.gz
 
 # plot
 ## Use generation time of D. immitis ~ 5 yrs
@@ -211,7 +211,7 @@ done
 
 # Fit the model using Estimate
 ## # mutation rate (C.elegans) = 2.7e-9 (https://doi.org/10.1073/pnas.0904895106)
-smc++ estimate --timepoints 0 1000000 -o AUS/ 2.7e-9 DATA/AUS.*.smc.gz
+smc++ estimate --timepoints 1 1000000 -o AUS/ 2.7e-9 DATA/AUS.*.smc.gz
 
 # plot
 ## Use generation time of D. immitis ~ 5 yrs
@@ -248,7 +248,7 @@ done
 
 # Fit the model using Estimate
 ## # mutation rate (C.elegans) = 2.7e-9 (https://doi.org/10.1073/pnas.0904895106)
-smc++ estimate --timepoints 0 1000000 -o CAM/ 2.7e-9 DATA/CAM.*.smc.gz
+smc++ estimate --timepoints 1 1000000 -o CAM/ 2.7e-9 DATA/CAM.*.smc.gz
 
 # plot
 ## Use generation time of D. immitis ~ 5 yrs
@@ -291,7 +291,7 @@ done
 
 # Fit the model using Estimate
 ## # mutation rate (C.elegans) = 2.7e-9 (https://doi.org/10.1073/pnas.0904895106)
-smc++ estimate --timepoints 0 1000000 -o EUR/ 2.7e-9 DATA/EUR.*.smc.gz
+smc++ estimate --timepoints 1 1000000 -o EUR/ 2.7e-9 DATA/EUR.*.smc.gz
 
 # plot
 ## Use generation time of D. immitis ~ 5 yrs
@@ -353,42 +353,13 @@ done
 
 # Fit the model using Estimate
 ## # mutation rate (C.elegans) = 2.7e-9 (https://doi.org/10.1073/pnas.0904895106)
-smc++ estimate --timepoints 0 1000000 -o USA/ 2.7e-9 DATA/USA.*.smc.gz
+smc++ estimate --timepoints 1 1000000 -o USA/ 2.7e-9 DATA/USA.*.smc.gz
 
 # plot
 ## Use generation time of D. immitis ~ 5 yrs
 smc++ plot -g 5 -c SMCPP_USA.png USA/model.final.json
 ```
 
-# See if I can adjust the x limits of the plots
-
-bsub.py 2 run_smcpp_replot "run_smcpp_replot.sh"
-
-```bash
-# Load modules
-module load smcpp/1.15.3-c1
-
-cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/SMCPP
-
-# Get sample names for each population
-ASIA=$(awk -F'_' '$1 == "MYS" || $1 == "THA" {print}' nuclear_samplelist.keep | paste -sd ',')
-AUS=$(awk -F'_' '$1 == "AUS" {print}' nuclear_samplelist.keep | paste -sd ',')
-CAM=$(awk -F'_' '$1 == "PAN" || $1 == "CRI" {print}' nuclear_samplelist.keep | paste -sd ',')
-EUR=$(awk -F'_' '$1 == "GRC" || $1 == "ITA" || $1 == "ROU" {print}' nuclear_samplelist.keep | paste -sd ',')
-USA=$(awk -F'_' '$1 == "USA" {print}' nuclear_samplelist.keep | paste -sd ',')
-declare -A populations
-populations=(
-  [ASIA]=$ASIA
-  [AUS]=$AUS
-  [CAM]=$CAM
-  [EUR]=$EUR
-  [USA]=$USA
-)
-
-# USA
-smc++ estimate --timepoints 1 1000000 -o USA_replot/ 2.7e-9 DATA/USA.*.smc.gz
-smc++ plot -g 5 -c SMCPP_USA_replot.png USA_replot/model.final.json
-```
 
 
 ########################################################################################
