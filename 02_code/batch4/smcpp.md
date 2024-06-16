@@ -2,6 +2,8 @@
 
 ## Batch 4 data
 
+## Prep VCF file for smcpp
+
 ```bash
 module load bsub.py/0.42.1
 module load smcpp/1.15.3-c1
@@ -96,7 +98,9 @@ zcat smcpp.vcf.gz | \
 tabix -p vcf smcpp.vcf.gz
 ```
 
-# Plot per population 
+## Plot per population 
+
+### timepoint = 1 to 1 million years, generation time = 5 years
 
 bsub.py --queue long 10 run_smcpp "run_smcpp.sh"
 
@@ -359,25 +363,373 @@ smc++ estimate --timepoints 1 1000000 -o USA/ 2.7e-9 DATA/USA.*.smc.gz
 ## Use generation time of D. immitis ~ 5 yrs
 smc++ plot -g 5 -c SMCPP_USA.png USA/model.final.json
 ```
+Put this output into a folder called 't1m/g5'. Now try out a few other parameters.
 
 
-
-########################################################################################
-```bash
-# Clean split models
-
-The split command fits two-population clean split models (assumes no ongoing gene flow between the two populations after they diverged)
+### timepoint = 1 to 1 million years, generation time = 1 year
 
 ```bash
+module load bsub.py/0.42.1
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/SMCPP/t1m/g1
+bsub.py --queue long 10 run_smcpp_t1m_g1 "run_smcpp_t1m_g1.sh"
+```
+
+```bash
+# Load modules
+module load smcpp/1.15.3-c1
+
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/SMCPP/t1m/g1
+
+
+# ASIA
+# plot
+## Use generation time of D. immitis ~ 1 yrs
+smc++ plot -g 1 -c SMCPP_ASIA_t1m_g1.png ../g5/ASIA/model.final.json
+
+# AUS
+# plot
+## Use generation time of D. immitis ~ 1 yrs
+smc++ plot -g 1 -c SMCPP_AUS_t1m_g1.png ../g5/AUS/model.final.json
+
+# CAM
+# plot
+## Use generation time of D. immitis ~ 1 yrs
+smc++ plot -g 1 -c SMCPP_CAM_t1m_g1.png ../g5/CAM/model.final.json
+
+# EUR
+# plot
+## Use generation time of D. immitis ~ 1 yrs
+smc++ plot -g 1 -c SMCPP_EUR_t1m_g1.png ../g5/EUR/model.final.json
+
+# USA
+# plot
+## Use generation time of D. immitis ~ 1 yrs
+smc++ plot -g 1 -c SMCPP_USA_t1m_g1.png ../g5/USA/model.final.json
+```
+
+### timepoint = 1 to 1 million years, generation time = 2.5 years
+
+```bash
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/SMCPP/t1m/g2.5
+bsub.py --queue long 10 run_smcpp_t1m_g2.5 "run_smcpp_t1m_g2.5.sh"
+```
+
+```bash
+# Load modules
+module load smcpp/1.15.3-c1
+
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/SMCPP/t1m/g2.5
+
+# ASIA
+# plot
+## Use generation time of D. immitis ~ 2.5 yrs
+smc++ plot -g 2.5 -c SMCPP_ASIA_t1m_g2.5.png ../g5/ASIA/model.final.json
+
+# AUS
+# plot
+## Use generation time of D. immitis ~ 2.5 yrs
+smc++ plot -g 2.5 -c SMCPP_AUS_t1m_g2.5.png ../g5/AUS/model.final.json
+
+# CAM
+# plot
+## Use generation time of D. immitis ~ 2.5 yrs
+smc++ plot -g 2.5 -c SMCPP_CAM_t1m_g2.5.png ../g5/CAM/model.final.json
+
+# EUR
+# plot
+## Use generation time of D. immitis ~ 2.5 yrs
+smc++ plot -g 2.5 -c SMCPP_EUR_t1m_g2.5.png ../g5/EUR/model.final.json
+
+# USA
+# plot
+## Use generation time of D. immitis ~ 2.5 yrs
+smc++ plot -g 2.5 -c SMCPP_USA_t1m_g2.5.png ../g5/USA/model.final.json
+```
+
+### timepoint = 1 to 1.5 million years, generation time = 1, 2.5, 5 years
+
+```bash
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/SMCPP/t1.5m
+bsub.py --queue long 10 run_smcpp_t1.5m "run_smcpp_t1.5m.sh"
+```
+
+```bash
+# Load modules
+module load smcpp/1.15.3-c1
+
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/SMCPP/t1.5m
+
+# nuclear_samplelist.keep - the samples outputted in the final vcf. Removed repeat samples.
+
+# ASIA
+# Fit the model using Estimate
+## # mutation rate (C.elegans) = 2.7e-9 (https://doi.org/10.1073/pnas.0904895106)
+smc++ estimate --timepoints 1 1500000 -o ASIA/ 2.7e-9 ../t1m/g5/DATA/ASIA.*.smc.gz
+# plot
+## Use generation time of D. immitis ~ 1, 2.5 & 5 yrs
+smc++ plot -g 1 -c g1/SMCPP_ASIA_t1.5m_g1.png ASIA/model.final.json
+smc++ plot -g 2.5 -c g2.5/SMCPP_ASIA_t1.5m_g2.5.png ASIA/model.final.json
+smc++ plot -g 5 -c g5/SMCPP_ASIA_t1.5m_g5.png ASIA/model.final.json
+
+# AUS
+# Fit the model using Estimate
+## # mutation rate (C.elegans) = 2.7e-9 (https://doi.org/10.1073/pnas.0904895106)
+smc++ estimate --timepoints 1 1500000 -o AUS/ 2.7e-9 ../t1m/g5/DATA/AUS.*.smc.gz
+# plot
+## Use generation time of D. immitis ~ 5 yrs
+smc++ plot -g 1 -c g1/SMCPP_AUS_t1.5m_g1.png AUS/model.final.json
+smc++ plot -g 2.5 -c g2.5/SMCPP_AUS_t1.5m_g2.5.png AUS/model.final.json
+smc++ plot -g 5 -c g5/SMCPP_AUS_t1.5m_g5.png AUS/model.final.json
+
+# CAM
+# Fit the model using Estimate
+## # mutation rate (C.elegans) = 2.7e-9 (https://doi.org/10.1073/pnas.0904895106)
+smc++ estimate --timepoints 1 1500000 -o CAM/ 2.7e-9 ../t1m/g5/DATA/CAM.*.smc.gz
+# plot
+## Use generation time of D. immitis ~ 5 yrs
+smc++ plot -g 1 -c g1/SMCPP_CAM_t1.5m_g1.png CAM/model.final.json
+smc++ plot -g 2.5 -c g2.5/SMCPP_CAM_t1.5m_g2.5.png CAM/model.final.json
+smc++ plot -g 5 -c g5/SMCPP_CAM_t1.5m_g5.png CAM/model.final.json
+
+# EUR
+# Fit the model using Estimate
+## # mutation rate (C.elegans) = 2.7e-9 (https://doi.org/10.1073/pnas.0904895106)
+smc++ estimate --timepoints 1 1500000 -o EUR/ 2.7e-9 ../t1m/g5/DATA/EUR.*.smc.gz
+# plot
+## Use generation time of D. immitis ~ 5 yrs
+smc++ plot -g 1 -c g1/SMCPP_EUR_t1.5m_g1.png EUR/model.final.json
+smc++ plot -g 2.5 -c g2.5/SMCPP_EUR_t1.5m_g2.5.png EUR/model.final.json
+smc++ plot -g 5 -c g5/SMCPP_EUR_t1.5m_g5.png EUR/model.final.json
+
+# USA
+# Fit the model using Estimate
+## # mutation rate (C.elegans) = 2.7e-9 (https://doi.org/10.1073/pnas.0904895106)
+smc++ estimate --timepoints 1 1500000 -o USA/ 2.7e-9 ../t1m/g5/DATA/USA.*.smc.gz
+# plot
+## Use generation time of D. immitis ~ 5 yrs
+smc++ plot -g 1 -c g1/SMCPP_USA_t1.5m_g1.png USA/model.final.json
+smc++ plot -g 2.5 -c g2.5/SMCPP_USA_t1.5m_g2.5.png USA/model.final.json
+smc++ plot -g 5 -c g5/SMCPP_USA_t1.5m_g5.png USA/model.final.json
+```
+
+
+### timepoint = 1 to 1 million years, generation time = 2.5 years, -c 1kbp
+
+The -c parameter will treat runs of homozygosity longer than -c bp as missing.
+
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/SMCPP/c1kbp
+bsub.py --queue long 10 run_smcpp_c1kbp "run_smcpp_c1kbp.sh"
+
+```bash
+# Load modules
+module load smcpp/1.15.3-c1
+
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/SMCPP/c1kbp
+mkdir DATA
+
+# Get sample names for each population
+ASIA=$(awk -F'_' '$1 == "MYS" || $1 == "THA" {print}' ../nuclear_samplelist.keep | paste -sd ',')
+AUS=$(awk -F'_' '$1 == "AUS" {print}' nuclear_samplelist.keep | paste -sd ',')
+CAM=$(awk -F'_' '$1 == "PAN" || $1 == "CRI" {print}' ../nuclear_samplelist.keep | paste -sd ',')
+EUR=$(awk -F'_' '$1 == "GRC" || $1 == "ITA" || $1 == "ROU" {print}' ../nuclear_samplelist.keep | paste -sd ',')
+USA=$(awk -F'_' '$1 == "USA" {print}' ../nuclear_samplelist.keep | paste -sd ',')
+declare -A populations
+populations=(
+  [ASIA]=$ASIA
+  [AUS]=$AUS
+  [CAM]=$CAM
+  [EUR]=$EUR
+  [USA]=$USA
+)
+# nuclear_samplelist.keep - the samples outputted in the final vcf. Removed repeat samples.
+
+# ASIA
+# Convert VCF to the SMC++ input format with vcf2smc
+for chr in {1..4}; do
+  smc++ vcf2smc -c 1000 ../ASIA.recode.vcf.gz DATA/ASIA.chr${chr}.smc.gz dirofilaria_immitis_chr${chr} ASIA:${ASIA};
+done
+# each call to vcf2smc processes a single contig. VCFs containing multiple contigs should be processed via multiple separate runs.
+
+# Fit the model using Estimate
+## # mutation rate (C.elegans) = 2.7e-9 (https://doi.org/10.1073/pnas.0904895106)
+smc++ estimate --timepoints 1 1000000 -o ASIA/ 2.7e-9 DATA/ASIA.*.smc.gz
+
+# plot
+## Use generation time of D. immitis ~ 2.5 yrs
+smc++ plot -g 2.5 -c SMCPP_ASIA_c1kbp.png ASIA/model.final.json
+
+
+# AUS
+# Convert VCF to the SMC++ input format with vcf2smc
+for chr in {1..4}; do
+  smc++ vcf2smc -c 1000 ../AUS.recode.vcf.gz DATA/AUS.chr${chr}.smc.gz dirofilaria_immitis_chr${chr} AUS:${AUS};
+done
+# each call to vcf2smc processes a single contig. VCFs containing multiple contigs should be processed via multiple separate runs.
+
+# Fit the model using Estimate
+## # mutation rate (C.elegans) = 2.7e-9 (https://doi.org/10.1073/pnas.0904895106)
+smc++ estimate --timepoints 1 1000000 -o AUS/ 2.7e-9 DATA/AUS.*.smc.gz
+
+# plot
+## Use generation time of D. immitis ~ 2.5 yrs
+smc++ plot -g 2.5 -c SMCPP_AUS_c1kbp.png AUS/model.final.json
+
+
+
+# CAM
+# Convert VCF to the SMC++ input format with vcf2smc
+for chr in {1..4}; do
+  smc++ vcf2smc -c 1000 ../CAM.recode.vcf.gz DATA/CAM.chr${chr}.smc.gz dirofilaria_immitis_chr${chr} CAM:${CAM};
+done
+# each call to vcf2smc processes a single contig. VCFs containing multiple contigs should be processed via multiple separate runs.
+
+# Fit the model using Estimate
+## # mutation rate (C.elegans) = 2.7e-9 (https://doi.org/10.1073/pnas.0904895106)
+smc++ estimate --timepoints 1 1000000 -o CAM/ 2.7e-9 DATA/CAM.*.smc.gz
+
+# plot
+## Use generation time of D. immitis ~ 2.5 yrs
+smc++ plot -g 2.5 -c SMCPP_CAM_c1kbp.png CAM/model.final.json
+
+
+
+
+# EUR
+# Convert VCF to the SMC++ input format with vcf2smc
+for chr in {1..4}; do
+  smc++ vcf2smc -c 1000 ../EUR.recode.vcf.gz DATA/EUR.chr${chr}.smc.gz dirofilaria_immitis_chr${chr} EUR:${EUR};
+done
+# each call to vcf2smc processes a single contig. VCFs containing multiple contigs should be processed via multiple separate runs.
+
+# Fit the model using Estimate
+## # mutation rate (C.elegans) = 2.7e-9 (https://doi.org/10.1073/pnas.0904895106)
+smc++ estimate --timepoints 1 1000000 -o EUR/ 2.7e-9 DATA/EUR.*.smc.gz
+
+# plot
+## Use generation time of D. immitis ~ 2.5 yrs
+smc++ plot -g 2.5 -c SMCPP_EUR_c1kbp.png EUR/model.final.json
+
+
+
+
+
+# USA
+# Convert VCF to the SMC++ input format with vcf2smc
+for chr in {1..4}; do
+  smc++ vcf2smc -c 1000 ../USA.recode.vcf.gz DATA/USA.chr${chr}.smc.gz dirofilaria_immitis_chr${chr} USA:${USA};
+done
+# each call to vcf2smc processes a single contig. VCFs containing multiple contigs should be processed via multiple separate runs.
+
+# Fit the model using Estimate
+## # mutation rate (C.elegans) = 2.7e-9 (https://doi.org/10.1073/pnas.0904895106)
+smc++ estimate --timepoints 1 1000000 -o USA/ 2.7e-9 DATA/USA.*.smc.gz
+
+# plot
+## Use generation time of D. immitis ~ 2.5 yrs
+smc++ plot -g 2.5 -c SMCPP_USA_c1kbp.png USA/model.final.json
+```
+
+
+## Split
+
+The split command fits two-population clean split models (assumes no ongoing gene flow between the two populations after they diverged).
+
+## Timepoint 1 to 1,000,000, generation time ~2.5 years
+
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/SMCPP/split/g2.5
+bsub.py --queue long 10 run_smcpp_split_test "run_smcpp_split_test.sh"
+
+```bash
+# Load modules
+module load smcpp/1.15.3-c1
+module load common-apps/htslib/1.9.229
+module load vcftools/0.1.16-c4
+
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/SMCPP/split/g2.5
+mkdir DATA
+mkdir DATA/ASIA_AUS
+
+# Get sample names for each population
+ASIA=$(awk -F'_' '$1 == "MYS" || $1 == "THA" {print}' ../../nuclear_samplelist.keep | paste -sd ',')
+AUS=$(awk -F'_' '$1 == "AUS" {print}' ../../nuclear_samplelist.keep | paste -sd ',')
+CAM=$(awk -F'_' '$1 == "PAN" || $1 == "CRI" {print}' ../../nuclear_samplelist.keep | paste -sd ',')
+EUR=$(awk -F'_' '$1 == "GRC" || $1 == "ITA" || $1 == "ROU" {print}' ../../nuclear_samplelist.keep | paste -sd ',')
+USA=$(awk -F'_' '$1 == "USA" {print}' ../../nuclear_samplelist.keep | paste -sd ',')
+declare -A populations
+populations=(
+  [ASIA]=$ASIA
+  [AUS]=$AUS
+  [CAM]=$CAM
+  [EUR]=$EUR
+  [USA]=$USA
+)
+# nuclear_samplelist.keep - the samples outputted in the final vcf. Removed repeat samples.
+
 # Create datasets containing the joint frequency spectrum for both populations. Run split.
 ## ASIA & AUS
+vcftools --gzvcf ../../smcpp.vcf.gz \
+--indv MYS_SEL_AD_001 \
+--indv THA_BKK_AD_001 \
+--indv THA_BKK_AD_002 \
+--indv THA_BKK_AD_003 \
+--indv THA_BKK_AD_004 \
+--indv THA_BKK_AD_005 \
+--indv THA_BKK_AD_006 \
+--indv AUS_BNE_AD_001 \
+--indv AUS_BNE_AD_002 \
+--indv AUS_BNE_AD_003 \
+--indv AUS_BNE_AD_004 \
+--indv AUS_BNE_AD_006 \
+--indv AUS_BNE_AD_008 \
+--indv AUS_BNE_AD_009 \
+--indv AUS_CNS_AD_001 \
+--indv AUS_CNS_AD_002 \
+--indv AUS_LHR_AD_001 \
+--indv AUS_ROK_AD_001 \
+--indv AUS_SYD_AD_001 \
+--indv AUS_SYD_AD_002 \
+--indv AUS_SYD_AD_003 \
+--indv AUS_SYD_AD_004 \
+--indv AUS_SYD_AD_005 \
+--indv AUS_SYD_AD_006 \
+--indv AUS_SYD_AD_007 \
+--indv AUS_SYD_AD_008 \
+--indv AUS_SYD_AD_009 \
+--indv AUS_SYD_AD_010 \
+--indv AUS_SYD_AD_011 \
+--indv AUS_SYD_AD_012 \
+--indv AUS_SYD_AD_013 \
+--indv AUS_SYD_AD_014 \
+--indv AUS_SYD_AD_015 \
+--indv AUS_TVS_AD_001 \
+--indv AUS_TVS_AD_002 \
+--indv AUS_TVS_AD_003 \
+--indv AUS_TVS_AD_004 \
+--indv AUS_TVS_AD_005 \
+--indv AUS_TVS_AD_006 \
+--indv AUS_TVS_AD_007 \
+--indv AUS_TVS_AD_008 \
+--indv AUS_TVS_AD_010 \
+--indv AUS_TVS_AD_011 \
+--indv AUS_TVS_AD_012 \
+--indv AUS_TVS_AD_013 \
+--indv AUS_TVS_AD_014 \
+--indv AUS_TVS_AD_015 \
+--indv AUS_TVS_AD_016 \
+--indv AUS_TVS_AD_017 \
+--indv AUS_TVS_AD_018 \
+--indv AUS_TVS_AD_019 \
+--max-missing 1 --recode --out ../ASIA_AUS
+bgzip -f ../ASIA_AUS.recode.vcf
+tabix ../ASIA_AUS.recode.vcf.gz
+
 for chr in {1..4}; do
-mkdir split/ASIA_AUS/chr${chr}
-smc++ vcf2smc ${VCF_MOD} split/ASIA_AUS/chr${chr}/chr${chr}_ASIA_AUS.smc.gz dirofilaria_immitis_chr${chr} ASIA:${ASIA} AUS:${AUS}
-smc++ vcf2smc ${VCF_MOD} split/ASIA_AUS/chr${chr}/chr${chr}_AUS_ASIA.smc.gz dirofilaria_immitis_chr${chr} AUS:${AUS} ASIA:${ASIA}
-smc++ split --timepoints 0 100000 -o split/ASIA_AUS/chr${chr} chr${chr}_ASIA_model/model.final.json chr${chr}_AUS_model.json/model.final.json split/ASIA_AUS/chr${chr}/*.smc.gz
-smc++ plot split/ASIA_AUS/chr${chr}/chr${chr}_ASIA_AUS.pdf split/ASIA_AUS/chr${chr}/model.final.json;
+smc++ vcf2smc ../ASIA_AUS.recode.vcf.gz DATA/ASIA_AUS/ASIA_AUS.chr${chr}.smc.gz dirofilaria_immitis_chr${chr} ASIA:${ASIA} AUS:${AUS}
+smc++ vcf2smc ../ASIA_AUS.recode.vcf.gz DATA/ASIA_AUS/AUS_ASIA.chr${chr}.smc.gz dirofilaria_immitis_chr${chr} AUS:${AUS} ASIA:${ASIA};
 done
+smc++ split --timepoints 1 1000000 -o ASIA_AUS ../../t1m/g5/ASIA/model.final.json ../../t1m/g5/AUS/model.final.json DATA/ASIA_AUS/*.smc.gz
+smc++ plot -g 2.5 -c SMCPP_ASIA_AUS_g2.5.png ASIA_AUS/model.final.json
+```
 
 ## ASIA & CAM
 for chr in {1..4}; do
