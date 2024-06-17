@@ -458,6 +458,9 @@ bsub.py --queue long 10 run_smcpp_t1.5m "run_smcpp_t1.5m.sh"
 module load smcpp/1.15.3-c1
 
 cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/SMCPP/t1.5m
+mkdir g1
+mkdir g2.5
+mkdir g5
 
 # nuclear_samplelist.keep - the samples outputted in the final vcf. Removed repeat samples.
 
@@ -529,7 +532,7 @@ mkdir DATA
 
 # Get sample names for each population
 ASIA=$(awk -F'_' '$1 == "MYS" || $1 == "THA" {print}' ../nuclear_samplelist.keep | paste -sd ',')
-AUS=$(awk -F'_' '$1 == "AUS" {print}' nuclear_samplelist.keep | paste -sd ',')
+AUS=$(awk -F'_' '$1 == "AUS" {print}' ../nuclear_samplelist.keep | paste -sd ',')
 CAM=$(awk -F'_' '$1 == "PAN" || $1 == "CRI" {print}' ../nuclear_samplelist.keep | paste -sd ',')
 EUR=$(awk -F'_' '$1 == "GRC" || $1 == "ITA" || $1 == "ROU" {print}' ../nuclear_samplelist.keep | paste -sd ',')
 USA=$(awk -F'_' '$1 == "USA" {print}' ../nuclear_samplelist.keep | paste -sd ',')
@@ -636,8 +639,8 @@ The split command fits two-population clean split models (assumes no ongoing gen
 
 ## Timepoint 1 to 1,000,000, generation time ~2.5 years
 
-cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/SMCPP/split/g2.5
-bsub.py --queue long 10 run_smcpp_split_test "run_smcpp_split_test.sh"
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/SMCPP/split/g2.5/run1
+bsub.py --queue long 10 run_smcpp_split_g2.5_run1 "run_smcpp_split_g2.5_run1.sh"
 
 ```bash
 # Load modules
@@ -645,119 +648,136 @@ module load smcpp/1.15.3-c1
 module load common-apps/htslib/1.9.229
 module load vcftools/0.1.16-c4
 
-cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/SMCPP/split/g2.5
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/SMCPP/split/g2.5/run1
+
+# Create necessary directories
 mkdir DATA
-mkdir DATA/ASIA_AUS
+mkdir DATA/ASIA_AUS DATA/ASIA_CAM DATA/ASIA_EUR DATA/ASIA_USA
+mkdir DATA/AUS_CAM DATA/AUS_EUR DATA/AUS_USA
+mkdir DATA/CAM_EUR DATA/CAM_USA DATA/EUR_USA
 
 # Get sample names for each population
-ASIA=$(awk -F'_' '$1 == "MYS" || $1 == "THA" {print}' ../../nuclear_samplelist.keep | paste -sd ',')
-AUS=$(awk -F'_' '$1 == "AUS" {print}' ../../nuclear_samplelist.keep | paste -sd ',')
-CAM=$(awk -F'_' '$1 == "PAN" || $1 == "CRI" {print}' ../../nuclear_samplelist.keep | paste -sd ',')
-EUR=$(awk -F'_' '$1 == "GRC" || $1 == "ITA" || $1 == "ROU" {print}' ../../nuclear_samplelist.keep | paste -sd ',')
-USA=$(awk -F'_' '$1 == "USA" {print}' ../../nuclear_samplelist.keep | paste -sd ',')
+ASIA=$(awk -F'_' '$1 == "MYS" || $1 == "THA" {print $0}' ../../../nuclear_samplelist.keep | paste -sd ',')
+AUS=$(awk -F'_' '$1 == "AUS" {print $0}' ../../../nuclear_samplelist.keep | paste -sd ',')
+CAM=$(awk -F'_' '$1 == "PAN" || $1 == "CRI" {print $0}' ../../../nuclear_samplelist.keep | paste -sd ',')
+EUR=$(awk -F'_' '$1 == "GRC" || $1 == "ITA" || $1 == "ROU" {print $0}' ../../../nuclear_samplelist.keep | paste -sd ',')
+USA=$(awk -F'_' '$1 == "USA" {print $0}' ../../../nuclear_samplelist.keep | paste -sd ',')
+
 declare -A populations
 populations=(
-  [ASIA]=$ASIA
-  [AUS]=$AUS
-  [CAM]=$CAM
-  [EUR]=$EUR
-  [USA]=$USA
+  [ASIA]="$ASIA"
+  [AUS]="$AUS"
+  [CAM]="$CAM"
+  [EUR]="$EUR"
+  [USA]="$USA"
 )
-# nuclear_samplelist.keep - the samples outputted in the final vcf. Removed repeat samples.
 
-# Create datasets containing the joint frequency spectrum for both populations. Run split.
-## ASIA & AUS
-vcftools --gzvcf ../../smcpp.vcf.gz \
---indv MYS_SEL_AD_001 \
---indv THA_BKK_AD_001 \
---indv THA_BKK_AD_002 \
---indv THA_BKK_AD_003 \
---indv THA_BKK_AD_004 \
---indv THA_BKK_AD_005 \
---indv THA_BKK_AD_006 \
---indv AUS_BNE_AD_001 \
---indv AUS_BNE_AD_002 \
---indv AUS_BNE_AD_003 \
---indv AUS_BNE_AD_004 \
---indv AUS_BNE_AD_006 \
---indv AUS_BNE_AD_008 \
---indv AUS_BNE_AD_009 \
---indv AUS_CNS_AD_001 \
---indv AUS_CNS_AD_002 \
---indv AUS_LHR_AD_001 \
---indv AUS_ROK_AD_001 \
---indv AUS_SYD_AD_001 \
---indv AUS_SYD_AD_002 \
---indv AUS_SYD_AD_003 \
---indv AUS_SYD_AD_004 \
---indv AUS_SYD_AD_005 \
---indv AUS_SYD_AD_006 \
---indv AUS_SYD_AD_007 \
---indv AUS_SYD_AD_008 \
---indv AUS_SYD_AD_009 \
---indv AUS_SYD_AD_010 \
---indv AUS_SYD_AD_011 \
---indv AUS_SYD_AD_012 \
---indv AUS_SYD_AD_013 \
---indv AUS_SYD_AD_014 \
---indv AUS_SYD_AD_015 \
---indv AUS_TVS_AD_001 \
---indv AUS_TVS_AD_002 \
---indv AUS_TVS_AD_003 \
---indv AUS_TVS_AD_004 \
---indv AUS_TVS_AD_005 \
---indv AUS_TVS_AD_006 \
---indv AUS_TVS_AD_007 \
---indv AUS_TVS_AD_008 \
---indv AUS_TVS_AD_010 \
---indv AUS_TVS_AD_011 \
---indv AUS_TVS_AD_012 \
---indv AUS_TVS_AD_013 \
---indv AUS_TVS_AD_014 \
---indv AUS_TVS_AD_015 \
---indv AUS_TVS_AD_016 \
---indv AUS_TVS_AD_017 \
---indv AUS_TVS_AD_018 \
---indv AUS_TVS_AD_019 \
---max-missing 1 --recode --out ../ASIA_AUS
-bgzip -f ../ASIA_AUS.recode.vcf
-tabix ../ASIA_AUS.recode.vcf.gz
+# Function to create dataset and run smc++ commands
+process_pair() {
+  local pop1=$1
+  local pop2=$2
+  local out_prefix="../../${pop1}_${pop2}"
+  local dir_prefix="DATA/${pop1}_${pop2}"
+  
+  # Generate VCF for the pair
+  vcftools --gzvcf ../../../smcpp.vcf.gz \
+    $(echo ${populations[$pop1]} | tr ',' '\n' | awk '{print "--indv "$0}') \
+    $(echo ${populations[$pop2]} | tr ',' '\n' | awk '{print "--indv "$0}') \
+    --max-missing 1 --recode --out $out_prefix
 
-for chr in {1..4}; do
-smc++ vcf2smc ../ASIA_AUS.recode.vcf.gz DATA/ASIA_AUS/ASIA_AUS.chr${chr}.smc.gz dirofilaria_immitis_chr${chr} ASIA:${ASIA} AUS:${AUS}
-smc++ vcf2smc ../ASIA_AUS.recode.vcf.gz DATA/ASIA_AUS/AUS_ASIA.chr${chr}.smc.gz dirofilaria_immitis_chr${chr} AUS:${AUS} ASIA:${ASIA};
-done
-smc++ split --timepoints 1 1000000 -o ASIA_AUS ../../t1m/g5/ASIA/model.final.json ../../t1m/g5/AUS/model.final.json DATA/ASIA_AUS/*.smc.gz
-smc++ plot -g 2.5 -c SMCPP_ASIA_AUS_g2.5.png ASIA_AUS/model.final.json
+  bgzip -f ${out_prefix}.recode.vcf
+  tabix ${out_prefix}.recode.vcf.gz
+
+  for chr in {1..4}; do
+    smc++ vcf2smc ${out_prefix}.recode.vcf.gz ${dir_prefix}/${pop1}_${pop2}.chr${chr}.smc.gz dirofilaria_immitis_chr${chr} ${pop1}:${populations[$pop1]} ${pop2}:${populations[$pop2]}
+    smc++ vcf2smc ${out_prefix}.recode.vcf.gz ${dir_prefix}/${pop2}_${pop1}.chr${chr}.smc.gz dirofilaria_immitis_chr${chr} ${pop2}:${populations[$pop2]} ${pop1}:${populations[$pop1]}
+  done
+
+  smc++ split --timepoints 1 1000000 -o ${pop1}_${pop2} 2.7e-9 ../../../t1m/g5/${pop1}/model.final.json ../../../t1m/g5/${pop2}/model.final.json ${dir_prefix}/*.smc.gz
+  smc++ plot -g 2.5 -c SMCPP_${pop1}_${pop2}_g2.5.png ${pop1}_${pop2}/model.final.json
+}
+
+# Process each population pair
+process_pair ASIA AUS
+process_pair ASIA CAM
+process_pair ASIA EUR
+process_pair ASIA USA
+process_pair AUS CAM
+process_pair AUS EUR
+process_pair AUS USA
+process_pair CAM EUR
+process_pair CAM USA
+process_pair EUR USA
 ```
 
-## ASIA & CAM
-for chr in {1..4}; do
-mkdir split/ASIA_CAM/chr${chr}
-smc++ vcf2smc ${VCF_MOD} split/ASIA_CAM/chr${chr}/chr${chr}_ASIA_CAM.smc.gz dirofilaria_immitis_chr${chr} ASIA:${ASIA} CAM:${CAM}
-smc++ vcf2smc ${VCF_MOD} split/ASIA_CAM/chr${chr}/chr${chr}_CAM_ASIA.smc.gz dirofilaria_immitis_chr${chr} CAM:${CAM} ASIA:${ASIA}
-smc++ split -o split/ASIA_CAM/chr${chr} chr${chr}_ASIA_model.json/model.final.json chr${chr}_CAM_model.json/model.final.json split/ASIA_CAM/chr${chr}/*.smc.gz
-smc++ plot split/ASIA_CAM/chr${chr}/chr${chr}_ASIA_CAM.pdf split/ASIA_CAM/chr${chr}/model.final.json;
-done
 
-## ASIA & EUR
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/SMCPP/split/g2.5/run2
+bsub.py --done "run_smcpp_split_g2.5_run1" --queue long 10 run_smcpp_split_g2.5_run2 "run_smcpp_split_g2.5_run2.sh"
 
-## ASIA & USA
+```bash
+# Load modules
+module load smcpp/1.15.3-c1
+module load common-apps/htslib/1.9.229
+module load vcftools/0.1.16-c4
 
-## AUS & CAM
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/SMCPP/split/g2.5/run2
 
-## AUS & EUR
+# Create necessary directories
+mkdir DATA
+mkdir DATA/AUS_ASIA DATA/CAM_ASIA DATA/EUR_ASIA DATA/USA_ASIA
+mkdir DATA/CAM_AUS DATA/EUR_AUS DATA/USA_AUS
+mkdir DATA/EUR_CAM DATA/USA_CAM DATA/USA_EUR
 
-## AUS & USA
+# Get sample names for each population
+ASIA=$(awk -F'_' '$1 == "MYS" || $1 == "THA" {print $0}' ../../../nuclear_samplelist.keep | paste -sd ',')
+AUS=$(awk -F'_' '$1 == "AUS" {print $0}' ../../../nuclear_samplelist.keep | paste -sd ',')
+CAM=$(awk -F'_' '$1 == "PAN" || $1 == "CRI" {print $0}' ../../../nuclear_samplelist.keep | paste -sd ',')
+EUR=$(awk -F'_' '$1 == "GRC" || $1 == "ITA" || $1 == "ROU" {print $0}' ../../../nuclear_samplelist.keep | paste -sd ',')
+USA=$(awk -F'_' '$1 == "USA" {print $0}' ../../../nuclear_samplelist.keep | paste -sd ',')
 
-## CAM & EUR
+declare -A populations
+populations=(
+  [ASIA]="$ASIA"
+  [AUS]="$AUS"
+  [CAM]="$CAM"
+  [EUR]="$EUR"
+  [USA]="$USA"
+)
 
-## CAM & USA
+# Function to create dataset and run smc++ commands
+process_pair() {
+  local pop1=$1
+  local pop2=$2
+  local out_prefix="../../${pop1}_${pop2}"
+  local dir_prefix="DATA/${pop1}_${pop2}"
+  
+  # Generate VCF for the pair
+  vcftools --gzvcf ../../../smcpp.vcf.gz \
+    $(echo ${populations[$pop1]} | tr ',' '\n' | awk '{print "--indv "$0}') \
+    $(echo ${populations[$pop2]} | tr ',' '\n' | awk '{print "--indv "$0}') \
+    --max-missing 1 --recode --out $out_prefix
 
-## EUR & USA
+  bgzip -f ${out_prefix}.recode.vcf
+  tabix ${out_prefix}.recode.vcf.gz
 
+  for chr in {1..4}; do
+    smc++ vcf2smc ${out_prefix}.recode.vcf.gz ${dir_prefix}/${pop1}_${pop2}.chr${chr}.smc.gz dirofilaria_immitis_chr${chr} ${pop1}:${populations[$pop1]} ${pop2}:${populations[$pop2]}
+    smc++ vcf2smc ${out_prefix}.recode.vcf.gz ${dir_prefix}/${pop2}_${pop1}.chr${chr}.smc.gz dirofilaria_immitis_chr${chr} ${pop2}:${populations[$pop2]} ${pop1}:${populations[$pop1]}
+  done
 
+  smc++ split --timepoints 1 1000000 -o ${pop1}_${pop2} 2.7e-9 ../../../t1m/g5/${pop1}/model.final.json ../../../t1m/g5/${pop2}/model.final.json ${dir_prefix}/*.smc.gz
+  smc++ plot -g 2.5 -c SMCPP_${pop1}_${pop2}_g2.5.png ${pop1}_${pop2}/model.final.json
+}
 
-
-
+# Process each population pair
+process_pair AUS ASIA
+process_pair CAM ASIA
+process_pair EUR ASIA
+process_pair USA ASIA
+process_pair CAM AUS
+process_pair EUR AUS
+process_pair USA AUS
+process_pair EUR CAM
+process_pair USA CAM
+process_pair USA EUR
 ```
