@@ -228,26 +228,116 @@ grep -i "error" *.e
 
 ### Nextflow pipeline 
 
+Steve ran mapping-helminth module on the data.
+
 ```bash
+mapping-helminth --input wgs.mapping.manifest_extra --reference /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/01_REF/reference_di_wol_dog.fa
+```
+
+## Extract reads that mapped to the *D. immitis* genome
+
+If I mapped to the *D. immitis* and dog genomes separately, there could be reads that mapped to both genomes. To avoid this, I mapped to the combined D. immitis/dog genome. I can now extract the reads that mapped to only the *D. immitis* genome and use this for downstream analyses.
+
+
+```bash
+WORKING_DIR=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA
+OUT_DIR=${WORKING_DIR}/03_ANALYSIS/02_MAP/EXTRACT/EXTRA
+REF=${WORKING_DIR}/01_REF/dimmitis_WSI_2.2.fa
+SAMPLE_LIST=${WORKING_DIR}/03_ANALYSIS/02_MAP/EXTRA/samples_extra.list
+
 # Load modules
 module load bsub.py/0.42.1
-module load mapping-helminth/v1.0.9
+module load samtools/1.14--hb421002_0
 
-# Set variables
+# We've already indexed the reference previously.
+BED=${WORKING_DIR}/01_REF/dimmitis_WSI_2.2.bed
+
+# Extract reads that only mapped to D. immitis.
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/02_MAP/EXTRA
+
+n=1
+while read SAMPLE; do
+echo "samtools view --threads 4 --bam --with-header --target-file ${BED} /lustre/scratch125/pam/teams/team333/sd21/dirofilaria_immitis/POPGEN/NEWDATA_2024/results/${SAMPLE}/${SAMPLE}.bam > ${OUT_DIR}/${SAMPLE}_extract.bam" > run_extract_${SAMPLE}.tmp.job_${n};
+let "n+=1";
+done < ${SAMPLE_LIST}
+# Should still be in sorted form
+# -b flag makes sure the output is bam
+# -h flag includes the header in SAM output
+
+chmod a+x run_extract_*
+
+#run
+for i in run_extract_*; do
+    bsub.py --threads 4 20 ${i} "./${i}";
+done
+
+mkdir LOGS
+mv run_extract_*.e run_extract_*.o LOGS
+rm run_extract_*
+
+# check for any errors
+cd LOGS
+grep -i "Exited" *.o
+grep -i "Successfully completed." *.o | wc -l
+grep -i "error" *.e
+# All ok
+
+
+# I do not have to sort the bam file again, it should still be sorted.
+
+## QC
+# How many D. immitis reads were extracted?
+
+bsub.py 4 extract_flagstat_extra "../extract_flagstat_extra.sh"
+
 WORKING_DIR=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA
-REF=${WORKING_DIR}/01_REF/reference_di_wol_dog.fa
-IN_DIR=${WORKING_DIR}/03_ANALYSIS/01_PREP/TRIMMOMATIC/EXTRA
-OUT_DIR=${WORKING_DIR}/03_ANALYSIS/02_MAP/EXTRA
+OUT_DIR=${WORKING_DIR}/03_ANALYSIS/02_MAP/EXTRACT/EXTRA
+SAMPLE_LIST=${WORKING_DIR}/03_ANALYSIS/02_MAP/EXTRA/samples_extra.list
 
-cd ${OUT_DIR}
+module load samtools/1.14--hb421002_0
+module load multiqc/1.17--pyhdfd78af_1
 
-# Get sample list
-for file in ${IN_DIR}/*.fq.gz; do
-  basename ${file} | cut -d'_' -f1
-done | sort | uniq > ${OUT_DIR}/samples_extra.list
-SAMPLE_LIST=${OUT_DIR}/samples_extra.list
+while read SAMPLE; do
+samtools flagstat ${OUT_DIR}/${SAMPLE}_extract.bam > ${OUT_DIR}/${SAMPLE}_extract_flagstat.txt;
+done < ${SAMPLE_LIST}
 
-# Prep manifest
-# Run pipeline
-bsub.py --threads 20 20 mapping_extra "mapping-helminth --input ${IN_DIR}/wgs.mapping.manifest_extra --reference ${REF}"
+# multiqc to combine flagstat files for all samples
+bsub.py 4 multiqc_extract_flagstat "multiqc /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/02_MAP/EXTRACT /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/02_MAP/EXTRACT/EXTRA -o /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/02_MAP/EXTRACT"
+```
+
+
+## Index the extracted bam files
+
+```bash
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/02_MAP/EXTRA
+
+n=1
+while read SAMPLE; do
+echo "samtools index ${OUT_DIR}/${SAMPLE}_extract.bam" > run_extract_index_${SAMPLE}.tmp.job_${n};
+let "n+=1";
+done < ${SAMPLE_LIST}
+
+chmod a+x run_extract_index_*
+
+#run
+for i in run_extract_index_*; do
+    bsub.py --threads 2 10 ${i} "./${i}";
+done
+
+# check for any errors
+grep -i "Exited" *.o
+grep -i "Successfully completed." *.o | wc -l
+grep -i "error" *.e
+# All ok
+
+mv run_extract_index*.e run_extract_index*.o LOGS
+rm run_extract_index*
+
+# get extracted bam list for variant calling
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/02_MAP/EXTRACT/EXTRA
+for file in *.bam; do
+echo "$(pwd)/$file" >> extra.bamlist;
+done
+
+ls *.bam > extra.bamlist
 ```

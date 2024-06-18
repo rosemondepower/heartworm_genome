@@ -794,6 +794,12 @@ grep -i "error" *.e
 
 bsub.py 4 extract_flagstat "../extract_flagstat.sh"
 
+WORKING_DIR=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA
+OUT_DIR=${WORKING_DIR}/03_ANALYSIS/02_MAP/EXTRACT
+SAMPLE_LIST=${WORKING_DIR}/03_ANALYSIS/02_MAP/samples.list
+
+module load samtools/1.14--hb421002_0
+
 while read SAMPLE; do
 samtools flagstat ${OUT_DIR}/${SAMPLE}_extract.bam > ${OUT_DIR}/${SAMPLE}_extract_flagstat.txt;
 done < ${SAMPLE_LIST}
