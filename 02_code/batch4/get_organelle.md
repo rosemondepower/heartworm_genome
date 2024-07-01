@@ -1,10 +1,16 @@
-# Get Organelle to get consensus mitochondrial genomes
+# Assembling mitochondrial genomes
+
+## Get Organelle
+
+Assemble the mitochondrial genomes of all samples (exclude the MF samples).
+- Downloaded get_organelle_from_reads.py v1.7.7.1 (https://github.com/Kinggerm/GetOrganelle)
 
 ```bash
 # Install getorganelles
 conda create --name getorganelle
 conda activate getorganelle
 conda install -c bioconda getorganelle
+conda install -c bioconda matplotlib
 conda list
 # installed getorganelle v1.7.7.1
 get_organelle_config.py -a all # download animal_mt
@@ -14,50 +20,185 @@ mkdir GetOrganelle
 WORKING_DIR=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/05_MITO/GetOrganelle
 cd ${WORKING_DIR}
 
-# Choose ~ 1 sample per population and run
+# Load modules
+module load bsub.py/0.42.1
+
+# Make job scripts
 n=1
-SAMPLE_LIST=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/05_MITO/GetOrganelle/samples.list
+SAMPLE_LIST=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/05_MITO/GetOrganelle/samples.txt
 while IFS=$'\t' read -r SAMPLE_OLD SAMPLE_NEW; do
-    echo "get_organelle_from_reads.py -1 /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/02_FASTQ/${SAMPLE_OLD}_*1.f*q.gz -2 /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/02_FASTQ/${SAMPLE_OLD}_*2.f*q.gz -t 4 -F animal_mt -o ${WORKING_DIR}/${SAMPLE_NEW} -R 30 --reduce-reads-for-coverage 1000 --max-reads 20000000 -w 95" > run_getorganelles_${SAMPLE_NEW}.tmp.job_${n};
+    echo "get_organelle_from_reads.py -1 /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/02_FASTQ/${SAMPLE_OLD}_*1.f*q.gz -2 /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/02_FASTQ/${SAMPLE_OLD}_*2.f*q.gz -t 4 -F animal_mt -o ${WORKING_DIR}/${SAMPLE_NEW} -R 20 --reduce-reads-for-coverage 80" > run_getorganelles_${SAMPLE_NEW}.tmp.job_${n};
     let "n+=1";
 done < ${SAMPLE_LIST}
+## want 80-100x coverage
 
+# extra samples
+SAMPLE_EXTRA_LIST=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/05_MITO/GetOrganelle/samples_extra.txt
+while IFS=$'\t' read -r SAMPLE_OLD SAMPLE_NEW; do
+    echo "get_organelle_from_reads.py -1 /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/02_FASTQ/EXTRA/${SAMPLE_OLD}_*1.f*q.gz -2 /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/02_FASTQ/EXTRA/${SAMPLE_OLD}_*2.f*q.gz -t 4 -F animal_mt -o ${WORKING_DIR}/${SAMPLE_NEW} -R 20 --reduce-reads-for-coverage 80" > run_getorganelles_${SAMPLE_NEW}.tmp.job_${n};
+    let "n+=1";
+done < ${SAMPLE_EXTRA_LIST}
+
+# Make job scripts executable
 chmod a+x run_getorganelles_*
 
-#run
+# Run GetOrganelle
 for i in run_getorganelles_*; do
-    bsub.py --threads 4 10 ${i} "./${i}";
+    bsub.py --threads 4 50 ${i} "./${i}";
+done
+```
+
+
+## Re-running some samples
+
+```bash
+# ITA_NEA_AD_004 & ITA_NEA_AD_005 (D. repens) outgroup samples have low coverage, re-run these
+rm -r ITA_NEA_AD_004 ITA_NEA_AD_005
+SAMPLE_OUTGROUP_LIST=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/05_MITO/GetOrganelle/samples_outgroup.txt
+while IFS=$'\t' read -r SAMPLE_OLD SAMPLE_NEW; do
+    echo "get_organelle_from_reads.py -1 /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/02_FASTQ/${SAMPLE_OLD}_*1.f*q.gz -2 /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/02_FASTQ/${SAMPLE_OLD}_*2.f*q.gz -t 4 -F animal_mt -o ${WORKING_DIR}/${SAMPLE_NEW} -R 20 --reduce-reads-for-coverage 120" > run_getorganelles_${SAMPLE_NEW}_rerun.tmp.job_${n};
+    let "n+=1";
+done < ${SAMPLE_OUTGROUP_LIST}
+
+# Make job scripts executable
+chmod a+x run_getorganelles_*rerun*
+
+# Run GetOrganelle
+for i in run_getorganelles_*rerun*; do
+    bsub.py --threads 4 20 ${i} "./${i}";
+done
+# better now
+
+
+## Some GRC samples having issues, try re-running with adjusted parameters
+rm -r GRC_XAN_AD_010 GRC_XAN_AD_011 GRC_XAN_AD_012
+SAMPLE_RERUN_LIST=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/05_MITO/GetOrganelle/samples_rerun.txt
+while IFS=$'\t' read -r SAMPLE_OLD SAMPLE_NEW; do
+    echo "get_organelle_from_reads.py -1 /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/02_FASTQ/${SAMPLE_OLD}_*1.f*q.gz -2 /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/02_FASTQ/${SAMPLE_OLD}_*2.f*q.gz -t 8 -F animal_mt -o ${WORKING_DIR}/${SAMPLE_NEW} -R 20 --reduce-reads-for-coverage 500" > run_getorganelles_${SAMPLE_NEW}_rerun.tmp.job_${n};
+    let "n+=1";
+done < ${SAMPLE_RERUN_LIST}
+
+# Make job scripts executable
+chmod a+x run_getorganelles_*rerun*
+
+# Run GetOrganelle
+for i in run_getorganelles_GRC*rerun*; do
+    bsub.py --threads 8 50 ${i} "./${i}";
+done
+# still low coverage and some warnings
+
+
+# Get average coverage for each sample
+output_file="coverage_summary.txt"
+for sample_dir in */; do
+    sample_dir=${sample_dir%/}
+    if [ -f "$sample_dir/get_org.log.txt" ]; then
+        coverage_line=$(grep "Average animal_mt base-coverage =" "$sample_dir/get_org.log.txt")
+        if [ ! -z "$coverage_line" ]; then
+            echo "$sample_dir" >> $output_file
+            echo "$coverage_line" >> $output_file
+            echo "" >> $output_file 
+        fi
+    fi
 done
 
-# clean up
+# Clean up
 mv run_getorganelles_*.e run_getorganelles_*.o LOGS
 rm run_getorganelles_*
 
+# Check
 cd LOGS
 grep -i "Exited" *.o
 grep -i "Successfully completed" *.o | wc -l
 grep -i "Error" *.e
 # All ok
 
-# Add sample ID to sequences
-cd ..
-while IFS=, read -r sequence sequence_id; do
-cp ${sequence} ${sequence_id}
-done < sequence_id.csv
+# Add sample IDs to filenames and edit header of fasta file
+cd ASSEMBLIES
+while IFS=$'\t' read -r sequence sequence_id; do
+cp ../${sequence} ${sequence_id}
+new_header=$(basename "${sequence_id}" .fasta)
+sed -i "1s/.*/>${new_header}/" "${sequence_id}"
+done < ../sequence_id.txt
 
-# Combine all samples into 1 fasta file
-for file in *.fasta; do
-    [ "$file" = "heartworm.fasta" ] && continue
-    header="${file%.fasta}"
-    second_line=$(sed -n '2p' "$file")
-    echo ">${header}" >> heartworm.fasta
-    echo "${second_line}" >> heartworm.fasta;
-done
-mitos
+"
+cp: cannot stat '../GRC_XAN_AD_010/animal_mt*.graph1.1.path_sequence.fasta': No such file or directory
+sed: can't read GRC_XAN_AD_010.fasta: No such file or directory
+cp: cannot stat '../GRC_XAN_AD_011/animal_mt*.graph1.1.path_sequence.fasta': No such file or directory        
+sed: can't read GRC_XAN_AD_011.fasta: No such file or directory
+cp: cannot stat '../GRC_XAN_AD_012/animal_mt*.graph1.1.path_sequence.fasta': No such file or directory        
+sed: can't read GRC_XAN_AD_012.fasta: No such file or directory
+"
 
+# do the GRC ones now that they're finished running
+cd ASSEMBLIES
+while IFS=$'\t' read -r sequence sequence_id; do
+cp ../${sequence} ${sequence_id}
+new_header=$(basename "${sequence_id}" .fasta)
+sed -i "1s/.*/>${new_header}/" "${sequence_id}"
+done < ../sequence_id_rerun.txt
+
+
+### scratch
+bsub.py --threads 8 20 coverage_test "evaluate_assembly_using_mapping.py -f /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/05_MITO/GetOrganelle/AUS_BNE_AD_001/animal_mt.K115.scaffolds.graph1.1.path_sequence.fasta -1 /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/02_FASTQ/JS6342_1.fq.gz -2 /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/02_FASTQ/JS6342_2.fq.gz -t 8 -o coverage --continue --draw --plot-title AUS_BNE_AD_001-GetOrganelle"
+
+while IFS=$'\t' read -r SAMPLE_OLD SAMPLE_NEW; do
+    echo "bsub.py 4 coverage_test "evaluate_assembly_using_mapping.py -f /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/05_MITO/GetOrganelle/${SAMPLE_NEW}/animal_mt.K115.*.graph1.1.path_sequence.fasta -1 /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/02_FASTQ/${SAMPLE_OLD}_*1.f*q.gz -2 /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/02_FASTQ/${SAMPLE_OLD}_*2.f*q.gz -o COVERAGE/${SAMPLE_NEW} --draw --plot-title ${SAMPLE_NEW}-GetOrganelle --plot-subtitle "Arguments: -R 10 --reduce-read-for-coverage 80"" > run_coverage_${SAMPLE_NEW}.tmp.job_${n};
+    let "n+=1";
+done < ${SAMPLE_LIST}
 ```
 
-Questions
+
+
+## CLC
+
+**Mitochondrial references obtained**
+
+D. immitis
+- (NC_005305): https://doi.org/10.1017/S0031182003003275
+- (mDi_Athens_2.1): https://doi.org/10.1096%2Ffj.12-205096
+- (mDi_Pavia_2.1): https://doi.org/10.1096%2Ffj.12-205096
+
+D. sp. 'Thailand II'
+- (MH823370-72): https://doi.org/10.1111/tbed.13033
+
+D. sp. 'hongkongensis'
+- (KX265050): https://doi.org/10.1371/journal.pntd.0005028
+
+D. repens
+- (KX265047-49): https://doi.org/10.1371/journal.pntd.0005028
+- (KR071802): unpublished
+
+O. volvulus
+- (KT599912): https://doi.org/10.1590/0074-02760150350
+- (AF015193): https://doi.org/10.1016/S0166-6851(98)00102-9
+- (AP017695): unpublished
+
+O. ochengi
+- (KX181289): unpublished
+- (PRJEB1809): https://doi.org/10.1101/gr.138420.112 ### didnt download this
+- (KX181290): unpublished
+- (AP017694): unpublished
+- (AP017693): unpublished
+
+O. flexuosa
+- (AP017692): unpublished
+- (HQ214004): https://doi.org/10.1186/1471-2164-13-145
+
+All sequences (including ref seqs) were manually edited to start at cox1 and then an alignment was created.
+
+
+
+
+
+
+
+
+
+
+
+## Questions/notes from Phylo workshop
+
 - should I align by MUSCLE or clustalW and does it matter?
 - I have 120+ samples from around the world (show map) - should i subsample to make a tree?
 - Where to put mutation rate in BEAST?  - mutation rate (C.elegans) = 2.7e-9 (https://doi.org/10.1073/pnas.0904895106)
@@ -72,7 +213,7 @@ Notes/advice from Simon:
 
 Notes from demo:
 - probably shouldnt run across whole mito genome because there's diff rates of evolution, there's the D loop that has a lot of mutations
-- best to do the genius method to pull out certain genes of itnerest.
+- best to do the genius method to pull out certain genes of interest.
 - but you need an annotated genome to see where the genes are - can use web server MITOS to annotate genome -> you just click "nematode" etc and that's it
 -Whether you use MUSCLE or clustalW doesnt really matter in most cases
 -you would want to partition it based on codon position 1,2,3, esp if looking at protein coding genes. Substitution rate at 2nd position is far lower than the 3rd codon position bc it doesn't change the amino acid and get passed onto the next generation. Especially important if I'm just looking at the 1 species and there isn't much variation.
@@ -87,19 +228,3 @@ Notes from demo:
 - if you use mito-wide mutation rate then you need to use it on the entire mito. If you're only looking at cox1 then you need to use cox1-specific mutation rate.
 - you can have cox 1 and other genes, partition it between the cox 1 and others, then apply the cox1 mutation rate as a prior, but don't have a prior for the others (it will use the cox1 relatively so estimate the other genes).
 
-
-
-# Mitos
-
-Annotating mitochondrial genome.
-
-```bash
-module load samtools/1.14--hb421002_0
-
-cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/01_REF
-
-# Get mito reference
-samtools faidx dimmitis_WSI_2.2.fa "dirofilaria_immitis_chrMtDNA" > dimmitis_WSI_2.2_chrMtDNA.fa
-# index it
-samtools faidx dimmitis_WSI_2.2_chrMtDNA.fa
-```
