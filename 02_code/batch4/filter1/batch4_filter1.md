@@ -1353,3 +1353,7 @@ bsub.py 4 select_aus "vcftools --vcf nuclear_samples3x_missing0.9.chr1to4.recode
 ![](images/plot_nuc_5.png)
 
 ![](images/PC3_PC4_plot.png)
+
+![](images/plot_mt_5.png)
+
+![](images/plot_wb_5.png)

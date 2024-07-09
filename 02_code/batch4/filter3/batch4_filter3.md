@@ -1,6 +1,6 @@
-# Filter 2 - More stringent
+# Filter 3 - Less stringent
 
-Filter the VCF file with greater stringency.
+Filter the VCF file with less stringency.
 
 ## SNPs QC
 
@@ -11,18 +11,18 @@ module load bsub.py/0.42.1
 module load common-apps/htslib/1.9.229
 
 # Copy VCF into my own folder
-cp /lustre/scratch125/pam/teams/team333/sd21/dirofilaria_immitis/POPGEN/NEWDATA_2024/VARIANTS/gatk_hc_DIMMITIS_POPGEN/GATK_HC_MERGED/DIMMITIS_POPGEN.cohort.2024-06-27.* /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2
+cp /lustre/scratch125/pam/teams/team333/sd21/dirofilaria_immitis/POPGEN/NEWDATA_2024/VARIANTS/gatk_hc_DIMMITIS_POPGEN/GATK_HC_MERGED/DIMMITIS_POPGEN.cohort.2024-06-27.* /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER3
 
-VCF=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/DIMMITIS_POPGEN.cohort.2024-06-27.vcf.gz
+VCF=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER3/DIMMITIS_POPGEN.cohort.2024-06-27.vcf.gz
 
-cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER3/NO_OUTGROUPS
 
 # Remove outgroup samples so I have a VCF of D. immitis samples only
-bsub.py 2 vcf_no_outgroups "vcftools --gzvcf ${VCF} --keep dimmitis_samplelist.keep --recode --recode-INFO-all --out DIMMITIS_POPGEN.cohort.2024-06-27.NO_OUTGROUPS"
-bsub.py --done "vcf_no_outgroups" 1 vcf_no_outgroups_bgzip "bgzip DIMMITIS_POPGEN.cohort.2024-06-27.NO_OUTGROUPS.recode.vcf"
-bsub.py --done "vcf_no_outgroups_bgzip" 1 vcf_no_outgroups_index "tabix -p vcf DIMMITIS_POPGEN.cohort.2024-06-27.NO_OUTGROUPS.recode.vcf.gz"
+cp /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER1/NO_OUTGROUPS/DIMMITIS_POPGEN.cohort.2024-06-27.NO_OUTGROUPS.recode.vcf.gz .
+cp /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER1/NO_OUTGROUPS/DIMMITIS_POPGEN.cohort.2024-06-27.NO_OUTGROUPS.recode.vcf.gz.tbi .
+
 # Update VCF environmental variable
-VCF=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/DIMMITIS_POPGEN.cohort.2024-06-27.NO_OUTGROUPS.recode.vcf.gz
+VCF=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER3/NO_OUTGROUPS/DIMMITIS_POPGEN.cohort.2024-06-27.NO_OUTGROUPS.recode.vcf.gz
 ```
 
 ### Querying SNP and INDEL QC profiles to determine thresholds for filters
@@ -30,18 +30,18 @@ VCF=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/
 Adopted from Javier's paper.
 
 ```bash
-bsub.py --done "vcf_no_outgroups_index" 10 run_snps_qc "run_snps_qc.sh"
+bsub.py 10 run_snps_qc "run_snps_qc.sh"
 ```
 
 ```bash
 # Load modules
 module load gatk/4.1.4.1
 
-WORKING_DIR=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS
+WORKING_DIR=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER3/NO_OUTGROUPS
 
 # set reference, vcf, and mitochondrial and Wb contig
 REFERENCE=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/01_REF/dimmitis_WSI_2.2.fa
-VCF=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/DIMMITIS_POPGEN.cohort.2024-06-27.NO_OUTGROUPS.recode.vcf.gz
+VCF=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER3/NO_OUTGROUPS/DIMMITIS_POPGEN.cohort.2024-06-27.NO_OUTGROUPS.recode.vcf.gz
 MIT_CONTIG=dirofilaria_immitis_chrMtDNA
 WB_CONTIG=dirofilaria_immitis_chrWb
 cd ${WORKING_DIR}
@@ -155,7 +155,7 @@ library(gridExtra) # v.2.3
 
 sessionInfo()
 
-setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER2/NO_OUTGROUPS/snps_qc")
+setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER3/NO_OUTGROUPS/snps_qc")
 
 set.seed(123)
 
@@ -502,7 +502,7 @@ fun_variant_summaries(VCF_wb,"wolbachia")
 module load bsub.py/0.42.1
 module load gatk/4.1.4.1
 
-WORKING_DIR=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS
+WORKING_DIR=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER3/NO_OUTGROUPS
 cd ${WORKING_DIR}
 
 # set reference
@@ -641,8 +641,8 @@ bsub.py 10 run_standard_filt "run_standard_filt.sh"
 # load modules
 module load vcftools/0.1.16-c4
 
-cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS
-VCF=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/DIMMITIS_POPGEN.cohort.2024-06-27.NO_OUTGROUPS.recode.vcf.gz
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER3/NO_OUTGROUPS
+VCF=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER3/NO_OUTGROUPS/DIMMITIS_POPGEN.cohort.2024-06-27.NO_OUTGROUPS.recode.vcf.gz
 
 #Nuclear variants
 vcftools \
@@ -1169,8 +1169,8 @@ bsub.py 2 run_check_thresh "run_check_thresh.sh"
 # load modules
 module load vcftools/0.1.16-c4
 
-cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS
-VCF=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/DIMMITIS_POPGEN.cohort.2024-06-27.NO_OUTGROUPS.recode.vcf.gz
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER3/NO_OUTGROUPS
+VCF=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER3/NO_OUTGROUPS/DIMMITIS_POPGEN.cohort.2024-06-27.NO_OUTGROUPS.recode.vcf.gz
 
 # For nuclear variants
 for i in 0.7 0.8 0.9 1; do
@@ -1246,8 +1246,8 @@ bsub.py 1 run_thresh "run_thresh.sh"
 # load modules
 module load vcftools/0.1.16-c4
 
-cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS
-VCF=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/DIMMITIS_POPGEN.cohort.2024-06-27.NO_OUTGROUPS.recode.vcf.gz
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER3/NO_OUTGROUPS
+VCF=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER3/NO_OUTGROUPS/DIMMITIS_POPGEN.cohort.2024-06-27.NO_OUTGROUPS.recode.vcf.gz
 mkdir FINAL_SETS
 
 # For nuclear
@@ -1281,7 +1281,7 @@ bsub.py 4 run_select_chr "run_select_chr.sh"
 # load modules
 module load vcftools/0.1.16-c4
 
-cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/FINAL_SETS
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER3/NO_OUTGROUPS/FINAL_SETS
 
 # chr1-4
 vcftools --vcf nuclear_samples3x_missing1.recode.vcf \
