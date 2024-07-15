@@ -185,9 +185,65 @@ O. flexuosa
 - (AP017692): unpublished
 - (HQ214004): https://doi.org/10.1186/1471-2164-13-145
 
-All sequences (including ref seqs) were manually edited to start at cox1 and then an alignment was created.
+All sequences (including ref seqs) were manually edited to start at cox1.
+First, all my D. immitis sequences (including the D. immitis ref seqs) were aligned and cleaned. Then, the outgroup samples (including outgroup ref seqs) were added to the alignment, which was manually inspected and cleaned once more.
 
+Genes were extracted and separate alignments created. Now, I will make a tree based on the entire mtDNA genome, and the individual genes.
 
+## IQ-TREE
+
+```bash
+# load modules
+module load bsub.py/0.42.1
+module load iqtree/1.6.12--he513fc3_1
+
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/05_MITO/IQTREE/LOGS
+
+# run iqtree on whole mtDNA alignment
+bsub.py 4 iqtree_mito "iqtree -s ../INPUT/Mito_align_cleaned_outgroups.fa -bb 1000 -redo"
+
+## At the beginning of each run, iqtree performs a composition chi-square test for every sequence in the alignment. The purpose is to test for homogeneity of character composition (e.g., nucleotide for DNA, amino-acid for protein sequences). A sequence is denoted failed if its character composition significantly deviates from the average composition of the alignment. This test should be regarded as an explorative tool which might help to nail down problems in a dataset. One would typically not remove failing sequences by default. But if the tree shows unexpected topology the test might point in direction of the origin of the problem.
+
+## quite a few samples failed the chi-square test, but all of these samples were the outgroups.
+
+# run iqtree on ATP6
+bsub.py 2 iqtree_ATP6 "iqtree -s ../INPUT/Mito_align_cleaned_outgroups_ATP6.fa -bb 1000 -redo"
+
+# run iqtree on COX1
+bsub.py 2 iqtree_COX1 "iqtree -s ../INPUT/Mito_align_cleaned_outgroups_COX1.fa -bb 1000 -redo"
+
+# run iqtree on COX2
+bsub.py 2 iqtree_COX2 "iqtree -s ../INPUT/Mito_align_cleaned_outgroups_COX2.fa -bb 1000 -redo"
+
+# run iqtree on COX3
+bsub.py 2 iqtree_COX3 "iqtree -s ../INPUT/Mito_align_cleaned_outgroups_COX3.fa -bb 1000 -redo"
+
+# run iqtree on CYTB
+bsub.py 2 iqtree_CYTB "iqtree -s ../INPUT/Mito_align_cleaned_outgroups_CYTB.fa -bb 1000 -redo"
+
+# run iqtree on ND1
+bsub.py 2 iqtree_ND1 "iqtree -s ../INPUT/Mito_align_cleaned_outgroups_ND1.fa -bb 1000 -redo"
+
+# run iqtree on ND2
+bsub.py 2 iqtree_ND2 "iqtree -s ../INPUT/Mito_align_cleaned_outgroups_ND2.fa -bb 1000 -redo"
+
+# run iqtree on ND3
+bsub.py 2 iqtree_ND3 "iqtree -s ../INPUT/Mito_align_cleaned_outgroups_ND3.fa -bb 1000 -redo"
+
+# run iqtree on ND4
+bsub.py 2 iqtree_ND4 "iqtree -s ../INPUT/Mito_align_cleaned_outgroups_ND4.fa -bb 1000 -redo"
+
+# run iqtree on ND4L
+bsub.py 2 iqtree_ND4L "iqtree -s ../INPUT/Mito_align_cleaned_outgroups_ND4L.fa -bb 1000 -redo"
+
+# run iqtree on ND5
+bsub.py 2 iqtree_ND5 "iqtree -s ../INPUT/Mito_align_cleaned_outgroups_ND5.fa -bb 1000 -redo"
+
+# run iqtree on ND6
+bsub.py 2 iqtree_ND6 "iqtree -s ../INPUT/Mito_align_cleaned_outgroups_ND6.fa -bb 1000 -redo"
+```
+
+Visualised trees in FigTree & MEGA.
 
 
 

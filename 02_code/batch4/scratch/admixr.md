@@ -34,16 +34,16 @@ module load bcftools/1.14--h88f3f91_0
 cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/SCRATCH/FILTER2/WITH_OUTGROUPS/ADMIXTOOLS
 
 # create link
-ln -s ../FINAL_SETS/nuclear_samples3x_missing0.8.chr1to4.DIMMITIS.recode.vcf
+ln -s /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/SCRATCH/FILTER2/WITH_OUTGROUPS/FINAL_SETS/nuclear_samples3x_missing0.8.chr1to4.recode.vcf
 
 # generate "chrom-map.txt" for chromosome names
-bcftools view -H nuclear_samples3x_missing0.8.chr1to4.DIMMITIS.recode.vcf | cut -f 1 | uniq | awk '{print $0"\t"$0}' > chrom-map.txt
+bcftools view -H nuclear_samples3x_missing0.8.chr1to4.recode.vcf | cut -f 1 | uniq | awk '{print $0"\t"$0}' > chrom-map.txt
 ## This command appends each chromosome name ($0) with a tab character ("\t") and then repeats the chromosome name again ($0) before redirecting the output to "chrom-map.txt".
 
 
 # Convert vcf to eigenstrat format
 chmod a+x convertVCFtoEigenstrat_hw.sh
-bsub.py 4 eigenstrat "./convertVCFtoEigenstrat_hw.sh nuclear_samples3x_missing0.8.chr1to4.DIMMITIS.recode"
+bsub.py 4 eigenstrat "./convertVCFtoEigenstrat_hw.sh nuclear_samples3x_missing0.8.chr1to4.recode"
 ## modify to allow non-standard chromosomes because eigenstrat format expects chromosomes to be called "1, 2, 3 etc". Indicate a "chom-map.txt" file in the vcftools command.
 # my file wasn't working, had a look at Steve's to see where I'm going wrong
 
@@ -60,12 +60,11 @@ bsub.py 4 eigenstrat "./convertVCFtoEigenstrat_hw.sh nuclear_samples3x_missing0.
 admixtools_pops.txt
 
 # URSI outgroup
-
 # set the outgroup
 OUTGROUP=URSI
 
 # loop throguh the populations to generate the pop file as input to admixtools
-for i in URSI REPENS AUS ASIA EUR CENAM USA; do
+for i in URSI AUS ASIA EUR CENAM USA; do
      for j in  URSI AUS ASIA EUR CENAM USA; do
           if [[ "$i" == "$j" ]] || [[ "$i" == "$OUTGROUP" ]] || [[ "$j" == "$OUTGROUP" ]]; then
                :
@@ -77,14 +76,15 @@ done
 
 # remove any duplicates
 
-# REPENS outgroup
 
+
+# REPENS outgroup
 # set the outgroup
 OUTGROUP=REPENS
 
 # loop throguh the populations to generate the pop file as input to admixtools
-for i in URSI REPENS AUS ASIA EUR CENAM USA; do
-     for j in  URSI AUS ASIA EUR CENAM USA; do
+for i in REPENS AUS ASIA EUR CENAM USA; do
+     for j in  REPENS AUS ASIA EUR CENAM USA; do
           if [[ "$i" == "$j" ]] || [[ "$i" == "$OUTGROUP" ]] || [[ "$j" == "$OUTGROUP" ]]; then
                :
                else
@@ -94,6 +94,25 @@ for i in URSI REPENS AUS ASIA EUR CENAM USA; do
 done
 
 
+
+# THAI outgroup
+# set the outgroup
+OUTGROUP=THAI
+
+# loop throguh the populations to generate the pop file as input to admixtools
+for i in THAI AUS ASIA EUR CENAM USA; do
+     for j in  THAI AUS ASIA EUR CENAM USA; do
+          if [[ "$i" == "$j" ]] || [[ "$i" == "$OUTGROUP" ]] || [[ "$j" == "$OUTGROUP" ]]; then
+               :
+               else
+               echo -e "${i}\t${j}\t${OUTGROUP}" >> admixtools_pops.txt;
+          fi;
+     done;
+done
+
+
+
+
 # run admixtools to generate f3 stats
 qp3Pop -p PARAMETER_FILE > qp3Pop.out
 ```
@@ -101,15 +120,100 @@ qp3Pop -p PARAMETER_FILE > qp3Pop.out
 PARAMETER_FILE:
 
 ```bash
-genotypename:   nuclear_samples3x_missing0.8.chr1to4.DIMMITIS.recode.eigenstratgeno (in eigenstrat format)
-snpname:        nuclear_samples3x_missing0.8.chr1to4.DIMMITIS.recode.snp      (in eigenstrat format)
-indivname:      nuclear_samples3x_missing0.8.chr1to4.DIMMITIS.recode.ind    (in eigenstrat format)
+genotypename:   nuclear_samples3x_missing0.8.chr1to4.recode.eigenstratgeno (in eigenstrat format)
+snpname:        nuclear_samples3x_missing0.8.chr1to4.recode.snp      (in eigenstrat format)
+indivname:      nuclear_samples3x_missing0.8.chr1to4.recode.ind    (in eigenstrat format)
 popfilename:    admixtools_pops.txt
 inbreed: YES
 ```
 
 ```bash
 grep "result" qp3Pop.out | awk '{print $2,$3,$4,$5,$6,$7,$8}' OFS="\t" > qp3Pop.clean.out
+# didnt work using these other species as outgroups. Maybe just compare within the D. immitis.
+```
+
+
+```bash
+# AUS as outgroup
+# set the outgroup
+OUTGROUP=AUS
+
+# loop throguh the populations to generate the pop file as input to admixtools
+for i in AUS ASIA EUR CENAM USA; do
+     for j in  AUS ASIA EUR CENAM USA; do
+          if [[ "$i" == "$j" ]] || [[ "$i" == "$OUTGROUP" ]] || [[ "$j" == "$OUTGROUP" ]]; then
+               :
+               else
+               echo -e "${i}\t${j}\t${OUTGROUP}" >> admixtools_pops.txt;
+          fi;
+     done;
+done
+
+# ASIA as outgroup
+# set the outgroup
+OUTGROUP=ASIA
+
+# loop throguh the populations to generate the pop file as input to admixtools
+for i in AUS ASIA EUR CENAM USA; do
+     for j in  AUS ASIA EUR CENAM USA; do
+          if [[ "$i" == "$j" ]] || [[ "$i" == "$OUTGROUP" ]] || [[ "$j" == "$OUTGROUP" ]]; then
+               :
+               else
+               echo -e "${i}\t${j}\t${OUTGROUP}" >> admixtools_pops.txt;
+          fi;
+     done;
+done
+
+# EUR as outgroup
+# set the outgroup
+OUTGROUP=EUR
+
+# loop throguh the populations to generate the pop file as input to admixtools
+for i in AUS ASIA EUR CENAM USA; do
+     for j in  AUS ASIA EUR CENAM USA; do
+          if [[ "$i" == "$j" ]] || [[ "$i" == "$OUTGROUP" ]] || [[ "$j" == "$OUTGROUP" ]]; then
+               :
+               else
+               echo -e "${i}\t${j}\t${OUTGROUP}" >> admixtools_pops.txt;
+          fi;
+     done;
+done
+
+# CENAM as outgroup
+# set the outgroup
+OUTGROUP=CENAM
+
+# loop throguh the populations to generate the pop file as input to admixtools
+for i in AUS ASIA EUR CENAM USA; do
+     for j in  AUS ASIA EUR CENAM USA; do
+          if [[ "$i" == "$j" ]] || [[ "$i" == "$OUTGROUP" ]] || [[ "$j" == "$OUTGROUP" ]]; then
+               :
+               else
+               echo -e "${i}\t${j}\t${OUTGROUP}" >> admixtools_pops.txt;
+          fi;
+     done;
+done
+
+# USA as outgroup
+# set the outgroup
+OUTGROUP=USA
+
+# loop through the populations to generate the pop file as input to admixtools
+for i in AUS ASIA EUR CENAM USA; do
+     for j in  AUS ASIA EUR CENAM USA; do
+          if [[ "$i" == "$j" ]] || [[ "$i" == "$OUTGROUP" ]] || [[ "$j" == "$OUTGROUP" ]]; then
+               :
+               else
+               echo -e "${i}\t${j}\t${OUTGROUP}" >> admixtools_pops.txt;
+          fi;
+     done;
+done
+
+# remove duplicates
+
+# run admixtools to generate f3 stats
+qp3Pop -p PARAMETER_FILE > qp3Pop.out
+
 ```
 
 
@@ -144,8 +248,22 @@ ggsave("plot_admixtools_f3_statistics.pdf", height = 4, width = 5, useDingbats =
 ## D stats
 
 ```bash
+# loop through the populations to generate the pop file as input to admixtools
+OUTGROUP=URSI
+for i in AUS ASIA EUR CENAM USA; do
+     for j in  AUS ASIA EUR CENAM USA; do
+          for k in AUS ASIA EUR CENAM USA; do
+               if [[ "$i" == "$j" ]] || [[ "$i" == "$OUTGROUP" ]] || [[ "$j" == "$OUTGROUP" ]] || [[ "$i" == "$k" ]] || [[ "$j" == "$k" ]] || [[ "$k" == "$OUTGROUP" ]]; then
+                    :
+                    else
+                    echo -e "${i}\t${j}\t${k}\t${OUTGROUP}" >> admixtools_pops_4.txt;
+               fi;
+          done;
+     done;
+done
+
 # run admixtools to generate D-stats
-qpDstat -p PARAMETER_FILE > qpDstat.out
+qpDstat -p PARAMETER_FILE_dstat > qpDstat.out
 ```
 
 
@@ -153,7 +271,7 @@ qpDstat -p PARAMETER_FILE > qpDstat.out
 
 ```bash
 # run admixtools to generate f4 ratios
-qpF4ratio -p PARAMETER_FILE >qpF4ratio.out
+qpF4ratio -p PARAMETER_FILE_dstat >qpF4ratio.out
 ```
 
 

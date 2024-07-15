@@ -1,0 +1,7 @@
+# PSC, Per-sample counts. Note that the ref/het/hom counts include only SNPs, for indels see PSI. The rest include both SNPs and indels.
+# PSC	[2]id	[3]sample	[4]nRefHom	[5]nNonRefHom	[6]nHets	[7]nTransitions	[8]nTransversions	[9]nIndels	[10]average depth	[11]nSingletons	[12]nHapRef	[13]nHapAlt	[14]nMissing
+PSC	0	ITA_NEA_AD_004	65	17	1	17	1	0	42.8	7	0	0	195817
+PSC	0	ITA_NEA_AD_005	112	4	0	4	0	0	132.6	2	0	0	195784
+PSC	0	USA_WIS_AD_001	17311	3784	87	3303	568	0	98.3	3802	0	0	174718
+PSC	0	VNM_HAI_AD_001	168	20	13	27	6	0	67.6	21	0	0	195699
+PSC	0	VNM_HAN_AD_001	434	113	1	99	15	0	95.4	44	0	0	195352
