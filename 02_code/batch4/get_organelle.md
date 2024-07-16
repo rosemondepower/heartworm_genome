@@ -139,17 +139,6 @@ sed -i "1s/.*/>${new_header}/" "${sequence_id}"
 done < ../sequence_id_rerun.txt
 
 
-### scratch
-bsub.py --threads 8 20 coverage_test "evaluate_assembly_using_mapping.py -f /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/05_MITO/GetOrganelle/AUS_BNE_AD_001/animal_mt.K115.scaffolds.graph1.1.path_sequence.fasta -1 /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/02_FASTQ/JS6342_1.fq.gz -2 /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/02_FASTQ/JS6342_2.fq.gz -t 8 -o coverage --continue --draw --plot-title AUS_BNE_AD_001-GetOrganelle"
-
-while IFS=$'\t' read -r SAMPLE_OLD SAMPLE_NEW; do
-    echo "bsub.py 4 coverage_test "evaluate_assembly_using_mapping.py -f /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/05_MITO/GetOrganelle/${SAMPLE_NEW}/animal_mt.K115.*.graph1.1.path_sequence.fasta -1 /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/02_FASTQ/${SAMPLE_OLD}_*1.f*q.gz -2 /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/02_FASTQ/${SAMPLE_OLD}_*2.f*q.gz -o COVERAGE/${SAMPLE_NEW} --draw --plot-title ${SAMPLE_NEW}-GetOrganelle --plot-subtitle "Arguments: -R 10 --reduce-read-for-coverage 80"" > run_coverage_${SAMPLE_NEW}.tmp.job_${n};
-    let "n+=1";
-done < ${SAMPLE_LIST}
-```
-
-
-
 ## CLC
 
 **Mitochondrial references obtained**

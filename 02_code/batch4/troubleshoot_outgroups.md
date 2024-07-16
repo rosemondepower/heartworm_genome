@@ -73,7 +73,7 @@ kraken2-build --add-to-library REFS/GCA_001077395.1_ASM107739v1_genomic.fna --no
 
 
 # build database
-bsub.py --threads 8 100 kraken_build "kraken2-build --threads 4 --build --db $DBNAME"
+bsub.py --threads 8 50 kraken_build "kraken2-build --threads 8 --build --db $DBNAME"
 # this can take a while
 
 # create loop
@@ -109,8 +109,14 @@ gunzip GCA_008729115.1_FGCZ_Drep_1.0_genomic.fna.gz
 bsub.py 2 repens_index "samtools faidx DATA/GCA_008729115.1_FGCZ_Drep_1.0_genomic.fna"
 
 cd ..
-chmod a+x randomreads.sh
-bsub.py 10 repens_randomreads "randomreads.sh ref=DATA/GCA_008729115.1_FGCZ_Drep_1.0_genomic.fna out1=Drep_1.fq out2=Drep_2.fq length=150 coverage=35 paired=true midq=32"
+bsub.py 10 repens_randomreads "randomreads.sh ref=DATA/GCA_008729115.1_FGCZ_Drep_1.0_genomic.fna out1=Drep_1.fq.gz out2=Drep_2.fq.gz simplenames=t length=150 coverage=35 paired=t midq=32"
+
+
+# Not working bc the read names are too long - try another method
+module load art/2016.06.05--h869255c_2
+
+bsub.py 4 repens_art "art_illumina --paired --in DATA/GCA_008729115.1_FGCZ_Drep_1.0_genomic.fna --len 150 --fcov 30 --mflen 200 --sdev 10 --noALN --out repens_fake"
+
 ```
 
 ### Map fake reads to combined D. immitis & Wol & dog genome
@@ -122,11 +128,90 @@ module load mapping-helminth/v1.0.9
 # Set variables
 WORKING_DIR=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA
 REF=${WORKING_DIR}/01_REF/reference_di_wol_dog.fa
-IN_DIR=${WORKING_DIR}/03_ANALYSIS/05_ANALYSIS/OUTGROUPS/DREPENS
 
 # Run nextflow mapping pipeline
-bsub.py 4 repens_randomreads_mapping "mapping-helminth --input ${IN_DIR}/repens_randomreads_wgs.mapping.manifest --reference ${REF}"
+bsub.py 10 repens_fake_mapping "mapping-helminth --input repens_fake_wgs.mapping.manifest --reference ${REF}"
 ```
 
 
 - Can use raw reads from public D. repens data & see how well that maps to D. immitis
+
+```bash
+# load modules
+module load cellgen/sratoolkit/3.0.10
+
+# download raw data that made the ref genome
+chmod a+x repens_sra_download.sh
+bsub.py 20 repens_sra "repens_sra_download.sh"
+
+# repens_sra_download.sh:
+cd DATA
+fastq-dump --origfmt --gzip SRR8742586
+fastq-dump --origfmt --gzip SRR9613458
+fastq-dump --origfmt --gzip SRR9613459
+fastq-dump --origfmt --gzip SRR9613460
+fastq-dump --origfmt --gzip SRR9613461
+fastq-dump --origfmt --gzip SRR9613462
+fastq-dump --origfmt --gzip SRR9613463
+fastq-dump --origfmt --gzip SRR9613464
+fastq-dump --origfmt --gzip SRR9613465
+```
+
+## Trimmomatic
+
+```bash
+# set variables
+WORKING_DIR=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/05_ANALYSIS/OUTGROUPS/DREPENS
+IN_DIR=${WORKING_DIR}/DATA
+cd ${WORKING_DIR}
+OUT_DIR=${WORKING_DIR}/TRIMMOMATIC
+
+# load modules
+module load trimmomatic/0.39--1
+
+# make a list of sample names
+for file in ${WORKING_DIR}/DATA/*.fastq.gz; do
+  basename ${file}
+done > samples.list
+
+# set up run files
+n=1
+while read SAMPLE; do
+
+SAMPLE_BASE=$(basename "${SAMPLE}" .fastq.gz)
+
+JOB_FILE="run_trimmomatic_${SAMPLE_BASE}.tmp.job_${n}"
+
+echo -e "trimmomatic SE \
+-threads 1 \
+-phred33 \
+${IN_DIR}/${SAMPLE} \
+${OUT_DIR}/${SAMPLE_BASE}_trim.fq.gz \
+SLIDINGWINDOW:10:20 MINLEN:50" > ${JOB_FILE};
+let "n+=1";
+done < samples.list
+
+chmod a+x run_trimmomatic*
+
+#run
+for i in run_trimmomatic*; do
+    bsub.py --threads 1 20 ${i} "./${i}";
+done
+
+
+# SLIDINGWINDOW:10:20 means it will scan the read with a 10-base wide sliding window, cutting when the average quality per base drops below 20.
+
+# Instead of SLIDINGWINDOW, in my previous practice code I used 'AVGQUAL:30 MINLEN:150'.
+
+# clean up
+mkdir LOGS
+mv run_trimmomatic_*.e run_trimmomatic_*.o LOGS
+rm run_trimmomatic_*
+
+# check for any errors
+cd LOGS
+grep -i "Exited" *.o
+grep -i "Successfully completed." *.o | wc -l
+grep -i "error" *.e
+# no errors
+```
