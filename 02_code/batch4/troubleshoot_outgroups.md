@@ -4,15 +4,17 @@ The outgroup data looked a bit funny when attempting to run admixtools F3. Let's
 
 ![](images/Mito_outgroups_Differences_vs_distance.png)
 
-There's 5-14% difference in the mtDNA, so the nuclear is unlikely to be as high. We would expect there to have been more SNPs, so perhaps it is a technical reason it hasnm't worked well.
+There's 5-14% difference in the mtDNA, so the nuclear is unlikely to be as high. We would expect there to have been more SNPs, so perhaps it is a technical reason it hasn't worked well.
 
-![](images/Mito_outgroups_fastqc.png)
+![](images/Outgroups_fastqc.png)
 
-The duplicated sequences are very high and most would've been thrown away in deduplication, and the mapping % weren't that great either.
+The duplicated sequences are very high and most would've been thrown away in deduplication
 
-Low mapping rates could be due to diversity, or there could be little worm DNA in there. Check for contamination.
+![](images/Outgroups_mapping.png)
 
-## kraken to test for contamination
+The mapping % weren't that great either. Low mapping rates could be due to diversity, or there could be little worm DNA in there. Check for contamination.
+
+## kraken to test for contamination in my outgroup samples
 
 ```bash
 # load modules
@@ -116,8 +118,9 @@ bsub.py 10 repens_randomreads "randomreads.sh ref=DATA/GCA_008729115.1_FGCZ_Drep
 module load art/2016.06.05--h869255c_2
 
 bsub.py 4 repens_art "art_illumina --paired --in DATA/GCA_008729115.1_FGCZ_Drep_1.0_genomic.fna --len 150 --fcov 30 --mflen 200 --sdev 10 --noALN --out repens_fake"
-
 ```
+This worked better, the read names are much shorter.
+
 
 ### Map fake reads to combined D. immitis & Wol & dog genome
 
@@ -133,8 +136,18 @@ REF=${WORKING_DIR}/01_REF/reference_di_wol_dog.fa
 bsub.py 10 repens_fake_mapping "mapping-helminth --input repens_fake_wgs.mapping.manifest --reference ${REF}"
 ```
 
+Needed to run a bit longer than the 12h limit.
+
+![](images/Drepens_FAKEREADS_mapping.PNG)
+
+~18% of reads mapped, which is still pretty low. So there is clearly low mapping due to divergence.
+
+
+
 
 - Can use raw reads from public D. repens data & see how well that maps to D. immitis
+
+Get the raw data for the D. repsn ref genome. It's pacbio single reads.
 
 ```bash
 # load modules
@@ -157,6 +170,74 @@ fastq-dump --origfmt --gzip SRR9613464
 fastq-dump --origfmt --gzip SRR9613465
 ```
 
+
+## FastQC
+
+We want to get some stats on the raw D. repens data.
+
+```bash
+# set variables
+WORKING_DIR=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA
+OUT_DIR=${WORKING_DIR}/03_ANALYSIS/05_ANALYSIS/OUTGROUPS/DREPENS/FASTQC
+cd ${WORKING_DIR}/03_ANALYSIS/05_ANALYSIS/OUTGROUPS/DREPENS
+
+# make a list of sample names
+for file in ${WORKING_DIR}/DATA/*.fastq.gz; do
+  basename ${file}
+done > samples.list
+
+# load modules
+module load fastqc/0.12.1--hdfd78af_0
+module load bsub.py/0.42.1
+
+# set up run files
+n=1
+while read SAMPLE; do
+SAMPLE_BASE=$(basename "${SAMPLE}" .fastq.gz)
+echo -e "fastqc -t 4 -o ${OUT_DIR} ${WORKING_DIR}/03_ANALYSIS/05_ANALYSIS/OUTGROUPS/DREPENS/DATA/${SAMPLE}" > run_fastqc_raw_${SAMPLE_BASE}.tmp.job_${n};
+let "n+=1";
+done < samples.list
+
+chmod a+x run_fastqc_raw*
+
+#run
+for i in run_fastqc_raw*; do
+    bsub.py --threads 4 20 ${i} "./${i}";
+done
+
+# clean up
+mkdir LOGS
+mv run_fastqc_raw_*.e run_fastqc_raw_*.o LOGS
+rm run_fastqc_raw_*
+
+# check for any errors
+cd LOGS
+grep -i "Exited" *.o
+grep -i "Successfully completed" *.o | wc -l
+grep -i "Error" *.e
+# All ok
+
+# multiqc
+# Load module
+module load multiqc/1.17--pyhdfd78af_1
+module load bsub.py/0.42.1
+bsub.py 4 multiqc_raw "multiqc ${OUT_DIR} -o ${OUT_DIR}"
+```
+
+There's only 0.2 M seqs per sample, but the median read length is much longer. They're all from the same BioSample, so you could merge them together.
+
+```bash
+module load bsub.py/0.42.1
+
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/05_ANALYSIS/OUTGROUPS/DREPENS/DATA
+
+bsub.py 10 repens_merge "repens_merge.sh"
+
+zcat DATA/SRR8742586.fastq.gz DATA/SRR9613458.fastq.gz DATA/SRR9613459.fastq.gz DATA/SRR9613460.fastq.gz DATA/SRR9613461.fastq.gz DATA/SRR9613462.fastq.gz DATA/SRR9613463.fastq.gz DATA/SRR9613464.fastq.gz DATA/SRR9613465.fastq.gz | gzip > DATA/Drepens_public.fastq.gz
+
+```
+
+
 ## Trimmomatic
 
 ```bash
@@ -168,11 +249,6 @@ OUT_DIR=${WORKING_DIR}/TRIMMOMATIC
 
 # load modules
 module load trimmomatic/0.39--1
-
-# make a list of sample names
-for file in ${WORKING_DIR}/DATA/*.fastq.gz; do
-  basename ${file}
-done > samples.list
 
 # set up run files
 n=1
