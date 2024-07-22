@@ -11,12 +11,13 @@ module load common-apps/htslib/1.9.229
 module load bcftools/1.14--h88f3f91_0
 module load vcftools/0.1.16-c4
 
-cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/SMCPP
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/05_ANALYSIS/SMCPP
 
 # prep VCF file
-bgzip -c /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.vcf > nuclear_samples3x_missing0.9.chr1to4.recode.vcf.gz
+ln -s /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER1/NO_OUTGROUPS/FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.vcf
+bgzip -c nuclear_samples3x_missing0.9.chr1to4.recode.vcf > nuclear_samples3x_missing0.9.chr1to4.recode.vcf.gz
 tabix -p vcf nuclear_samples3x_missing0.9.chr1to4.recode.vcf.gz
-VCF=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/SMCPP/nuclear_samples3x_missing0.9.chr1to4.recode.vcf.gz
+VCF=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/05_ANALYSIS/SMCPP/nuclear_samples3x_missing0.9.chr1to4.recode.vcf.gz
 
 ## There may be missing genotypes designated as '.', whereas smc++ expects it to be './.' - so see if there are any lines like this:
 zcat ${VCF} | \
@@ -102,7 +103,7 @@ tabix -p vcf smcpp.vcf.gz
 
 ### timepoint = 1 to 1 million years, generation time = 5 years
 
-bsub.py --queue long 10 run_smcpp "run_smcpp.sh"
+bsub.py --queue long 10 run_smcpp_t1m_g5 "run_smcpp_t1m_g5.sh"
 
 ```bash
 # Load modules
@@ -110,7 +111,7 @@ module load smcpp/1.15.3-c1
 module load common-apps/htslib/1.9.229
 module load vcftools/0.1.16-c4
 
-cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/SMCPP
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/05_ANALYSIS/SMCPP
 mkdir DATA
 
 # Get sample names for each population
@@ -185,6 +186,7 @@ vcftools --gzvcf smcpp.vcf.gz \
 --indv AUS_SYD_AD_013 \
 --indv AUS_SYD_AD_014 \
 --indv AUS_SYD_AD_015 \
+--indv AUS_SYD_AD_017 \
 --indv AUS_TVS_AD_001 \
 --indv AUS_TVS_AD_002 \
 --indv AUS_TVS_AD_003 \
@@ -263,7 +265,6 @@ smc++ plot -g 5 -c SMCPP_CAM.png CAM/model.final.json
 
 # EUR
 vcftools --gzvcf smcpp.vcf.gz \
---indv CRI_SJO_AD_001 \
 --indv GRC_XAN_AD_001 \
 --indv GRC_XAN_AD_002 \
 --indv GRC_XAN_AD_003 \
@@ -364,6 +365,9 @@ smc++ estimate --timepoints 1 1000000 -o USA/ 2.7e-9 DATA/USA.*.smc.gz
 smc++ plot -g 5 -c SMCPP_USA.png USA/model.final.json
 ```
 Put this output into a folder called 't1m/g5'. Now try out a few other parameters.
+
+## 21/7/24 up to here
+
 
 
 ### timepoint = 1 to 1 million years, generation time = 1 year

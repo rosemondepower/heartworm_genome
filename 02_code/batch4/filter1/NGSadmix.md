@@ -142,6 +142,8 @@ ggsave("admixture_plots_k2-10.pdf", height=15, width=10)
 
 ## Clumpak to determine optimal K
 
+Website: https://clumpak.tau.ac.il/bestK.html
+
 In command line
 ```bash
 (for log in `ls k*.log`; do
