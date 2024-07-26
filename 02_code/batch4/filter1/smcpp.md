@@ -101,11 +101,13 @@ tabix -p vcf smcpp.vcf.gz
 
 ## Plot per population 
 
-### timepoint = 1 to 1 million years, generation time = 5 years
+### timepoint = 1 to 1 million years, generation time t = 2, 4 & 6 years
 
-bsub.py --queue long 10 run_smcpp_t1m_g5 "run_smcpp_t1m_g5.sh"
+bsub.py --queue long 20 run_smcpp_t1m "run_smcpp_t1m.sh"
 
 ```bash
+#!/bin/bash
+
 # Load modules
 module load smcpp/1.15.3-c1
 module load common-apps/htslib/1.9.229
@@ -117,14 +119,14 @@ mkdir DATA
 # Get sample names for each population
 ASIA=$(awk -F'_' '$1 == "MYS" || $1 == "THA" {print}' nuclear_samplelist.keep | paste -sd ',')
 AUS=$(awk -F'_' '$1 == "AUS" {print}' nuclear_samplelist.keep | paste -sd ',')
-CAM=$(awk -F'_' '$1 == "PAN" || $1 == "CRI" {print}' nuclear_samplelist.keep | paste -sd ',')
+CENAM=$(awk -F'_' '$1 == "PAN" || $1 == "CRI" {print}' nuclear_samplelist.keep | paste -sd ',')
 EUR=$(awk -F'_' '$1 == "GRC" || $1 == "ITA" || $1 == "ROU" {print}' nuclear_samplelist.keep | paste -sd ',')
 USA=$(awk -F'_' '$1 == "USA" {print}' nuclear_samplelist.keep | paste -sd ',')
 declare -A populations
 populations=(
   [ASIA]=$ASIA
   [AUS]=$AUS
-  [CAM]=$CAM
+  [CENAM]=$CENAM
   [EUR]=$EUR
   [USA]=$USA
 )
@@ -150,15 +152,26 @@ done
 # each call to vcf2smc processes a single contig. VCFs containing multiple contigs should be processed via multiple separate runs.
 
 # Fit the model using Estimate
-## # mutation rate (C.elegans) = 2.7e-9 (https://doi.org/10.1073/pnas.0904895106)
-smc++ estimate --timepoints 1 1000000 -o ASIA/ 2.7e-9 DATA/ASIA.*.smc.gz
+# mutation rate (C.elegans) = 2.7e-9 (https://doi.org/10.1073/pnas.0904895106)
+mkdir t1m
+cd t1m
+mkdir g2 g4 g6
+
+smc++ estimate --timepoints 1 1000000 -o ASIA/ 2.7e-9 ../DATA/ASIA.*.smc.gz
 
 # plot
-## Use generation time of D. immitis ~ 5 yrs
-smc++ plot -g 5 -c SMCPP_ASIA.png ASIA/model.final.json
+## Use generation time of 2 years
+smc++ plot -g 2 -c g2/SMCPP_ASIA_t1m_g2.pdf ASIA/model.final.json
+
+## Use generation time of 4 years
+smc++ plot -g 4 -c g4/SMCPP_ASIA_t1m_g4.pdf ASIA/model.final.json
+
+## Use generation time of 6 years
+smc++ plot -g 6 -c g6/SMCPP_ASIA_t1m_g6.pdf ASIA/model.final.json
 
 
 # AUS
+cd ..
 vcftools --gzvcf smcpp.vcf.gz \
 --indv AUS_BNE_AD_001 \
 --indv AUS_BNE_AD_002 \
@@ -216,16 +229,24 @@ done
 # each call to vcf2smc processes a single contig. VCFs containing multiple contigs should be processed via multiple separate runs.
 
 # Fit the model using Estimate
-## # mutation rate (C.elegans) = 2.7e-9 (https://doi.org/10.1073/pnas.0904895106)
-smc++ estimate --timepoints 1 1000000 -o AUS/ 2.7e-9 DATA/AUS.*.smc.gz
+# mutation rate (C.elegans) = 2.7e-9 (https://doi.org/10.1073/pnas.0904895106)
+cd t1m
+smc++ estimate --timepoints 1 1000000 -o AUS/ 2.7e-9 ../DATA/AUS.*.smc.gz
 
 # plot
-## Use generation time of D. immitis ~ 5 yrs
-smc++ plot -g 5 -c SMCPP_AUS.png AUS/model.final.json
+## Use generation time of 2 years
+smc++ plot -g 2 -c g2/SMCPP_AUS_t1m_g2.pdf AUS/model.final.json
+
+## Use generation time of 4 years
+smc++ plot -g 4 -c g4/SMCPP_AUS_t1m_g4.pdf AUS/model.final.json
+
+## Use generation time of 6 years
+smc++ plot -g 6 -c g6/SMCPP_AUS_t1m_g6.pdf AUS/model.final.json
 
 
 
-# CAM
+# CENAM
+cd ..
 vcftools --gzvcf smcpp.vcf.gz \
 --indv CRI_SJO_AD_001 \
 --indv PAN_BOC_AD_001 \
@@ -242,28 +263,36 @@ vcftools --gzvcf smcpp.vcf.gz \
 --indv PAN_SLO_AD_001 \
 --indv PAN_SLO_AD_002 \
 --indv PAN_SLO_AD_003 \
---max-missing 1 --recode --out CAM
-bgzip -f CAM.recode.vcf
-tabix CAM.recode.vcf.gz
+--max-missing 1 --recode --out CENAM
+bgzip -f CENAM.recode.vcf
+tabix CENAM.recode.vcf.gz
 
 # Convert VCF to the SMC++ input format with vcf2smc
 for chr in {1..4}; do
-  smc++ vcf2smc CAM.recode.vcf.gz DATA/CAM.chr${chr}.smc.gz dirofilaria_immitis_chr${chr} CAM:${CAM};
+  smc++ vcf2smc CENAM.recode.vcf.gz DATA/CENAM.chr${chr}.smc.gz dirofilaria_immitis_chr${chr} CENAM:${CENAM};
 done
 # each call to vcf2smc processes a single contig. VCFs containing multiple contigs should be processed via multiple separate runs.
 
 # Fit the model using Estimate
-## # mutation rate (C.elegans) = 2.7e-9 (https://doi.org/10.1073/pnas.0904895106)
-smc++ estimate --timepoints 1 1000000 -o CAM/ 2.7e-9 DATA/CAM.*.smc.gz
+# mutation rate (C.elegans) = 2.7e-9 (https://doi.org/10.1073/pnas.0904895106)
+cd t1m
+smc++ estimate --timepoints 1 1000000 -o CENAM/ 2.7e-9 ../DATA/CENAM.*.smc.gz
 
 # plot
-## Use generation time of D. immitis ~ 5 yrs
-smc++ plot -g 5 -c SMCPP_CAM.png CAM/model.final.json
+## Use generation time of 2 years
+smc++ plot -g 2 -c g2/SMCPP_CENAM_t1m_g2.pdf CENAM/model.final.json
+
+## Use generation time of 4 years
+smc++ plot -g 4 -c g4/SMCPP_CENAM_t1m_g4.pdf CENAM/model.final.json
+
+## Use generation time of 6 years
+smc++ plot -g 6 -c g6/SMCPP_CENAM_t1m_g6.pdf CENAM/model.final.json
 
 
 
 
 # EUR
+cd ..
 vcftools --gzvcf smcpp.vcf.gz \
 --indv GRC_XAN_AD_001 \
 --indv GRC_XAN_AD_002 \
@@ -295,18 +324,26 @@ done
 # each call to vcf2smc processes a single contig. VCFs containing multiple contigs should be processed via multiple separate runs.
 
 # Fit the model using Estimate
-## # mutation rate (C.elegans) = 2.7e-9 (https://doi.org/10.1073/pnas.0904895106)
-smc++ estimate --timepoints 1 1000000 -o EUR/ 2.7e-9 DATA/EUR.*.smc.gz
+# mutation rate (C.elegans) = 2.7e-9 (https://doi.org/10.1073/pnas.0904895106)
+cd t1m
+smc++ estimate --timepoints 1 1000000 -o EUR/ 2.7e-9 ../DATA/EUR.*.smc.gz
 
 # plot
-## Use generation time of D. immitis ~ 5 yrs
-smc++ plot -g 5 -c SMCPP_EUR.png EUR/model.final.json
+## Use generation time of 2 years
+smc++ plot -g 2 -c g2/SMCPP_EUR_t1m_g2.pdf EUR/model.final.json
+
+## Use generation time of 4 years
+smc++ plot -g 4 -c g4/SMCPP_EUR_t1m_g4.pdf EUR/model.final.json
+
+## Use generation time of 6 years
+smc++ plot -g 6 -c g6/SMCPP_EUR_t1m_g6.pdf EUR/model.final.json
 
 
 
 
 
 # USA
+cd ..
 vcftools --gzvcf smcpp.vcf.gz \
 --indv USA_FLO_AD_001 \
 --indv USA_FLO_AD_002 \
@@ -357,194 +394,476 @@ done
 # each call to vcf2smc processes a single contig. VCFs containing multiple contigs should be processed via multiple separate runs.
 
 # Fit the model using Estimate
-## # mutation rate (C.elegans) = 2.7e-9 (https://doi.org/10.1073/pnas.0904895106)
-smc++ estimate --timepoints 1 1000000 -o USA/ 2.7e-9 DATA/USA.*.smc.gz
+# mutation rate (C.elegans) = 2.7e-9 (https://doi.org/10.1073/pnas.0904895106)
+cd t1m
+smc++ estimate --timepoints 1 1000000 -o USA/ 2.7e-9 ../DATA/USA.*.smc.gz
 
 # plot
-## Use generation time of D. immitis ~ 5 yrs
-smc++ plot -g 5 -c SMCPP_USA.png USA/model.final.json
-```
-Put this output into a folder called 't1m/g5'. Now try out a few other parameters.
+## Use generation time of 2 years
+smc++ plot -g 2 -c g2/SMCPP_USA_t1m_g2.pdf USA/model.final.json
 
-## 21/7/24 up to here
+## Use generation time of 4 years
+smc++ plot -g 4 -c g4/SMCPP_USA_t1m_g4.pdf USA/model.final.json
 
-
-
-### timepoint = 1 to 1 million years, generation time = 1 year
-
-```bash
-module load bsub.py/0.42.1
-cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/SMCPP/t1m/g1
-bsub.py --queue long 10 run_smcpp_t1m_g1 "run_smcpp_t1m_g1.sh"
+## Use generation time of 6 years
+smc++ plot -g 6 -c g6/SMCPP_USA_t1m_g6.pdf USA/model.final.json
 ```
 
+Successfully completed.
+
+```R
+# smc++ - plotting all populations together
+# timepoint = 1 to 1 million years
+
+# load libraries
+library(tidyverse)
+library(patchwork)
+library(ggsci)
+library(RColorBrewer)
+
+####################################################################
+# Generation = 2 yrs
+####################################################################
+
+setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/smcpp/t1m/g2")
+
+# load data
+ASIA_data <- read.delim("SMCPP_ASIA_t1m_g2.csv", header = T , sep = ",")
+ASIA_data$ID <- "ASIA"
+AUS_data <- read.delim("SMCPP_AUS_t1m_g2.csv", header = T , sep = ",")
+AUS_data$ID <- "AUS"
+CENAM_data <- read.delim("SMCPP_CENAM_t1m_g2.csv", header = T , sep = ",")
+CENAM_data$ID <- "CENAM"
+EUR_data <- read.delim("SMCPP_EUR_t1m_g2.csv", header = T , sep = ",")
+EUR_data$ID <- "EUR"
+USA_data <- read.delim("SMCPP_USA_t1m_g2.csv", header = T , sep = ",")
+USA_data$ID <- "USA"
+
+data <- bind_rows(ASIA_data, AUS_data, CENAM_data, EUR_data, USA_data)
+
+pop_colours <- c("ASIA" = "hotpink", "AUS" = "cornflowerblue", "CENAM" = "purple", "EUR" = "forestgreen", "USA" = "tomato2")
+
+ggplot(data,aes(x,y,col=ID)) +
+  geom_line(size=1) +
+  labs(title = "Generation time = 2 years", x = "Years before present", y = "Effective population size (Ne)", col="Population") +
+  theme_bw() +
+  scale_x_log10(labels = prettyNum) +
+  ylim(0,5e6) +
+  scale_colour_manual(values = pop_colours)
+# In scale_x_log10(labels = prettyNum) :
+# log-10 transformation introduced infinite values.
+
+ggsave("plot_smcpp_t1m_g2.png")
+ggsave("plot_smcpp_t1m_g2.pdf", height = 4, width = 5, useDingbats = FALSE)
+
+
+ggplot(data,aes(x,y,col=ID)) +
+  geom_rect(aes(xmin=25000,ymin=0,xmax=35000,ymax=1.0E5), fill="grey80", col=NA) +
+  geom_line(size=1) +
+  labs(title = "Generation time = 2 years", x = "Years before present", y = "Effective population size (Ne)", col="Population") +
+  theme_bw() +
+  scale_x_log10(labels = prettyNum) +
+  ylim(0, 1e5) +
+  scale_colour_manual(values = pop_colours)
+# 1: In scale_x_log10(labels = prettyNum) :
+# log-10 transformation introduced infinite values.
+# 2: Removed 19 rows containing missing values or values outside the scale range (`geom_line()`). 
+
+ggsave("plot_smcpp_t1m_g2_cut.png")
+ggsave("plot_smcpp_t1m_g2_cut.pdf", height = 4, width = 5, useDingbats = FALSE)
+
+
+
+
+####################################################################
+# Generation = 4 yrs
+####################################################################
+
+setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/smcpp/t1m/g4")
+
+# load data
+ASIA_data <- read.delim("SMCPP_ASIA_t1m_g4.csv", header = T , sep = ",")
+ASIA_data$ID <- "ASIA"
+AUS_data <- read.delim("SMCPP_AUS_t1m_g4.csv", header = T , sep = ",")
+AUS_data$ID <- "AUS"
+CENAM_data <- read.delim("SMCPP_CENAM_t1m_g4.csv", header = T , sep = ",")
+CENAM_data$ID <- "CENAM"
+EUR_data <- read.delim("SMCPP_EUR_t1m_g4.csv", header = T , sep = ",")
+EUR_data$ID <- "EUR"
+USA_data <- read.delim("SMCPP_USA_t1m_g4.csv", header = T , sep = ",")
+USA_data$ID <- "USA"
+
+data <- bind_rows(ASIA_data, AUS_data, CENAM_data, EUR_data, USA_data)
+
+ggplot(data,aes(x,y,col=ID)) +
+  geom_line(size=1) +
+  labs(title = "Generation time = 4 years", x = "Years before present", y = "Effective population size (Ne)", col="Population") +
+  theme_bw() +
+  scale_x_log10(labels = prettyNum) +
+  ylim(0,5e6) +
+  scale_colour_manual(values = pop_colours)
+# In scale_x_log10(labels = prettyNum) :
+# log-10 transformation introduced infinite values.
+
+ggsave("plot_smcpp_t1m_g4.png")
+ggsave("plot_smcpp_t1m_g4.pdf", height = 4, width = 5, useDingbats = FALSE)
+
+
+ggplot(data,aes(x,y,col=ID)) +
+  geom_rect(aes(xmin=25000,ymin=0,xmax=35000,ymax=1.0E5), fill="grey80", col=NA) +
+  geom_line(size=1) +
+  labs(title = "Generation time = 4 years", x = "Years before present", y = "Effective population size (Ne)", col="Population") +
+  theme_bw() +
+ scale_x_log10(labels = prettyNum) +
+  ylim(0, 1e5) +
+  scale_colour_manual(values = pop_colours)
+# 1: In scale_x_log10(labels = prettyNum) :
+# log-10 transformation introduced infinite values.
+# 2: Removed 19 rows containing missing values or values outside the scale range (`geom_line()`). 
+
+ggsave("plot_smcpp_t1m_g4_cut.png")
+ggsave("plot_smcpp_t1m_g4_cut.pdf", height = 4, width = 5, useDingbats = FALSE)
+
+
+
+####################################################################
+# Generation = 6 yrs
+####################################################################
+
+setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/smcpp/t1m/g6")
+
+# load data
+ASIA_data <- read.delim("SMCPP_ASIA_t1m_g6.csv", header = T , sep = ",")
+ASIA_data$ID <- "ASIA"
+AUS_data <- read.delim("SMCPP_AUS_t1m_g6.csv", header = T , sep = ",")
+AUS_data$ID <- "AUS"
+CENAM_data <- read.delim("SMCPP_CENAM_t1m_g6.csv", header = T , sep = ",")
+CENAM_data$ID <- "CENAM"
+EUR_data <- read.delim("SMCPP_EUR_t1m_g6.csv", header = T , sep = ",")
+EUR_data$ID <- "EUR"
+USA_data <- read.delim("SMCPP_USA_t1m_g6.csv", header = T , sep = ",")
+USA_data$ID <- "USA"
+
+data <- bind_rows(ASIA_data, AUS_data, CENAM_data, EUR_data, USA_data)
+
+ggplot(data,aes(x,y,col=ID)) +
+  geom_line(size=1) +
+  labs(title = "Generation time = 6 years", x = "Years before present", y = "Effective population size (Ne)", col="Population") +
+  theme_bw() +
+  scale_x_log10(labels = prettyNum) +
+  ylim(0,5e6) +
+  scale_colour_manual(values = pop_colours)
+# In scale_x_log10(labels = prettyNum) :
+# log-10 transformation introduced infinite values.
+
+ggsave("plot_smcpp_t1m_g6.png")
+ggsave("plot_smcpp_t1m_g6.pdf", height = 4, width = 5, useDingbats = FALSE)
+
+
+ggplot(data,aes(x,y,col=ID)) +
+  geom_rect(aes(xmin=25000,ymin=0,xmax=35000,ymax=1.0E5), fill="grey80", col=NA) +
+  geom_line(size=1) +
+  labs(title = "Generation time = 6 years", x = "Years before present", y = "Effective population size (Ne)", col="Population") +
+  theme_bw() +
+  scale_x_log10(labels = prettyNum) +
+  ylim(0, 1e5) +
+  scale_colour_manual(values = pop_colours)
+# 1: In scale_x_log10(labels = prettyNum) :
+# log-10 transformation introduced infinite values.
+# 2: Removed 19 rows containing missing values or values outside the scale range (`geom_line()`). 
+
+ggsave("plot_smcpp_t1m_g6_cut.png")
+ggsave("plot_smcpp_t1m_g6_cut.pdf", height = 4, width = 5, useDingbats = FALSE)
+```
+
+
+
+### timepoint = 1 to 5 million years, generation time = 2, 4 & 6 years
+
 ```bash
+bsub.py --queue long 20 run_smcpp_t5m "run_smcpp_t5m.sh"
+```
+
+```bash
+#!/bin/bash
+
 # Load modules
 module load smcpp/1.15.3-c1
 
-cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/SMCPP/t1m/g1
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/05_ANALYSIS/SMCPP
 
+# Get sample names for each population
+ASIA=$(awk -F'_' '$1 == "MYS" || $1 == "THA" {print}' nuclear_samplelist.keep | paste -sd ',')
+AUS=$(awk -F'_' '$1 == "AUS" {print}' nuclear_samplelist.keep | paste -sd ',')
+CENAM=$(awk -F'_' '$1 == "PAN" || $1 == "CRI" {print}' nuclear_samplelist.keep | paste -sd ',')
+EUR=$(awk -F'_' '$1 == "GRC" || $1 == "ITA" || $1 == "ROU" {print}' nuclear_samplelist.keep | paste -sd ',')
+USA=$(awk -F'_' '$1 == "USA" {print}' nuclear_samplelist.keep | paste -sd ',')
+declare -A populations
+populations=(
+  [ASIA]=$ASIA
+  [AUS]=$AUS
+  [CENAM]=$CENAM
+  [EUR]=$EUR
+  [USA]=$USA
+)
 
-# ASIA
-# plot
-## Use generation time of D. immitis ~ 1 yrs
-smc++ plot -g 1 -c SMCPP_ASIA_t1m_g1.png ../g5/ASIA/model.final.json
-
-# AUS
-# plot
-## Use generation time of D. immitis ~ 1 yrs
-smc++ plot -g 1 -c SMCPP_AUS_t1m_g1.png ../g5/AUS/model.final.json
-
-# CAM
-# plot
-## Use generation time of D. immitis ~ 1 yrs
-smc++ plot -g 1 -c SMCPP_CAM_t1m_g1.png ../g5/CAM/model.final.json
-
-# EUR
-# plot
-## Use generation time of D. immitis ~ 1 yrs
-smc++ plot -g 1 -c SMCPP_EUR_t1m_g1.png ../g5/EUR/model.final.json
-
-# USA
-# plot
-## Use generation time of D. immitis ~ 1 yrs
-smc++ plot -g 1 -c SMCPP_USA_t1m_g1.png ../g5/USA/model.final.json
-```
-
-### timepoint = 1 to 1 million years, generation time = 2.5 years
-
-```bash
-cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/SMCPP/t1m/g2.5
-bsub.py --queue long 10 run_smcpp_t1m_g2.5 "run_smcpp_t1m_g2.5.sh"
-```
-
-```bash
-# Load modules
-module load smcpp/1.15.3-c1
-
-cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/SMCPP/t1m/g2.5
-
-# ASIA
-# plot
-## Use generation time of D. immitis ~ 2.5 yrs
-smc++ plot -g 2.5 -c SMCPP_ASIA_t1m_g2.5.png ../g5/ASIA/model.final.json
-
-# AUS
-# plot
-## Use generation time of D. immitis ~ 2.5 yrs
-smc++ plot -g 2.5 -c SMCPP_AUS_t1m_g2.5.png ../g5/AUS/model.final.json
-
-# CAM
-# plot
-## Use generation time of D. immitis ~ 2.5 yrs
-smc++ plot -g 2.5 -c SMCPP_CAM_t1m_g2.5.png ../g5/CAM/model.final.json
-
-# EUR
-# plot
-## Use generation time of D. immitis ~ 2.5 yrs
-smc++ plot -g 2.5 -c SMCPP_EUR_t1m_g2.5.png ../g5/EUR/model.final.json
-
-# USA
-# plot
-## Use generation time of D. immitis ~ 2.5 yrs
-smc++ plot -g 2.5 -c SMCPP_USA_t1m_g2.5.png ../g5/USA/model.final.json
-```
-
-### timepoint = 1 to 1.5 million years, generation time = 1, 2.5, 5 years
-
-```bash
-cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/SMCPP/t1.5m
-bsub.py --queue long 10 run_smcpp_t1.5m "run_smcpp_t1.5m.sh"
-```
-
-```bash
-# Load modules
-module load smcpp/1.15.3-c1
-
-cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/SMCPP/t1.5m
-mkdir g1
-mkdir g2.5
-mkdir g5
-
-# nuclear_samplelist.keep - the samples outputted in the final vcf. Removed repeat samples.
+# set up directories
+mkdir t5m
+cd t5m
+mkdir g2 g4 g6
 
 # ASIA
 # Fit the model using Estimate
 ## # mutation rate (C.elegans) = 2.7e-9 (https://doi.org/10.1073/pnas.0904895106)
-smc++ estimate --timepoints 1 1500000 -o ASIA/ 2.7e-9 ../t1m/g5/DATA/ASIA.*.smc.gz
+smc++ estimate --timepoints 1 5000000 -o ASIA/ 2.7e-9 ../DATA/ASIA.*.smc.gz
 # plot
-## Use generation time of D. immitis ~ 1, 2.5 & 5 yrs
-smc++ plot -g 1 -c g1/SMCPP_ASIA_t1.5m_g1.png ASIA/model.final.json
-smc++ plot -g 2.5 -c g2.5/SMCPP_ASIA_t1.5m_g2.5.png ASIA/model.final.json
-smc++ plot -g 5 -c g5/SMCPP_ASIA_t1.5m_g5.png ASIA/model.final.json
+## Use generation time of D. immitis 2, 4 & 6 yrs
+smc++ plot -g 2 -c g2/SMCPP_ASIA_t5m_g2.pdf ASIA/model.final.json
+smc++ plot -g 4 -c g4/SMCPP_ASIA_t5m_g4.pdf ASIA/model.final.json
+smc++ plot -g 6 -c g6/SMCPP_ASIA_t5m_g6.pdf ASIA/model.final.json
 
 # AUS
 # Fit the model using Estimate
 ## # mutation rate (C.elegans) = 2.7e-9 (https://doi.org/10.1073/pnas.0904895106)
-smc++ estimate --timepoints 1 1500000 -o AUS/ 2.7e-9 ../t1m/g5/DATA/AUS.*.smc.gz
+smc++ estimate --timepoints 1 5000000 -o AUS/ 2.7e-9 ../DATA/AUS.*.smc.gz
 # plot
-## Use generation time of D. immitis ~ 5 yrs
-smc++ plot -g 1 -c g1/SMCPP_AUS_t1.5m_g1.png AUS/model.final.json
-smc++ plot -g 2.5 -c g2.5/SMCPP_AUS_t1.5m_g2.5.png AUS/model.final.json
-smc++ plot -g 5 -c g5/SMCPP_AUS_t1.5m_g5.png AUS/model.final.json
+## Use generation time of D. immitis 2, 4 & 6 yrs
+smc++ plot -g 2 -c g2/SMCPP_AUS_t5m_g2.pdf AUS/model.final.json
+smc++ plot -g 4 -c g4/SMCPP_AUS_t5m_g4.pdf AUS/model.final.json
+smc++ plot -g 6 -c g6/SMCPP_AUS_t5m_g6.pdf AUS/model.final.json
 
-# CAM
+# CENAM
 # Fit the model using Estimate
 ## # mutation rate (C.elegans) = 2.7e-9 (https://doi.org/10.1073/pnas.0904895106)
-smc++ estimate --timepoints 1 1500000 -o CAM/ 2.7e-9 ../t1m/g5/DATA/CAM.*.smc.gz
+smc++ estimate --timepoints 1 5000000 -o CENAM/ 2.7e-9 ../DATA/CENAM.*.smc.gz
 # plot
-## Use generation time of D. immitis ~ 5 yrs
-smc++ plot -g 1 -c g1/SMCPP_CAM_t1.5m_g1.png CAM/model.final.json
-smc++ plot -g 2.5 -c g2.5/SMCPP_CAM_t1.5m_g2.5.png CAM/model.final.json
-smc++ plot -g 5 -c g5/SMCPP_CAM_t1.5m_g5.png CAM/model.final.json
+## Use generation time of D. immitis 2, 4 & 6 yrs
+smc++ plot -g 2 -c g2/SMCPP_CENAM_t5m_g2.pdf CENAM/model.final.json
+smc++ plot -g 4 -c g4/SMCPP_CENAM_t5m_g4.pdf CENAM/model.final.json
+smc++ plot -g 6 -c g6/SMCPP_CENAM_t5m_g6.pdf CENAM/model.final.json
 
 # EUR
 # Fit the model using Estimate
 ## # mutation rate (C.elegans) = 2.7e-9 (https://doi.org/10.1073/pnas.0904895106)
-smc++ estimate --timepoints 1 1500000 -o EUR/ 2.7e-9 ../t1m/g5/DATA/EUR.*.smc.gz
+smc++ estimate --timepoints 1 5000000 -o EUR/ 2.7e-9 ../DATA/EUR.*.smc.gz
 # plot
-## Use generation time of D. immitis ~ 5 yrs
-smc++ plot -g 1 -c g1/SMCPP_EUR_t1.5m_g1.png EUR/model.final.json
-smc++ plot -g 2.5 -c g2.5/SMCPP_EUR_t1.5m_g2.5.png EUR/model.final.json
-smc++ plot -g 5 -c g5/SMCPP_EUR_t1.5m_g5.png EUR/model.final.json
+## Use generation time of D. immitis 2, 4 & 6 yrs
+smc++ plot -g 2 -c g2/SMCPP_EUR_t5m_g2.pdf EUR/model.final.json
+smc++ plot -g 4 -c g4/SMCPP_EUR_t5m_g4.pdf EUR/model.final.json
+smc++ plot -g 6 -c g6/SMCPP_EUR_t5m_g6.pdf EUR/model.final.json
 
 # USA
 # Fit the model using Estimate
 ## # mutation rate (C.elegans) = 2.7e-9 (https://doi.org/10.1073/pnas.0904895106)
-smc++ estimate --timepoints 1 1500000 -o USA/ 2.7e-9 ../t1m/g5/DATA/USA.*.smc.gz
+smc++ estimate --timepoints 1 5000000 -o USA/ 2.7e-9 ../DATA/USA.*.smc.gz
 # plot
-## Use generation time of D. immitis ~ 5 yrs
-smc++ plot -g 1 -c g1/SMCPP_USA_t1.5m_g1.png USA/model.final.json
-smc++ plot -g 2.5 -c g2.5/SMCPP_USA_t1.5m_g2.5.png USA/model.final.json
-smc++ plot -g 5 -c g5/SMCPP_USA_t1.5m_g5.png USA/model.final.json
+## Use generation time of D. immitis 2, 4 & 6 yrs
+smc++ plot -g 2 -c g2/SMCPP_USA_t5m_g2.pdf USA/model.final.json
+smc++ plot -g 4 -c g4/SMCPP_USA_t5m_g4.pdf USA/model.final.json
+smc++ plot -g 6 -c g6/SMCPP_USA_t5m_g6.pdf USA/model.final.json
+```
+
+```R
+# smc++ - plotting all populations together
+# timepoint = 1 to 5 million years
+
+# load libraries
+library(tidyverse)
+library(patchwork)
+library(ggsci)
+library(RColorBrewer)
+
+####################################################################
+# Generation = 2 yrs
+####################################################################
+
+setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/smcpp/t5m/g2")
+
+# load data
+ASIA_data <- read.delim("SMCPP_ASIA_t5m_g2.csv", header = T , sep = ",")
+ASIA_data$ID <- "ASIA"
+AUS_data <- read.delim("SMCPP_AUS_t5m_g2.csv", header = T , sep = ",")
+AUS_data$ID <- "AUS"
+CENAM_data <- read.delim("SMCPP_CENAM_t5m_g2.csv", header = T , sep = ",")
+CENAM_data$ID <- "CENAM"
+EUR_data <- read.delim("SMCPP_EUR_t5m_g2.csv", header = T , sep = ",")
+EUR_data$ID <- "EUR"
+USA_data <- read.delim("SMCPP_USA_t5m_g2.csv", header = T , sep = ",")
+USA_data$ID <- "USA"
+
+data <- bind_rows(ASIA_data, AUS_data, CENAM_data, EUR_data, USA_data)
+
+pop_colours <- c("ASIA" = "hotpink", "AUS" = "cornflowerblue", "CENAM" = "purple", "EUR" = "forestgreen", "USA" = "tomato2")
+
+
+ggplot(data,aes(x,y,col=ID)) +
+  geom_rect(aes(xmin=25000,ymin=0,xmax=35000,ymax=300000), fill="grey80", col=NA) +
+  geom_line(size=1) +
+  labs(title = "Generation time = 2 years", x = "Years before present", y = "Effective population size (Ne)", col="Population") +
+  theme_bw() +
+  theme(panel.grid = element_blank()) +
+  scale_x_log10(labels = prettyNum) +
+  ylim(0, 300000) +
+  scale_colour_manual(values = pop_colours)
+# 1: In scale_x_log10(labels = prettyNum) :
+# log-10 transformation introduced infinite values.
+# 2: Removed 19 rows containing missing values or values outside the scale range (`geom_line()`). 
+
+ggsave("plot_smcpp_t5m_g2.png")
+ggsave("plot_smcpp_t5m_g2.pdf", height = 4, width = 5, useDingbats = FALSE)
+
+
+ggplot(data,aes(x,y,col=ID)) +
+  geom_rect(aes(xmin=25000,ymin=0,xmax=35000,ymax=100000), fill="grey80", col=NA) +
+  geom_line(size=1) +
+  labs(title = "Generation time = 2 years", x = "Years before present", y = "Effective population size (Ne)", col="Population") +
+  theme_bw() +
+  theme(panel.grid = element_blank()) +
+  scale_x_log10(labels = prettyNum) +
+  ylim(0, 100000) +
+  scale_colour_manual(values = pop_colours)
+
+ggsave("plot_smcpp_t5m_g2_cut.png")
+ggsave("plot_smcpp_t5m_g2_cut.pdf", height = 4, width = 5, useDingbats = FALSE)
+
+
+####################################################################
+# Generation = 4 yrs
+####################################################################
+
+setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/smcpp/t5m/g4")
+
+# load data
+ASIA_data <- read.delim("SMCPP_ASIA_t5m_g4.csv", header = T , sep = ",")
+ASIA_data$ID <- "ASIA"
+AUS_data <- read.delim("SMCPP_AUS_t5m_g4.csv", header = T , sep = ",")
+AUS_data$ID <- "AUS"
+CENAM_data <- read.delim("SMCPP_CENAM_t5m_g4.csv", header = T , sep = ",")
+CENAM_data$ID <- "CENAM"
+EUR_data <- read.delim("SMCPP_EUR_t5m_g4.csv", header = T , sep = ",")
+EUR_data$ID <- "EUR"
+USA_data <- read.delim("SMCPP_USA_t5m_g4.csv", header = T , sep = ",")
+USA_data$ID <- "USA"
+
+data <- bind_rows(ASIA_data, AUS_data, CENAM_data, EUR_data, USA_data)
+
+
+ggplot(data,aes(x,y,col=ID)) +
+  geom_rect(aes(xmin=25000,ymin=0,xmax=35000,ymax=300000), fill="grey80", col=NA) +
+  geom_line(size=1) +
+  labs(title = "Generation time = 4 years", x = "Years before present", y = "Effective population size (Ne)", col="Population") +
+  theme_bw() +
+  theme(panel.grid = element_blank()) +
+ scale_x_log10(labels = prettyNum) +
+  ylim(0, 300000) +
+  scale_colour_manual(values = pop_colours)
+# 1: In scale_x_log10(labels = prettyNum) :
+# log-10 transformation introduced infinite values.
+# 2: Removed 19 rows containing missing values or values outside the scale range (`geom_line()`). 
+
+ggsave("plot_smcpp_t5m_g4.png")
+ggsave("plot_smcpp_t5m_g4.pdf", height = 4, width = 5, useDingbats = FALSE)
+
+
+ggplot(data,aes(x,y,col=ID)) +
+  geom_rect(aes(xmin=25000,ymin=0,xmax=35000,ymax=100000), fill="grey80", col=NA) +
+  geom_line(size=1) +
+  labs(title = "Generation time = 4 years", x = "Years before present", y = "Effective population size (Ne)", col="Population") +
+  theme_bw() +
+  theme(panel.grid = element_blank()) +
+  scale_x_log10(labels = prettyNum) +
+  ylim(0, 100000) +
+  scale_colour_manual(values = pop_colours)
+
+ggsave("plot_smcpp_t5m_g4_cut.png")
+ggsave("plot_smcpp_t5m_g4_cut.pdf", height = 4, width = 5, useDingbats = FALSE)
+
+
+
+####################################################################
+# Generation = 6 yrs
+####################################################################
+
+setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/smcpp/t5m/g6")
+
+# load data
+ASIA_data <- read.delim("SMCPP_ASIA_t5m_g6.csv", header = T , sep = ",")
+ASIA_data$ID <- "ASIA"
+AUS_data <- read.delim("SMCPP_AUS_t5m_g6.csv", header = T , sep = ",")
+AUS_data$ID <- "AUS"
+CENAM_data <- read.delim("SMCPP_CENAM_t5m_g6.csv", header = T , sep = ",")
+CENAM_data$ID <- "CENAM"
+EUR_data <- read.delim("SMCPP_EUR_t5m_g6.csv", header = T , sep = ",")
+EUR_data$ID <- "EUR"
+USA_data <- read.delim("SMCPP_USA_t5m_g6.csv", header = T , sep = ",")
+USA_data$ID <- "USA"
+
+data <- bind_rows(ASIA_data, AUS_data, CENAM_data, EUR_data, USA_data)
+
+ggplot(data,aes(x,y,col=ID)) +
+  geom_rect(aes(xmin=25000,ymin=0,xmax=35000,ymax=300000), fill="grey80", col=NA) +
+  geom_line(size=1) +
+  labs(title = "Generation time = 6 years", x = "Years before present", y = "Effective population size (Ne)", col="Population") +
+  theme_bw() +
+  theme(panel.grid = element_blank()) +
+  scale_x_log10(labels = prettyNum) +
+  ylim(0,300000) +
+  scale_colour_manual(values = pop_colours)
+# In scale_x_log10(labels = prettyNum) :
+# log-10 transformation introduced infinite values.
+
+ggsave("plot_smcpp_t5m_g6.png")
+ggsave("plot_smcpp_t5m_g6.pdf", height = 4, width = 5, useDingbats = FALSE)
+
+
+ggplot(data,aes(x,y,col=ID)) +
+  geom_rect(aes(xmin=25000,ymin=0,xmax=35000,ymax=100000), fill="grey80", col=NA) +
+  geom_line(size=1) +
+  labs(title = "Generation time = 6 years", x = "Years before present", y = "Effective population size (Ne)", col="Population") +
+  theme_bw() +
+  theme(panel.grid = element_blank()) +
+  scale_x_log10(labels = prettyNum) +
+  ylim(0, 100000) +
+  scale_colour_manual(values = pop_colours)
+# 1: In scale_x_log10(labels = prettyNum) :
+# log-10 transformation introduced infinite values.
+# 2: Removed 19 rows containing missing values or values outside the scale range (`geom_line()`). 
+
+ggsave("plot_smcpp_t5m_g6_cut.png")
+ggsave("plot_smcpp_t5m_g6_cut.pdf", height = 4, width = 5, useDingbats = FALSE)
 ```
 
 
-### timepoint = 1 to 1 million years, generation time = 2.5 years, -c 1kbp
+
+
+### timepoint = 1 to 1 million years, generation time = 4 years, -c 1kbp
 
 The -c parameter will treat runs of homozygosity longer than -c bp as missing.
 
-cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/SMCPP/c1kbp
-bsub.py --queue long 10 run_smcpp_c1kbp "run_smcpp_c1kbp.sh"
+```bash
+bsub.py --queue long 20 run_smcpp_c1kbp "run_smcpp_c1kbp.sh"
+```
 
 ```bash
+#!/bin/bash
+
 # Load modules
 module load smcpp/1.15.3-c1
 
-cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/SMCPP/c1kbp
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/05_ANALYSIS/SMCPP/c1kbp
 mkdir DATA
 
 # Get sample names for each population
 ASIA=$(awk -F'_' '$1 == "MYS" || $1 == "THA" {print}' ../nuclear_samplelist.keep | paste -sd ',')
 AUS=$(awk -F'_' '$1 == "AUS" {print}' ../nuclear_samplelist.keep | paste -sd ',')
-CAM=$(awk -F'_' '$1 == "PAN" || $1 == "CRI" {print}' ../nuclear_samplelist.keep | paste -sd ',')
+CENAM=$(awk -F'_' '$1 == "PAN" || $1 == "CRI" {print}' ../nuclear_samplelist.keep | paste -sd ',')
 EUR=$(awk -F'_' '$1 == "GRC" || $1 == "ITA" || $1 == "ROU" {print}' ../nuclear_samplelist.keep | paste -sd ',')
 USA=$(awk -F'_' '$1 == "USA" {print}' ../nuclear_samplelist.keep | paste -sd ',')
 declare -A populations
 populations=(
   [ASIA]=$ASIA
   [AUS]=$AUS
-  [CAM]=$CAM
+  [CENAM]=$CENAM
   [EUR]=$EUR
   [USA]=$USA
 )
@@ -558,12 +877,12 @@ done
 # each call to vcf2smc processes a single contig. VCFs containing multiple contigs should be processed via multiple separate runs.
 
 # Fit the model using Estimate
-## # mutation rate (C.elegans) = 2.7e-9 (https://doi.org/10.1073/pnas.0904895106)
+# mutation rate (C.elegans) = 2.7e-9 (https://doi.org/10.1073/pnas.0904895106)
 smc++ estimate --timepoints 1 1000000 -o ASIA/ 2.7e-9 DATA/ASIA.*.smc.gz
 
 # plot
-## Use generation time of D. immitis ~ 2.5 yrs
-smc++ plot -g 2.5 -c SMCPP_ASIA_c1kbp.png ASIA/model.final.json
+## Use generation time of D. immitis ~ 4yrs
+smc++ plot -g 4 -c SMCPP_ASIA_c1kbp.pdf ASIA/model.final.json
 
 
 # AUS
@@ -574,29 +893,29 @@ done
 # each call to vcf2smc processes a single contig. VCFs containing multiple contigs should be processed via multiple separate runs.
 
 # Fit the model using Estimate
-## # mutation rate (C.elegans) = 2.7e-9 (https://doi.org/10.1073/pnas.0904895106)
+# mutation rate (C.elegans) = 2.7e-9 (https://doi.org/10.1073/pnas.0904895106)
 smc++ estimate --timepoints 1 1000000 -o AUS/ 2.7e-9 DATA/AUS.*.smc.gz
 
 # plot
-## Use generation time of D. immitis ~ 2.5 yrs
-smc++ plot -g 2.5 -c SMCPP_AUS_c1kbp.png AUS/model.final.json
+## Use generation time of D. immitis ~ 4 yrs
+smc++ plot -g 4 -c SMCPP_AUS_c1kbp.pdf AUS/model.final.json
 
 
 
-# CAM
+# CENAM
 # Convert VCF to the SMC++ input format with vcf2smc
 for chr in {1..4}; do
-  smc++ vcf2smc -c 1000 ../CAM.recode.vcf.gz DATA/CAM.chr${chr}.smc.gz dirofilaria_immitis_chr${chr} CAM:${CAM};
+  smc++ vcf2smc -c 1000 ../CENAM.recode.vcf.gz DATA/CENAM.chr${chr}.smc.gz dirofilaria_immitis_chr${chr} CENAM:${CENAM};
 done
 # each call to vcf2smc processes a single contig. VCFs containing multiple contigs should be processed via multiple separate runs.
 
 # Fit the model using Estimate
-## # mutation rate (C.elegans) = 2.7e-9 (https://doi.org/10.1073/pnas.0904895106)
-smc++ estimate --timepoints 1 1000000 -o CAM/ 2.7e-9 DATA/CAM.*.smc.gz
+# mutation rate (C.elegans) = 2.7e-9 (https://doi.org/10.1073/pnas.0904895106)
+smc++ estimate --timepoints 1 1000000 -o CENAM/ 2.7e-9 DATA/CENAM.*.smc.gz
 
 # plot
-## Use generation time of D. immitis ~ 2.5 yrs
-smc++ plot -g 2.5 -c SMCPP_CAM_c1kbp.png CAM/model.final.json
+## Use generation time of D. immitis ~ 4 yrs
+smc++ plot -g 4 -c SMCPP_CENAM_c1kbp.pdf CENAM/model.final.json
 
 
 
@@ -609,12 +928,12 @@ done
 # each call to vcf2smc processes a single contig. VCFs containing multiple contigs should be processed via multiple separate runs.
 
 # Fit the model using Estimate
-## # mutation rate (C.elegans) = 2.7e-9 (https://doi.org/10.1073/pnas.0904895106)
+# mutation rate (C.elegans) = 2.7e-9 (https://doi.org/10.1073/pnas.0904895106)
 smc++ estimate --timepoints 1 1000000 -o EUR/ 2.7e-9 DATA/EUR.*.smc.gz
 
 # plot
-## Use generation time of D. immitis ~ 2.5 yrs
-smc++ plot -g 2.5 -c SMCPP_EUR_c1kbp.png EUR/model.final.json
+## Use generation time of D. immitis ~ 4 yrs
+smc++ plot -g 4 -c SMCPP_EUR_c1kbp.pdf EUR/model.final.json
 
 
 
@@ -632,46 +951,63 @@ done
 smc++ estimate --timepoints 1 1000000 -o USA/ 2.7e-9 DATA/USA.*.smc.gz
 
 # plot
-## Use generation time of D. immitis ~ 2.5 yrs
-smc++ plot -g 2.5 -c SMCPP_USA_c1kbp.png USA/model.final.json
+## Use generation time of D. immitis ~ 4 yrs
+smc++ plot -g 4 -c SMCPP_USA_c1kbp.pdf USA/model.final.json
 ```
+
+
+
+
+## need to plot
+
+
+
+
+
+
 
 
 ## Split
 
 The split command fits two-population clean split models (assumes no ongoing gene flow between the two populations after they diverged).
 
-## Timepoint 1 to 1,000,000, generation time ~2.5 years
-
-cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/SMCPP/split/g2.5/run1
-bsub.py --queue long 10 run_smcpp_split_g2.5_run1 "run_smcpp_split_g2.5_run1.sh"
+## Timepoint 1y to 5mya generation time ~4 years
 
 ```bash
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/05_ANALYSIS/SMCPP
+bsub.py --queue long 20 run_smcpp_split_t5m_g4 "run_smcpp_split_t5m_g4.sh"
+```
+
+```bash
+#!/bin/bash
+
 # Load modules
 module load smcpp/1.15.3-c1
 module load common-apps/htslib/1.9.229
 module load vcftools/0.1.16-c4
 
-cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/SMCPP/split/g2.5/run1
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/05_ANALYSIS/SMCPP
+mkdir SPLIT
+cd SPLIT
 
 # Create necessary directories
 mkdir DATA
-mkdir DATA/ASIA_AUS DATA/ASIA_CAM DATA/ASIA_EUR DATA/ASIA_USA
-mkdir DATA/AUS_CAM DATA/AUS_EUR DATA/AUS_USA
-mkdir DATA/CAM_EUR DATA/CAM_USA DATA/EUR_USA
+mkdir DATA/ASIA_AUS DATA/ASIA_CENAM DATA/ASIA_EUR DATA/ASIA_USA
+mkdir DATA/AUS_CENAM DATA/AUS_EUR DATA/AUS_USA
+mkdir DATA/CENAM_EUR DATA/CENAM_USA DATA/EUR_USA
 
 # Get sample names for each population
-ASIA=$(awk -F'_' '$1 == "MYS" || $1 == "THA" {print $0}' ../../../nuclear_samplelist.keep | paste -sd ',')
-AUS=$(awk -F'_' '$1 == "AUS" {print $0}' ../../../nuclear_samplelist.keep | paste -sd ',')
-CAM=$(awk -F'_' '$1 == "PAN" || $1 == "CRI" {print $0}' ../../../nuclear_samplelist.keep | paste -sd ',')
-EUR=$(awk -F'_' '$1 == "GRC" || $1 == "ITA" || $1 == "ROU" {print $0}' ../../../nuclear_samplelist.keep | paste -sd ',')
-USA=$(awk -F'_' '$1 == "USA" {print $0}' ../../../nuclear_samplelist.keep | paste -sd ',')
+ASIA=$(awk -F'_' '$1 == "MYS" || $1 == "THA" {print $0}' ../nuclear_samplelist.keep | paste -sd ',')
+AUS=$(awk -F'_' '$1 == "AUS" {print $0}' ../nuclear_samplelist.keep | paste -sd ',')
+CENAM=$(awk -F'_' '$1 == "PAN" || $1 == "CRI" {print $0}' ../nuclear_samplelist.keep | paste -sd ',')
+EUR=$(awk -F'_' '$1 == "GRC" || $1 == "ITA" || $1 == "ROU" {print $0}' ../nuclear_samplelist.keep | paste -sd ',')
+USA=$(awk -F'_' '$1 == "USA" {print $0}' ../nuclear_samplelist.keep | paste -sd ',')
 
 declare -A populations
 populations=(
   [ASIA]="$ASIA"
   [AUS]="$AUS"
-  [CAM]="$CAM"
+  [CENAM]="$CENAM"
   [EUR]="$EUR"
   [USA]="$USA"
 )
@@ -680,11 +1016,11 @@ populations=(
 process_pair() {
   local pop1=$1
   local pop2=$2
-  local out_prefix="../../${pop1}_${pop2}"
+  local out_prefix="./${pop1}_${pop2}"
   local dir_prefix="DATA/${pop1}_${pop2}"
   
   # Generate VCF for the pair
-  vcftools --gzvcf ../../../smcpp.vcf.gz \
+  vcftools --gzvcf ../smcpp.vcf.gz \
     $(echo ${populations[$pop1]} | tr ',' '\n' | awk '{print "--indv "$0}') \
     $(echo ${populations[$pop2]} | tr ',' '\n' | awk '{print "--indv "$0}') \
     --max-missing 1 --recode --out $out_prefix
@@ -692,96 +1028,28 @@ process_pair() {
   bgzip -f ${out_prefix}.recode.vcf
   tabix ${out_prefix}.recode.vcf.gz
 
+  # create datasets containing the joint frequency spectrum for both pops
   for chr in {1..4}; do
     smc++ vcf2smc ${out_prefix}.recode.vcf.gz ${dir_prefix}/${pop1}_${pop2}.chr${chr}.smc.gz dirofilaria_immitis_chr${chr} ${pop1}:${populations[$pop1]} ${pop2}:${populations[$pop2]}
     smc++ vcf2smc ${out_prefix}.recode.vcf.gz ${dir_prefix}/${pop2}_${pop1}.chr${chr}.smc.gz dirofilaria_immitis_chr${chr} ${pop2}:${populations[$pop2]} ${pop1}:${populations[$pop1]}
   done
 
-  smc++ split --timepoints 1 1000000 -o ${pop1}_${pop2} 2.7e-9 ../../../t1m/g5/${pop1}/model.final.json ../../../t1m/g5/${pop2}/model.final.json ${dir_prefix}/*.smc.gz
-  smc++ plot -g 2.5 -c SMCPP_${pop1}_${pop2}_g2.5.png ${pop1}_${pop2}/model.final.json
+  # run split
+  smc++ split --timepoints 1 5000000 -o ${pop1}_${pop2} ../t5m/${pop1}/model.final.json ../t5m/${pop2}/model.final.json ${dir_prefix}/*.smc.gz
+  smc++ plot -g 4 -c SMCPP_${pop1}_${pop2}_t5m_g4.pdf ${pop1}_${pop2}/model.final.json
 }
 
 # Process each population pair
 process_pair ASIA AUS
-process_pair ASIA CAM
+process_pair ASIA CENAM
 process_pair ASIA EUR
 process_pair ASIA USA
-process_pair AUS CAM
+process_pair AUS CENAM
 process_pair AUS EUR
 process_pair AUS USA
-process_pair CAM EUR
-process_pair CAM USA
+process_pair CENAM EUR
+process_pair CENAM USA
 process_pair EUR USA
 ```
 
 
-cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/SMCPP/split/g2.5/run2
-bsub.py --done "run_smcpp_split_g2.5_run1" --queue long 10 run_smcpp_split_g2.5_run2 "run_smcpp_split_g2.5_run2.sh"
-
-```bash
-# Load modules
-module load smcpp/1.15.3-c1
-module load common-apps/htslib/1.9.229
-module load vcftools/0.1.16-c4
-
-cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER2/NO_OUTGROUPS/SMCPP/split/g2.5/run2
-
-# Create necessary directories
-mkdir DATA
-mkdir DATA/AUS_ASIA DATA/CAM_ASIA DATA/EUR_ASIA DATA/USA_ASIA
-mkdir DATA/CAM_AUS DATA/EUR_AUS DATA/USA_AUS
-mkdir DATA/EUR_CAM DATA/USA_CAM DATA/USA_EUR
-
-# Get sample names for each population
-ASIA=$(awk -F'_' '$1 == "MYS" || $1 == "THA" {print $0}' ../../../nuclear_samplelist.keep | paste -sd ',')
-AUS=$(awk -F'_' '$1 == "AUS" {print $0}' ../../../nuclear_samplelist.keep | paste -sd ',')
-CAM=$(awk -F'_' '$1 == "PAN" || $1 == "CRI" {print $0}' ../../../nuclear_samplelist.keep | paste -sd ',')
-EUR=$(awk -F'_' '$1 == "GRC" || $1 == "ITA" || $1 == "ROU" {print $0}' ../../../nuclear_samplelist.keep | paste -sd ',')
-USA=$(awk -F'_' '$1 == "USA" {print $0}' ../../../nuclear_samplelist.keep | paste -sd ',')
-
-declare -A populations
-populations=(
-  [ASIA]="$ASIA"
-  [AUS]="$AUS"
-  [CAM]="$CAM"
-  [EUR]="$EUR"
-  [USA]="$USA"
-)
-
-# Function to create dataset and run smc++ commands
-process_pair() {
-  local pop1=$1
-  local pop2=$2
-  local out_prefix="../../${pop1}_${pop2}"
-  local dir_prefix="DATA/${pop1}_${pop2}"
-  
-  # Generate VCF for the pair
-  vcftools --gzvcf ../../../smcpp.vcf.gz \
-    $(echo ${populations[$pop1]} | tr ',' '\n' | awk '{print "--indv "$0}') \
-    $(echo ${populations[$pop2]} | tr ',' '\n' | awk '{print "--indv "$0}') \
-    --max-missing 1 --recode --out $out_prefix
-
-  bgzip -f ${out_prefix}.recode.vcf
-  tabix ${out_prefix}.recode.vcf.gz
-
-  for chr in {1..4}; do
-    smc++ vcf2smc ${out_prefix}.recode.vcf.gz ${dir_prefix}/${pop1}_${pop2}.chr${chr}.smc.gz dirofilaria_immitis_chr${chr} ${pop1}:${populations[$pop1]} ${pop2}:${populations[$pop2]}
-    smc++ vcf2smc ${out_prefix}.recode.vcf.gz ${dir_prefix}/${pop2}_${pop1}.chr${chr}.smc.gz dirofilaria_immitis_chr${chr} ${pop2}:${populations[$pop2]} ${pop1}:${populations[$pop1]}
-  done
-
-  smc++ split --timepoints 1 1000000 -o ${pop1}_${pop2} 2.7e-9 ../../../t1m/g5/${pop1}/model.final.json ../../../t1m/g5/${pop2}/model.final.json ${dir_prefix}/*.smc.gz
-  smc++ plot -g 2.5 -c SMCPP_${pop1}_${pop2}_g2.5.png ${pop1}_${pop2}/model.final.json
-}
-
-# Process each population pair
-process_pair AUS ASIA
-process_pair CAM ASIA
-process_pair EUR ASIA
-process_pair USA ASIA
-process_pair CAM AUS
-process_pair EUR AUS
-process_pair USA AUS
-process_pair EUR CAM
-process_pair USA CAM
-process_pair USA EUR
-```

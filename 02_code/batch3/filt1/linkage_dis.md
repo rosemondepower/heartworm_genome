@@ -14,7 +14,7 @@ Actually - Illumina HiSeq produces unphased data by default, so it makes sense w
 
 ## Separate cohort into groups
 
-Calculate LD for each group separately. Go with 50,000 window.
+Calculate LD for each group separately. Go with 10,000 bp window.
 
 bsub.py 10 LD_vcftools_50000 "../LD_vcftools_50000.sh"
 

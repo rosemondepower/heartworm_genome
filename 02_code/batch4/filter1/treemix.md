@@ -176,6 +176,9 @@ title(paste(3,"edges"))
 
 ```
 
+
+# havent done the below
+
 ## Calculate the variance explained by the data
 
 ```bash
