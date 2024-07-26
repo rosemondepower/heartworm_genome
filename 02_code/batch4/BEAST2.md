@@ -53,4 +53,4 @@ ESS values really aren't great. Run for longer.
 - Mutation rate: 1.6E-7 (upper 1.91E-7, lower 1.29E-7) (Denver 2000) -----> SLOW IT DOWN TO GENERATION = 1 YEAR
 - C. elegans generation time is let's say ~ 1 week so D. immitis generation time of 1 year (52 weeks) is 52 times slower. So mutation rate would be 3.07E-9 (upper 3.67E-9, lower 2.48E-9)
 - Model: Birth-death, Yule
-- Chain length 10000000, log every 1000
+- Chain length 200000000, log every 20000
