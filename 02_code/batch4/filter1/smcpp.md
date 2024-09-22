@@ -101,7 +101,7 @@ tabix -p vcf smcpp.vcf.gz
 
 ## Plot per population 
 
-### timepoint = 1 to 1 million years, generation time t = 2, 4 & 6 years
+### timepoint = 1 to 1mill, generation time t = 2, 4 & 6 years
 
 bsub.py --queue long 20 run_smcpp_t1m "run_smcpp_t1m.sh"
 
@@ -413,7 +413,7 @@ Successfully completed.
 
 ```R
 # smc++ - plotting all populations together
-# timepoint = 1 to 1 million years
+# timepoint = 1 to 1mill
 
 # load libraries
 library(tidyverse)
@@ -578,7 +578,7 @@ ggsave("plot_smcpp_t1m_g6_cut.pdf", height = 4, width = 5, useDingbats = FALSE)
 
 
 
-### timepoint = 1 to 5 million years, generation time = 2, 4 & 6 years
+### timepoint = 1 to 5 mill, generation time = 1, 2, 4 & 6 years
 
 ```bash
 bsub.py --queue long 20 run_smcpp_t5m "run_smcpp_t5m.sh"
@@ -611,6 +611,7 @@ populations=(
 mkdir t5m
 cd t5m
 mkdir g2 g4 g6
+mkdir g1
 
 # ASIA
 # Fit the model using Estimate
@@ -621,6 +622,8 @@ smc++ estimate --timepoints 1 5000000 -o ASIA/ 2.7e-9 ../DATA/ASIA.*.smc.gz
 smc++ plot -g 2 -c g2/SMCPP_ASIA_t5m_g2.pdf ASIA/model.final.json
 smc++ plot -g 4 -c g4/SMCPP_ASIA_t5m_g4.pdf ASIA/model.final.json
 smc++ plot -g 6 -c g6/SMCPP_ASIA_t5m_g6.pdf ASIA/model.final.json
+# do gen=1 year
+smc++ plot -g 1 -c g1/SMCPP_ASIA_t5m_g1.pdf ASIA/model.final.json
 
 # AUS
 # Fit the model using Estimate
@@ -631,6 +634,8 @@ smc++ estimate --timepoints 1 5000000 -o AUS/ 2.7e-9 ../DATA/AUS.*.smc.gz
 smc++ plot -g 2 -c g2/SMCPP_AUS_t5m_g2.pdf AUS/model.final.json
 smc++ plot -g 4 -c g4/SMCPP_AUS_t5m_g4.pdf AUS/model.final.json
 smc++ plot -g 6 -c g6/SMCPP_AUS_t5m_g6.pdf AUS/model.final.json
+# do gen=1 year
+smc++ plot -g 1 -c g1/SMCPP_AUS_t5m_g1.pdf AUS/model.final.json
 
 # CENAM
 # Fit the model using Estimate
@@ -641,6 +646,8 @@ smc++ estimate --timepoints 1 5000000 -o CENAM/ 2.7e-9 ../DATA/CENAM.*.smc.gz
 smc++ plot -g 2 -c g2/SMCPP_CENAM_t5m_g2.pdf CENAM/model.final.json
 smc++ plot -g 4 -c g4/SMCPP_CENAM_t5m_g4.pdf CENAM/model.final.json
 smc++ plot -g 6 -c g6/SMCPP_CENAM_t5m_g6.pdf CENAM/model.final.json
+# do gen=1 year
+smc++ plot -g 1 -c g1/SMCPP_CENAM_t5m_g1.pdf CENAM/model.final.json
 
 # EUR
 # Fit the model using Estimate
@@ -651,6 +658,8 @@ smc++ estimate --timepoints 1 5000000 -o EUR/ 2.7e-9 ../DATA/EUR.*.smc.gz
 smc++ plot -g 2 -c g2/SMCPP_EUR_t5m_g2.pdf EUR/model.final.json
 smc++ plot -g 4 -c g4/SMCPP_EUR_t5m_g4.pdf EUR/model.final.json
 smc++ plot -g 6 -c g6/SMCPP_EUR_t5m_g6.pdf EUR/model.final.json
+# do gen=1 year
+smc++ plot -g 1 -c g1/SMCPP_EUR_t5m_g1.pdf EUR/model.final.json
 
 # USA
 # Fit the model using Estimate
@@ -661,17 +670,60 @@ smc++ estimate --timepoints 1 5000000 -o USA/ 2.7e-9 ../DATA/USA.*.smc.gz
 smc++ plot -g 2 -c g2/SMCPP_USA_t5m_g2.pdf USA/model.final.json
 smc++ plot -g 4 -c g4/SMCPP_USA_t5m_g4.pdf USA/model.final.json
 smc++ plot -g 6 -c g6/SMCPP_USA_t5m_g6.pdf USA/model.final.json
+# do gen=1 year
+smc++ plot -g 1 -c g1/SMCPP_USA_t5m_g1.pdf USA/model.final.json
 ```
 
 ```R
 # smc++ - plotting all populations together
-# timepoint = 1 to 5 million years
+# timepoint = 1 to 5 mill
 
 # load libraries
 library(tidyverse)
 library(patchwork)
 library(ggsci)
 library(RColorBrewer)
+
+
+####################################################################
+# Generation = 1 yr
+####################################################################
+
+setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/smcpp/t5m/g1")
+
+# load data
+ASIA_data <- read.delim("SMCPP_ASIA_t5m_g1.csv", header = T , sep = ",")
+ASIA_data$ID <- "ASIA"
+AUS_data <- read.delim("SMCPP_AUS_t5m_g1.csv", header = T , sep = ",")
+AUS_data$ID <- "AUS"
+CENAM_data <- read.delim("SMCPP_CENAM_t5m_g1.csv", header = T , sep = ",")
+CENAM_data$ID <- "CENAM"
+EUR_data <- read.delim("SMCPP_EUR_t5m_g1.csv", header = T , sep = ",")
+EUR_data$ID <- "EUR"
+USA_data <- read.delim("SMCPP_USA_t5m_g1.csv", header = T , sep = ",")
+USA_data$ID <- "USA"
+
+data <- bind_rows(ASIA_data, AUS_data, CENAM_data, EUR_data, USA_data)
+
+pop_colours <- c("ASIA" = "hotpink", "AUS" = "cornflowerblue", "CENAM" = "purple", "EUR" = "forestgreen", "USA" = "tomato2")
+
+
+ggplot(data,aes(x,y,col=ID)) +
+  geom_rect(aes(xmin=25000,ymin=0,xmax=35000,ymax=200000), fill="grey80", col=NA) +
+  geom_line(size=1) +
+  labs(title = "Generation time = 1 year", x = "Years before present", y = "Effective population size (Ne)", col="Population") +
+  theme_bw() +
+  theme(panel.grid = element_blank()) +
+  scale_x_log10(labels = prettyNum) +
+  ylim(0, 200000) +
+  scale_colour_manual(values = pop_colours)
+# 1: In scale_x_log10(labels = prettyNum) :
+# log-10 transformation introduced infinite values.
+# 2: Removed 19 rows containing missing values or values outside the scale range (`geom_line()`). 
+
+ggsave("plot_smcpp_t5m_g1.png")
+ggsave("plot_smcpp_t5m_g1.pdf", height = 4, width = 5, useDingbats = FALSE)
+
 
 ####################################################################
 # Generation = 2 yrs
@@ -692,8 +744,6 @@ USA_data <- read.delim("SMCPP_USA_t5m_g2.csv", header = T , sep = ",")
 USA_data$ID <- "USA"
 
 data <- bind_rows(ASIA_data, AUS_data, CENAM_data, EUR_data, USA_data)
-
-pop_colours <- c("ASIA" = "hotpink", "AUS" = "cornflowerblue", "CENAM" = "purple", "EUR" = "forestgreen", "USA" = "tomato2")
 
 
 ggplot(data,aes(x,y,col=ID)) +
@@ -836,7 +886,7 @@ ggsave("plot_smcpp_t5m_g6_cut.pdf", height = 4, width = 5, useDingbats = FALSE)
 
 
 
-### timepoint = 1 to 1 million years, generation time = 4 years, -c 1kbp
+### timepoint = 1 to 1 mill, generation time = 4 years, -c 1kbp
 
 The -c parameter will treat runs of homozygosity longer than -c bp as missing.
 
@@ -955,13 +1005,70 @@ smc++ estimate --timepoints 1 1000000 -o USA/ 2.7e-9 DATA/USA.*.smc.gz
 smc++ plot -g 4 -c SMCPP_USA_c1kbp.pdf USA/model.final.json
 ```
 
+```R
+# smc++ - plotting all populations together
+# timepoint = 1 to 1 mill, g=4 years, -c 1kbp
+
+# load libraries
+library(tidyverse)
+library(patchwork)
+library(ggsci)
+library(RColorBrewer)
+
+
+####################################################################
+# Generation = 4 years
+####################################################################
+
+setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/smcpp/c1kbp")
+
+# load data
+ASIA_data <- read.delim("SMCPP_ASIA_c1kbp.csv", header = T , sep = ",")
+ASIA_data$ID <- "ASIA"
+AUS_data <- read.delim("SMCPP_AUS_c1kbp.csv", header = T , sep = ",")
+AUS_data$ID <- "AUS"
+CENAM_data <- read.delim("SMCPP_CENAM_c1kbp.csv", header = T , sep = ",")
+CENAM_data$ID <- "CENAM"
+EUR_data <- read.delim("SMCPP_EUR_c1kbp.csv", header = T , sep = ",")
+EUR_data$ID <- "EUR"
+USA_data <- read.delim("SMCPP_USA_c1kbp.csv", header = T , sep = ",")
+USA_data$ID <- "USA"
+
+data <- bind_rows(ASIA_data, AUS_data, CENAM_data, EUR_data, USA_data)
+
+pop_colours <- c("ASIA" = "hotpink", "AUS" = "cornflowerblue", "CENAM" = "purple", "EUR" = "forestgreen", "USA" = "tomato2")
+
+
+ggplot(data,aes(x,y,col=ID)) +
+  geom_rect(aes(xmin=25000,ymin=0,xmax=35000,ymax=5e6), fill="grey80", col=NA) +
+  geom_line(size=1) +
+  labs(title = "Generation time = 4 years, Runs of homozygosity > 1kbp = missing", x = "Years before present", y = "Effective population size (Ne)", col="Population") +
+  theme_bw() +
+  theme(panel.grid = element_blank()) +
+  scale_x_log10(labels = prettyNum) +
+  ylim(0, 5e6) +
+  scale_colour_manual(values = pop_colours)
+# 1: In scale_x_log10(labels = prettyNum) :
+# log-10 transformation introduced infinite values.
+
+ggsave("plot_smcpp_c1kbp.png")
+ggsave("plot_smcpp_c1kbp.pdf", height = 4, width = 5, useDingbats = FALSE)
 
 
 
-## need to plot
+ggplot(data,aes(x,y,col=ID)) +
+  geom_rect(aes(xmin=25000,ymin=0,xmax=35000,ymax=3e5), fill="grey80", col=NA) +
+  geom_line(size=1) +
+  labs(title = "Generation time = 4 years, Runs of homozygosity > 1kbp = missing", x = "Years before present", y = "Effective population size (Ne)", col="Population") +
+  theme_bw() +
+  theme(panel.grid = element_blank()) +
+  scale_x_log10(labels = prettyNum) +
+  ylim(0, 3e5) +
+  scale_colour_manual(values = pop_colours)
 
-
-
+ggsave("plot_smcpp_c1kbp_cut.png")
+ggsave("plot_smcpp_c1kbp_cut.pdf", height = 4, width = 5, useDingbats = FALSE)
+```
 
 
 
@@ -971,11 +1078,11 @@ smc++ plot -g 4 -c SMCPP_USA_c1kbp.pdf USA/model.final.json
 
 The split command fits two-population clean split models (assumes no ongoing gene flow between the two populations after they diverged).
 
-## Timepoint 1y to 5mya generation time ~4 years
+## Timepoint 1 to 5mill generation time ~4 years
 
 ```bash
 cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/05_ANALYSIS/SMCPP
-bsub.py --queue long 20 run_smcpp_split_t5m_g4 "run_smcpp_split_t5m_g4.sh"
+bsub.py --queue long --threads 4 20 run_smcpp_split_t5m_g4 "run_smcpp_split_t5m_g4.sh"
 ```
 
 ```bash
@@ -1034,6 +1141,10 @@ process_pair() {
     smc++ vcf2smc ${out_prefix}.recode.vcf.gz ${dir_prefix}/${pop2}_${pop1}.chr${chr}.smc.gz dirofilaria_immitis_chr${chr} ${pop2}:${populations[$pop2]} ${pop1}:${populations[$pop1]}
   done
 
+  # copy smc++ data for individual pops
+  cp ../DATA/${pop1}*.smc.gz ${dir_prefix}
+  cp ../DATA/${pop2}*.smc.gz ${dir_prefix}
+
   # run split
   smc++ split --timepoints 1 5000000 -o ${pop1}_${pop2} ../t5m/${pop1}/model.final.json ../t5m/${pop2}/model.final.json ${dir_prefix}/*.smc.gz
   smc++ plot -g 4 -c SMCPP_${pop1}_${pop2}_t5m_g4.pdf ${pop1}_${pop2}/model.final.json
@@ -1052,4 +1163,225 @@ process_pair CENAM USA
 process_pair EUR USA
 ```
 
+```R
+# smc++ - plotting all populations together
+# timepoint = 1 to 5 million
+## include population splits
 
+# load libraries
+library(tidyverse)
+library(patchwork)
+library(ggsci)
+library(RColorBrewer)
+
+
+####################################################################
+# Generation = 4 yr
+####################################################################
+
+setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/smcpp/t5m/g4")
+
+# load data
+ASIA_data <- read.delim("SMCPP_ASIA_t5m_g4.csv", header = T , sep = ",")
+ASIA_data$ID <- "ASIA"
+AUS_data <- read.delim("SMCPP_AUS_t5m_g4.csv", header = T , sep = ",")
+AUS_data$ID <- "AUS"
+CENAM_data <- read.delim("SMCPP_CENAM_t5m_g4.csv", header = T , sep = ",")
+CENAM_data$ID <- "CENAM"
+EUR_data <- read.delim("SMCPP_EUR_t5m_g4.csv", header = T , sep = ",")
+EUR_data$ID <- "EUR"
+USA_data <- read.delim("SMCPP_USA_t5m_g4.csv", header = T , sep = ",")
+USA_data$ID <- "USA"
+
+data <- bind_rows(ASIA_data, AUS_data, CENAM_data, EUR_data, USA_data)
+
+pop_colours <- c("ASIA" = "hotpink", "AUS" = "cornflowerblue", "CENAM" = "purple", "EUR" = "forestgreen", "USA" = "tomato2")
+
+splits <- read.csv("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/smcpp/SPLIT/t5m/g4/split_dates_g4.csv")
+
+
+ggplot(data,aes(x,y,col=ID)) +
+  geom_rect(aes(xmin=25000,ymin=0,xmax=35000,ymax=150000), fill="grey80", col=NA) +
+  geom_line(size=2) +
+  geom_vline(data = splits, aes(xintercept = end_x), linetype = "dotted", color = "black", size = 0.6) +
+  labs(x = "Years before present", y = "Effective population size (Ne)", col="Population") +
+  theme_bw() +
+  theme(panel.grid = element_blank()) +
+  scale_x_log10(labels = prettyNum) +
+  ylim(0, 155000) +
+  scale_colour_manual(values = pop_colours) +
+  theme(text = element_text(size = 20),
+        legend.position = "right",
+        legend.justification = c(0, 1),
+        legend.margin = margin(0, 0, 0, 0),
+        legend.box.margin = margin(100, 10, 10, 20)
+        )
+# 1: In scale_x_log10(labels = prettyNum) :
+# log-10 transformation introduced infinite values.
+
+ggsave("plot_smcpp_t5m_g4_splits.tif", height = 8, width = 16, dpi = 600)
+ggsave("plot_smcpp_t5m_g4_splits.pdf", height = 8, width = 16, useDingbats = FALSE, dpi = 600)
+
+
+
+
+# Plotting the splits values to double check 
+# Ensure the splits dataframe contains the necessary columns
+splits <- splits %>%
+  mutate(label = paste0("x = ", prettyNum(end_x, big.mark = ",")))
+
+# Plotting with text labels for vertical lines
+ggplot(data, aes(x, y, col = ID)) +
+  geom_rect(aes(xmin = 25000, ymin = 0, xmax = 35000, ymax = 150000), fill = "grey80", col = NA) +
+  geom_line(size = 2) +
+  geom_vline(data = splits, aes(xintercept = end_x), linetype = "dotted", color = "black", size = 0.6) +
+  geom_text_repel(data = splits, aes(x = end_x, y = 155000, label = label), 
+            angle = 90, vjust = -0.5, hjust = 1, size = 3, inherit.aes = FALSE) +
+  labs(x = "Years before present", y = "Effective population size (Ne)", col = "Population") +
+  theme_bw() +
+  theme(panel.grid = element_blank()) +
+  scale_x_log10(labels = prettyNum) +
+  ylim(0, 155000) +
+  scale_colour_manual(values = pop_colours)
+```
+
+
+## Timepoint 1y to 5mill generation time ~1 year
+
+```bash
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/05_ANALYSIS/SMCPP
+bsub.py --queue long 20 run_smcpp_split_t5m_g1 "run_smcpp_split_t5m_g1.sh"
+```
+
+```bash
+#!/bin/bash
+
+# Load modules
+module load smcpp/1.15.3-c1
+module load common-apps/htslib/1.9.229
+module load vcftools/0.1.16-c4
+
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/05_ANALYSIS/SMCPP/SPLIT
+
+# Get sample names for each population
+ASIA=$(awk -F'_' '$1 == "MYS" || $1 == "THA" {print $0}' ../nuclear_samplelist.keep | paste -sd ',')
+AUS=$(awk -F'_' '$1 == "AUS" {print $0}' ../nuclear_samplelist.keep | paste -sd ',')
+CENAM=$(awk -F'_' '$1 == "PAN" || $1 == "CRI" {print $0}' ../nuclear_samplelist.keep | paste -sd ',')
+EUR=$(awk -F'_' '$1 == "GRC" || $1 == "ITA" || $1 == "ROU" {print $0}' ../nuclear_samplelist.keep | paste -sd ',')
+USA=$(awk -F'_' '$1 == "USA" {print $0}' ../nuclear_samplelist.keep | paste -sd ',')
+
+declare -A populations
+populations=(
+  [ASIA]="$ASIA"
+  [AUS]="$AUS"
+  [CENAM]="$CENAM"
+  [EUR]="$EUR"
+  [USA]="$USA"
+)
+
+# Function to create dataset and run smc++ commands
+process_pair() {
+  local pop1=$1
+  local pop2=$2
+
+  smc++ plot -g 1 -c g1/SMCPP_${pop1}_${pop2}_t5m_g1.pdf ${pop1}_${pop2}/model.final.json
+}
+
+# Process each population pair
+process_pair ASIA AUS
+process_pair ASIA CENAM
+process_pair ASIA EUR
+process_pair ASIA USA
+process_pair AUS CENAM
+process_pair AUS EUR
+process_pair AUS USA
+process_pair CENAM EUR
+process_pair CENAM USA
+process_pair EUR USA
+```
+
+
+```R
+# smc++ - plotting all populations together
+# timepoint = 1 to 5 million
+## include population splits
+
+# load libraries
+library(tidyverse)
+library(patchwork)
+library(ggsci)
+library(RColorBrewer)
+library(ggrepel)
+
+
+####################################################################
+# Generation = 4 yr
+####################################################################
+
+setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/smcpp/t5m/g1")
+
+# load data
+ASIA_data <- read.delim("SMCPP_ASIA_t5m_g1.csv", header = T , sep = ",")
+ASIA_data$ID <- "ASIA"
+AUS_data <- read.delim("SMCPP_AUS_t5m_g1.csv", header = T , sep = ",")
+AUS_data$ID <- "AUS"
+CENAM_data <- read.delim("SMCPP_CENAM_t5m_g1.csv", header = T , sep = ",")
+CENAM_data$ID <- "CENAM"
+EUR_data <- read.delim("SMCPP_EUR_t5m_g1.csv", header = T , sep = ",")
+EUR_data$ID <- "EUR"
+USA_data <- read.delim("SMCPP_USA_t5m_g1.csv", header = T , sep = ",")
+USA_data$ID <- "USA"
+
+data <- bind_rows(ASIA_data, AUS_data, CENAM_data, EUR_data, USA_data)
+
+pop_colours <- c("ASIA" = "hotpink", "AUS" = "cornflowerblue", "CENAM" = "purple", "EUR" = "forestgreen", "USA" = "tomato2")
+
+splits <- read.csv("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/smcpp/SPLIT/t5m/g1/split_dates_g1.csv")
+
+
+ggplot(data,aes(x,y,col=ID)) +
+  geom_rect(aes(xmin=25000,ymin=0,xmax=35000,ymax=150000), fill="grey80", col=NA) +
+  geom_line(size=2) +
+  geom_vline(data = splits, aes(xintercept = end_x), linetype = "dotted", color = "black", size = 0.6) +
+  labs(x = "Years before present", y = "Effective population size (Ne)", col="Population") +
+  theme_bw() +
+  theme(panel.grid = element_blank()) +
+  scale_x_log10(labels = prettyNum) +
+  ylim(0, 155000) +
+  scale_colour_manual(values = pop_colours) +
+  theme(text = element_text(size = 20),
+        legend.position = "right",
+        legend.justification = c(0, 1),
+        legend.margin = margin(0, 0, 0, 0),
+        legend.box.margin = margin(100, 10, 10, 20)
+        )
+# 1: In scale_x_log10(labels = prettyNum) :
+# log-10 transformation introduced infinite values.
+
+ggsave("plot_smcpp_t5m_g1_splits.tif", height = 8, width = 16, dpi = 600)
+ggsave("plot_smcpp_t5m_g1_splits.pdf", height = 8, width = 16, useDingbats = FALSE, dpi = 600)
+
+
+
+
+# Plotting the splits values to double check 
+# Ensure the splits dataframe contains the necessary columns
+splits <- splits %>%
+  mutate(label = paste0("x = ", prettyNum(end_x, big.mark = ",")))
+
+# Plotting with text labels for vertical lines
+ggplot(data, aes(x, y, col = ID)) +
+  geom_rect(aes(xmin = 25000, ymin = 0, xmax = 35000, ymax = 150000), fill = "grey80", col = NA) +
+  geom_line(size = 2) +
+  geom_vline(data = splits, aes(xintercept = end_x), linetype = "dotted", color = "black", size = 0.6) +
+  geom_text_repel(data = splits, aes(x = end_x, y = 155000, label = label), 
+            angle = 90, vjust = -0.5, hjust = 1, size = 3, inherit.aes = FALSE) +
+  labs(x = "Years before present", y = "Effective population size (Ne)", col = "Population") +
+  theme_bw() +
+  theme(panel.grid = element_blank()) +
+  scale_x_log10(labels = prettyNum) +
+  ylim(0, 155000) +
+  scale_colour_manual(values = pop_colours)
+
+
+```

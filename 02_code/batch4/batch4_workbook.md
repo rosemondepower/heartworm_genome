@@ -803,6 +803,7 @@ module load samtools/1.14--hb421002_0
 while read SAMPLE; do
 samtools flagstat ${OUT_DIR}/${SAMPLE}_extract.bam > ${OUT_DIR}/${SAMPLE}_extract_flagstat.txt;
 done < ${SAMPLE_LIST}
+
 ```
 
 

@@ -1,4 +1,4 @@
-# ADMIXTOOLS via admixr
+# ADMIXTOOLS
 
 ## Convert vcf file to eigenstrat format
 
@@ -376,7 +376,7 @@ printsd: YES
 
 ```bash
 grep "result" qp3Pop.out | awk '{print $2,$3,$4,$5,$6,$7,$8}' OFS="\t" > qp3Pop.clean.out
-# didnt work using these other species as outgroups. Maybe just compare within the D. immitis.
+# didnt work using these other species as outgroups.
 ```
 
 
@@ -384,6 +384,154 @@ grep "result" qp3Pop.out | awk '{print $2,$3,$4,$5,$6,$7,$8}' OFS="\t" > qp3Pop.
 
 
 
+## qpGraph
+
+```bash
+# install qpBrute
+conda env create --name qpbrute --file https://raw.githubusercontent.com/ekirving/qpbrute/master/environment.yaml
+# activate env
+conda activate qpbrute
+
+# parameter file
+DIR:   ./
+S1:              sim1           
+indivname:       ../nuclear_samples3x_missing0.9.chr1to4.recode.ind  
+snpname:         ../nuclear_samples3x_missing0.9.chr1to4.recode.snp       
+genotypename:    ../nuclear_samples3x_missing0.9.chr1to4.recode.eigenstratgeno  
+outpop:         NULL     
+blgsize:        0.05
+lsqmode:       YES
+diag:          .0001
+hires:         YES
+initmix:      1000 
+precision:    .0001  
+zthresh:      3.0
+terse:        NO
+useallsnps:   YES
+
+# graph file - start very simple first. we know CENAM is from EUR, AUS is from ASIA.
+# qpgraph1:
+root     R
+label    AUS AUS 
+label    ASIA   ASIA     
+label    EUR   EUR    
+label    CENAM   CENAM   
+label    USA   USA
+edge root_usa R USA
+edge root_a1 R A1
+edge A1_eur A1 EUR
+edge A1_asia A1 ASIA
+edge eur_cenam EUR CENAM
+edge asia_aus ASIA AUS
+
+qpGraph -p PARAMETER_FILE_qpgraph -g qpgraph1 -o qpgraph1.ggg -d qpgraph1.dot > qpgraph1.out
+
+# qpgraph2:
+root     R
+label    AUS AUS 
+label    ASIA   ASIA     
+label    EUR   EUR    
+label    CENAM   CENAM   
+label    USA   USA
+edge root_usa R USA
+edge root_a1 R A1
+edge A1_eur A1 EUR
+edge A1_asia A1 ASIA
+edge eur_cenam EUR CENAM
+edge asia_aus ASIA AUS
+admix mix_usa_asia USA ASIA
+admix mix_cenam_aus CENAM AUS
+admix mix_usa_cenam USA CENAM
+admix mix_usa_eur USA EUR
+
+qpGraph -p PARAMETER_FILE_qpgraph -g qpgraph2 -o qpgraph2.ggg -d qpgraph2.dot > qpgraph2.out
+
+# go simpler
+
+#qpgraph3:
+root     R
+label    ASIA   ASIA     
+label    EUR   EUR    
+edge root_A1 R A1
+edge A1_asia A1 ASIA
+edge A1_usa A1 USA
+edge root_eur R EUR
+
+qpGraph -p PARAMETER_FILE_qpgraph -g qpgraph3 -o qpgraph3.ggg -d qpgraph3.dot > qpgraph3.out
+
+#qpgraph4: Now add EUR -> CENAM
+root     R
+label    ASIA   ASIA     
+label    EUR   EUR    
+edge root_A1 R A1
+edge A1_asia A1 ASIA
+edge A1_usa A1 USA
+edge root_eur R EUR
+edge eur_cenam EUR CENAM
+
+qpGraph -p PARAMETER_FILE_qpgraph -g qpgraph4 -o qpgraph4.ggg -d qpgraph4.dot > qpgraph4.out
+
+#qpgraph5: Now add ASIA -> AUS
+root     R
+label    ASIA   ASIA     
+label    EUR   EUR    
+edge root_A1 R A1
+edge A1_asia A1 ASIA
+edge A1_usa A1 USA
+edge root_eur R EUR
+edge eur_cenam EUR CENAM
+edge asia_aus ASIA AUS
+
+qpGraph -p PARAMETER_FILE_qpgraph -g qpgraph5 -o qpgraph5.ggg -d qpgraph5.dot > qpgraph5.out
+
+# no outliers!
+```
+
+## qpBrute
+
+Now try qpbrute - it searches for the best model automatically, so it will be a better option. Use URSI as outgroup.
+
+```bash
+# exhaustive search - will search all possible models
+bsub.py --threads 10 10 qpBrute "qpBrute --threads 10 --par qpbrute_run1.par --prefix qpbrute_run1 --pops AUS ASIA EUR CENAM USA --out URSI"
+# THIS WORKED
+# FINISHED: Found 49 unique solution(s) from a total of 5,144 unique graphs!
+
+
+# heuristic search - focuses on the most promising models
+bsub.py --threads 10 10 qpBrute_heur "qpBrute --threads 10 --par qpbrute_run2.par --prefix qpbrute_run2 --pops AUS ASIA EUR CENAM USA --out URSI --heuristic"
+# ERROR: Cannot resolve the graph from any permutation of the given nodes.
+#FINISHED: Found 0 unique solution(s) from a total of 107 unique graphs!
+# Ok so heuristic search doesn't work for this dataset...
+```
+
+# qpBayes
+
+To calculate Bayes factors
+
+```bash
+module load cellgen/R/4.3.1
+R
+
+install.packages("optimbase_1.0-10.tar.gz", repos = NULL, type = "source") # worked
+install.packages("optimsimplex_1.0-8.tar.gz", repos = NULL, type = "source") # worked
+install.packages("neldermead_1.0-12.tar.gz", repos = NULL, type = "source") # worked
+install.packages('foreach') # worked
+install.packages('pracma') # worked
+install.packages("admixturegraph_1.0.2.tar.gz", repos = NULL, type = "source") # worked?
+
+
+bsub.py --threads 10 20 qpBayes "qpBayes --threads 10 \
+    --geno ../nuclear_samples3x_missing0.9.chr1to4.recode.eigenstratgeno \
+    --ind ../nuclear_samples3x_missing0.9.chr1to4.recode.ind   \
+    --snp ../nuclear_samples3x_missing0.9.chr1to4.recode.snp  \
+    --prefix qpbrute_run1 \
+    --pops AUS ASIA EUR CENAM USA \
+    --out URSI"
+
+    ea6ffc108913
+```
+   
 
 
 
@@ -392,6 +540,39 @@ grep "result" qp3Pop.out | awk '{print $2,$3,$4,$5,$6,$7,$8}' OFS="\t" > qp3Pop.
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Qpwave
+
+```bash
+# parameter file
+genotypename:   nuclear_samples3x_missing0.9.chr1to4.recode.eigenstratgeno
+snpname:       nuclear_samples3x_missing0.9.chr1to4.recode.snp
+indivname:     nuclear_samples3x_missing0.9.chr1to4.recode.ind
+popleft:       popleft_AUS.txt
+popright:      popright_AUS.txt
+details:       YES 
+allsnps: YES
+# did this for each pop
+
+qpWave -p PARAMETER_FILE_qpwave > qpwave
+```
 
 
 

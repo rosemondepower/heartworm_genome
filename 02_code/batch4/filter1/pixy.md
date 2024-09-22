@@ -20,40 +20,22 @@ args=$(echo "$args" | sed 's/ *$//')
 
 echo $args
 
-# create cohort gvcf
-bsub.py --queue long 20 gatk_combinegvcfs "gatk CombineGVCFs -R /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/01_REF/dimmitis_WSI_2.2.fa ${args} -O /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/ALLSITES/DIMMITIS_POPGEN_ALLSITES.g.vcf.gz"
-
-
-
-## test
-
-
-module load bsub.py/0.42.1
-module load gatk/4.1.4.1
-
-# Create cohort gvcf
-
-# collect all sample g.vcfs (from all batches) into a list, to make input for CombineGVCFs
-find /lustre/scratch125/pam/teams/team333/sd21/dirofilaria_immitis/POPGEN/NEWDATA_2024/VARIANTS/gatk_hc_DIMMITIS_POPGEN/GATK_HC_GVCFs -type f -name "*.g.vcf.gz" > /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/ALLSITES/gvcf.list
-
-args=$(xargs -I {} echo -n "-V {} " < gvcf.list)
-
-# Remove trailing space
-args=$(echo "$args" | sed 's/ *$//')
-
-echo $args
-
 SPLIT="split1.list split2.list split3.list split4.list split5.list split6.list"
 
 # create cohort gvcf
 for file in $SPLIT; do
  base=$(basename $file .txt)
-  bsub.py --queue long 20 gatk_combinegvcfs_${base} \
-  "gatk CombineGVCFs -R /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/01_REF/dimmitis_WSI_2.2.fa --intervals ${file} ${args} -O /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/ALLSITES/TEST/DIMMITIS_POPGEN_ALLSITES_${base}.g.vcf.gz" ;
+  bsub.py --queue basement 50 gatk_combinegvcfs_${base} \
+  "gatk CombineGVCFs -R /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/01_REF/dimmitis_WSI_2.2.fa --intervals ${file} ${args} -O /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/ALLSITES/DIMMITIS_POPGEN_ALLSITES_${base}.g.vcf.gz" ;
 done
 
 
-
+# try running another job with threads to be faster
+for file in $SPLIT; do
+ base=$(basename $file .txt)
+  bsub.py --queue basement --threads 8 20 gatk_combinegvcfs_${base}_NEW \
+  "gatk CombineGVCFs -R /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/01_REF/dimmitis_WSI_2.2.fa --intervals ${file} ${args} -O /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/ALLSITES_NEW/DIMMITIS_POPGEN_ALLSITES_${base}.g.vcf.gz" ;
+done
 
 
 

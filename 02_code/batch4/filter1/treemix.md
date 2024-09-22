@@ -109,8 +109,9 @@ Successfully completed.
 # load libraries
 library(RColorBrewer)
 library(R.utils)
+library(ggplot2)
 
-setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/extra_data/filter1/treemix")
+setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/OUTGROUPS/treemix")
 
 source("plotting_funcs.R")
 prefix="treemix"
@@ -145,14 +146,17 @@ for(edge in 0:5){
   title(paste(edge,"edges"))
         dev.off()
 }
-```
+for(edge in 0:5){
+  tiff(paste0("plot_treemix_residuals_m-",edge,".tiff"))
+  plot_resid(stem=paste0(prefix,".m_",edge,".s_4"),pop_order="populations.list")
+  title(paste(edge,"edges"))
+  dev.off()
+}
 
+#####################################################################################################
 
-## Estimating the optimal number of migration edges
+# Estimating the optimal number of migration edges
 
-- https://rdrr.io/cran/OptM/#vignettes
-
-```R
 # run in the folder with the treemix output files
 #install.packages("OptM")
 
@@ -160,20 +164,37 @@ library(OptM)
 
 optM(folder="./")
 
-#The maximum value for delta m was 0.9236 at m = 3 edges.
+#The maximum value for delta m was 3.4477 at m = 1 edges.
 
-# remake the plots, using 3 migration edges
+# remake the plots, using 1 migration edge
 prefix="treemix"
 
-par(mfrow=c(1,1))
+par(mfrow=c(1,1)) # single plot per page
+
+plot_tree(cex=0.8,paste0(prefix,".m_0.s_4"))
+title(paste(0,"edges"))
+ggsave("plot_treemix_m-0.tif", dpi = 300)
+
+plot_tree(cex=0.8,paste0(prefix,".m_1.s_4"))
+title(paste(1,"edges"))
+
+# save a few other edges
+plot_tree(cex=0.8,paste0(prefix,".m_2.s_4"))
+title(paste(2,"edges"))
 
 plot_tree(cex=0.8,paste0(prefix,".m_3.s_4"))
 title(paste(3,"edges"))
 
-plot_resid(stem=paste0(prefix,".",3),pop_order="populations.list")
-title(paste(3,"edges"))
-# this last part didn't work...?
+# plot_resid(stem=paste0(prefix,".",2),pop_order="populations.list")
+# title(paste(1,"edges")) ## didn't work?
 
+
+prefix="treemix"
+tiff("plot_treemix_tree_m-1.tiff", width = 1200, height = 1200, res = 250)
+par(mfrow=c(1,1)) # single plot per page
+plot_tree(cex=0.7,paste0(prefix,".m_1.s_4"))
+title(paste(1,"edges"))
+dev.off()
 ```
 
 

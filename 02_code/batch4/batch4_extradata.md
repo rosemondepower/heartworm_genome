@@ -288,8 +288,6 @@ grep -i "error" *.e
 ## QC
 # How many D. immitis reads were extracted?
 
-bsub.py 4 extract_flagstat_extra "../extract_flagstat_extra.sh"
-
 WORKING_DIR=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA
 OUT_DIR=${WORKING_DIR}/03_ANALYSIS/02_MAP/EXTRACT/EXTRA
 SAMPLE_LIST=${WORKING_DIR}/03_ANALYSIS/02_MAP/EXTRA/samples_extra.list
@@ -302,7 +300,7 @@ samtools flagstat ${OUT_DIR}/${SAMPLE}_extract.bam > ${OUT_DIR}/${SAMPLE}_extrac
 done < ${SAMPLE_LIST}
 
 # multiqc to combine flagstat files for all samples
-bsub.py 4 multiqc_extract_flagstat "multiqc /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/02_MAP/EXTRACT /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/02_MAP/EXTRACT/EXTRA -o /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/02_MAP/EXTRACT"
+multiqc ./*flagstat.txt EXTRA/*flagstat.txt -o ./
 ```
 
 
