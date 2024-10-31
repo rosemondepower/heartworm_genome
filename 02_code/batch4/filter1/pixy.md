@@ -63,11 +63,12 @@ done
 
 ```bash
 module load htslib-1.19/perl-5.38.0 # this is a different version to what I've previously used - check what version Steve used for variant calling and how I can access that with the new farm layout
+module load vcftools/0.1.16-c4
 
 cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/ALLSITES
 
 # make list of vcfs
-ls -1 *.list.vcf.gz | sort -n vcf_files.list
+ls -1 *.list.vcf.gz | sort -n > vcf_files.list
 # .list.vcf ensures that the g.vcfs aren't included
 
 # merge vcfs
@@ -85,7 +86,8 @@ WB_CONTIG=dirofilaria_immitis_chrWb
 REFERENCE=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/01_REF/dimmitis_WSI_2.2.fa
 
 vcftools --gzvcf DIMMITIS_POPGEN_ALLSITES.vcf.gz --remove-indels
-#How many did it keep?
+#After filtering, kept 143 out of 143 Individuals
+#After filtering, kept 87117573 out of a possible 88130674 Sites
 
 #select nuclear invariants
 bsub.py 1 select_nuclearINVARIANTs "gatk SelectVariants \
@@ -95,9 +97,11 @@ bsub.py 1 select_nuclearINVARIANTs "gatk SelectVariants \
 --exclude-intervals ${MIT_CONTIG} \
 --exclude-intervals ${WB_CONTIG} \
 --output ${VCF%.vcf.gz}.nuclearINVARIANTs.vcf"
+# successfully completed
 
 vcftools --vcf DIMMITIS_POPGEN_ALLSITES.nuclearINVARIANTs.vcf --remove-indels
-#How many did it keep?
+#After filtering, kept 143 out of 143 Individuals
+#After filtering, kept 84245264 out of a possible 84322763 Sites
 ```
 
 ### Merge these nuclear invariants with the nuclear SNPs I previously filtered
@@ -107,7 +111,8 @@ vcftools --vcf DIMMITIS_POPGEN_ALLSITES.nuclearINVARIANTs.vcf --remove-indels
 bsub.py 1 filter_nuclear_INVARIANTvcftools "vcftools --vcf ${VCF%.vcf.gz}.nuclearINVARIANTs.vcf \
 --keep /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER1/NO_OUTGROUPS/nuclear_samplelist.keep \
 --recode --out nuclearINVARIANTS_128samples"
-#How many did it keep?
+#After filtering, kept 128 out of 143 Individuals
+#After filtering, kept 84322763 out of a possible 84322763 Sites
 
 # Merge with the already filtered variants
 bsub.py --done "filter_nuclear_INVARIANTvcftools" 1 merge_nuclear_VARIANTsandINVARIANTs "gatk MergeVcfs \
@@ -126,7 +131,9 @@ bsub.py 1 filter_CHR "vcftools \
 --keep nuclear_samplelist_norep.keep \
 --remove-indels \
 --recode --out nuclearSNPssandINVARIANTs_124samples.chrXto4"
-#How many did it keep?
+#After filtering, kept 124 out of 128 Individuals
+#After filtering, kept 84210689 out of a possible 84587321 Sites
+
 
 bgzip nuclearSNPssandINVARIANTs_124samples.chrXto4.recode.vcf;
 tabix -p vcf nuclearSNPssandINVARIANTs_124samples.chrXto4.recode.vcf.gz
@@ -137,6 +144,7 @@ mv nuclearSNPssandINVARIANTs_124samples.chrXto4.recode.vcf.* ../FILTER1/NO_OUTGR
 
 ```bash
 # Create pixy environment
+module load conda/24.7.1-2
 conda create --name pixy
 conda init --all
 conda activate pixy
@@ -151,7 +159,7 @@ VCF=${WORKING_DIR}/03_ANALYSIS/04_VARIANTS/FILTER1/NO_OUTGROUPS/FINAL_SETS/nucle
 
 cd ${WORKING_DIR}/03_ANALYSIS/05_ANALYSIS/PIXY
 
-# Population files per country, city, and host
+# Population files per region and host
 # region_pop.list
 '
 AUS_BNE_AD_001	AUS
@@ -280,134 +288,6 @@ USA_TEX_AD_014	USA
 USA_TEX_AD_015	USA
 '
 
-# city_pop.list
-'
-AUS_BNE_AD_001	Brisbane
-AUS_BNE_AD_002	Brisbane
-AUS_BNE_AD_003	Brisbane
-AUS_BNE_AD_004	Brisbane
-AUS_BNE_AD_006	Brisbane
-AUS_BNE_AD_008	Brisbane
-AUS_BNE_AD_009	Brisbane
-AUS_CNS_AD_001	Cairns
-AUS_CNS_AD_002	Cairns
-AUS_LHR_AD_001	Lockhart River
-AUS_ROK_AD_001	Rockhampton
-AUS_SYD_AD_001	Sydney
-AUS_SYD_AD_002	Sydney
-AUS_SYD_AD_003	Sydney
-AUS_SYD_AD_004	Sydney
-AUS_SYD_AD_005	Sydney
-AUS_SYD_AD_006	Sydney
-AUS_SYD_AD_007	Sydney
-AUS_SYD_AD_008	Sydney
-AUS_SYD_AD_009	Sydney
-AUS_SYD_AD_010	Sydney
-AUS_SYD_AD_011	Sydney
-AUS_SYD_AD_012	Sydney
-AUS_SYD_AD_013	Sydney
-AUS_SYD_AD_014	Sydney
-AUS_SYD_AD_015	Sydney
-AUS_SYD_AD_017	Sydney
-AUS_TVS_AD_001	Townsville
-AUS_TVS_AD_002	Townsville
-AUS_TVS_AD_003	Townsville
-AUS_TVS_AD_004	Townsville
-AUS_TVS_AD_005	Townsville
-AUS_TVS_AD_006	Townsville
-AUS_TVS_AD_007	Townsville
-AUS_TVS_AD_008	Townsville
-AUS_TVS_AD_010	Townsville
-AUS_TVS_AD_011	Townsville
-AUS_TVS_AD_012	Townsville
-AUS_TVS_AD_013	Townsville
-AUS_TVS_AD_014	Townsville
-AUS_TVS_AD_015	Townsville
-AUS_TVS_AD_016	Townsville
-AUS_TVS_AD_017	Townsville
-AUS_TVS_AD_018	Townsville
-AUS_TVS_AD_019	Townsville
-CRI_SJO_AD_001	San Jose
-GRC_XAN_AD_001	Thessaloniki/Xanthi
-GRC_XAN_AD_002	Thessaloniki/Xanthi
-GRC_XAN_AD_003	Thessaloniki/Xanthi
-GRC_XAN_AD_004	Thessaloniki/Xanthi
-GRC_XAN_AD_005	Thessaloniki/Xanthi
-GRC_XAN_AD_006	Thessaloniki/Xanthi
-GRC_XAN_AD_007	Thessaloniki/Xanthi
-GRC_XAN_AD_008	Thessaloniki/Xanthi
-GRC_XAN_AD_009	Thessaloniki/Xanthi
-GRC_XAN_AD_010	Thessaloniki/Xanthi
-GRC_XAN_AD_011	Thessaloniki/Xanthi
-GRC_XAN_AD_012	Thessaloniki/Xanthi
-ITA_NEA_AD_001	Northeast
-ITA_NEA_AD_002	Northeast
-ITA_NEA_AD_003	Northeast
-ITA_PAV_AD_001	Pavia
-MYS_SEL_AD_001	Selangor
-PAN_BOC_AD_001	Boca Chica
-PAN_BOC_AD_002	Boca Chica
-PAN_BOC_AD_003	Boca Chica
-PAN_BOC_AD_004	Boca Chica
-PAN_BOC_AD_005	Boca Chica
-PAN_PUE_AD_001	Puerto Armuelles
-PAN_PUE_AD_002	Puerto Armuelles
-PAN_PUE_AD_003	Puerto Armuelles
-PAN_PUE_AD_004	Puerto Armuelles
-PAN_PUE_AD_005	Puerto Armuelles
-PAN_PUE_AD_006	Puerto Armuelles
-PAN_SLO_AD_001	San Lorenzo
-PAN_SLO_AD_002	San Lorenzo
-PAN_SLO_AD_003	San Lorenzo
-ROU_BUC_AD_001	Bucharest
-ROU_COM_AD_001	Comana
-ROU_GIU_AD_001	Giurgiu
-THA_BKK_AD_001	Bangkok
-THA_BKK_AD_002	Bangkok
-THA_BKK_AD_003	Bangkok
-THA_BKK_AD_004	Bangkok
-THA_BKK_AD_005	Bangkok
-THA_BKK_AD_006	Bangkok
-USA_FLO_AD_001	Florida
-USA_FLO_AD_002	Florida
-USA_FLO_AD_003	Florida
-USA_FLO_AD_004	Florida
-USA_FLO_AD_005	Florida
-USA_FLO_AD_006	Florida
-USA_FLO_AD_007	Florida
-USA_FLO_AD_008	Florida
-USA_FLO_AD_009	Florida
-USA_FLO_AD_010	Florida
-USA_FLO_AD_011	Florida
-USA_FLO_AD_012	Florida
-USA_FLO_AD_013	Florida
-USA_FLO_AD_014	Florida
-USA_FLO_AD_015	Florida
-USA_FLO_AD_016	Florida
-USA_GEO_AD_001	Georgia
-USA_ILL_AD_001	Illinois
-USA_ILL_AD_002	Illinois
-USA_LOU_AD_001	Louisiana
-USA_LOU_AD_002	Louisiana
-USA_MIS_AD_001	Missouri
-USA_MIS_AD_002	Missouri
-USA_TEX_AD_001	Texas
-USA_TEX_AD_002	Texas
-USA_TEX_AD_003	Texas
-USA_TEX_AD_004	Texas
-USA_TEX_AD_005	Texas
-USA_TEX_AD_006	Texas
-USA_TEX_AD_007	Texas
-USA_TEX_AD_008	Texas
-USA_TEX_AD_009	Texas
-USA_TEX_AD_010	Texas
-USA_TEX_AD_011	Texas
-USA_TEX_AD_012	Texas
-USA_TEX_AD_013	Texas
-USA_TEX_AD_014	Texas
-USA_TEX_AD_015	Texas
-'
-
 # host_pop.list
 '
 AUS_BNE_AD_001	Dog
@@ -489,7 +369,7 @@ PAN_SLO_AD_002	Dog
 PAN_SLO_AD_003	Dog
 ROU_BUC_AD_001	Leopard
 ROU_COM_AD_001	Wildcat
-ROU_GIU_AD_001	Golden jackal
+ROU_GIU_AD_001	Golden_jackal
 THA_BKK_AD_001	Dog
 THA_BKK_AD_002	Dog
 THA_BKK_AD_003	Dog
@@ -538,30 +418,21 @@ USA_TEX_AD_015	Cat
 
 
 # Run pixy per region
-bsub.py --queue long --threads 20 20 pixy_region \
+bsub.py --queue long --threads 10 40 pixy_region \
 "pixy --stats pi fst dxy \
 --vcf ${VCF} \
 --populations region_pop.list \
 --window_size 100000 \
---n_cores 20 \
+--n_cores 10 \
 --output_prefix region"
 
-# Run pixy per city
-bsub.py --queue long --threads 20 20 pixy_city \
-"pixy --stats pi fst dxy \
---vcf ${VCF} \
---populations city_pop.list \
---window_size 100000 \
---n_cores 20 \
---output_prefix city"
-
 # Run pixy per host
-bsub.py --queue long --threads 20 20 pixy_host \
+bsub.py --queue long --threads 10 40 pixy_host \
 "pixy --stats pi fst dxy \
 --vcf ${VCF} \
 --populations host_pop.list \
 --window_size 100000 \
---n_cores 20 \
+--n_cores 10 \
 --output_prefix host"
 ## Keep in mind that the sample sizes for non-dog hosts are quite low, but will still be interesting to explore
 ```
@@ -575,6 +446,25 @@ library(ggpubr)
 library(patchwork)
 library(ggridges)
 library(RColorBrewer)
+library(ggplot2)
+library(dplyr)
+library(purrr)
+library(stats)
+library(graphics)
+library(grDevices)
+library(utils)
+library(datasets)
+library(methods)
+library(base)
+require(maps)
+library(mapdata)
+library(readxl)
+library(ozmaps) 
+library(grid)
+library(gridExtra)
+library(ggrepel)
+library(ggnewscale)
+library(reshape)
 ```
 
 ### Pi, Dxy & Fst by region
@@ -646,7 +536,7 @@ plot_2 <- ggplot(pi_data, aes(avg_pi, chr_type, fill=chr_type), guide="none") +
 
 # combine plots
 plot_1 + plot_2 +  plot_layout(widths = c(5, 1))
-ggsave("genomewide_and_density_Pi_region.tif", width=9, height=6)
+ggsave("genomewide_and_density_Pi_region.tif", width=9, height=6, dpi = 300)
 
 #Now a boxplot of the pi value per population
 
@@ -661,14 +551,14 @@ scale_colour_region <- function(...){
     'colour', 
     values = setNames(
       c(blue_palette[5],
-         "hotpink",
-        red_palette1[7]), 
-        "purple4",
+         "violetred1",
+        red_palette2[7]), 
+        "blueviolet",
         green_palette1[7]),
-      c('AUS', 'ASIA', 'USA', 'EUR', 'CENAM')), 
+     c('AUS', 'ASIA', 'USA', 'EUR', 'CENAM')), 
     ...
   )
-}
+}    
 
 boxplot_pi <- ggplot(pi_data, aes(pop, avg_pi, col=pop)) +
   geom_jitter(size = 1, alpha = 0.5) +
@@ -682,7 +572,7 @@ boxplot_pi <- ggplot(pi_data, aes(pop, avg_pi, col=pop)) +
 
 boxplot_pi
 
-ggsave("boxplot_Pi_region.tif", width=4, height=4)
+ggsave("boxplot_Pi_region.tif", width=4, height=4, dpi = 300)
 # higher pi value = more diverse population
 # lower pi value = less diverse population
 
@@ -829,7 +719,7 @@ plot_2_dxy
 
 # combine plots
 dxy_plot <- plot_1_dxy + plot_2_dxy +  plot_layout(widths = c(5, 1))
-ggsave("genomewide_and_density_dxy_region.tif", width=9, height=6)
+ggsave("genomewide_and_density_dxy_region.tif", width=9, height=6, dpi = 300)
 
 #some additional plots
 boxplot_dxy <- data %>%
@@ -939,7 +829,7 @@ dxy_lineplot <- data %>%
         legend.title = element_blank()) +
   labs(x="Genomic Position", y="Dxy")
 dxy_lineplot
-ggsave("dxy_lineplot_region.tif", width=9, height=6)
+ggsave("dxy_lineplot_region.tif", width=9, height=6, dpi = 300)
 
 
 
@@ -974,12 +864,70 @@ plot_2_fst
 
 # combine plots
 plot_1_fst + plot_2_fst +  plot_layout(widths = c(5, 1))
-ggsave("genomewide_and_density_fst_region.tif", width=9, height=6)
+ggsave("genomewide_and_density_fst_region.tif", width=9, height=6, dpi = 300)
 # Fst closer to 1 = more genetically distinct
 # Fst closer to 0 = more genetically similar
+
+
+# Region map metadata. Just have one random point representing each region.
+location <- read.csv("region_metadata.csv", header = TRUE)
+
+## Make world map data
+world_map <- map_data("world")
+
+# Set colors for the points
+red_palette1 <- brewer.pal(n = 9, name = "YlOrRd")
+red_palette2 <- brewer.pal(n=9, name = "YlOrBr")
+blue_palette <- brewer.pal(n = 9, name = "Blues")
+green_palette1 <- brewer.pal(n = 9, name = "BuGn")
+green_palette2 <- brewer.pal(n=9, name = "YlGn")
+
+scale_colour_region <- 
+      c('USA' = red_palette2[7],
+        'CENAM' = "blueviolet",
+        'EUR' = green_palette1[7],
+        'ASIA' = "violetred1",
+        'AUS' = blue_palette[5])
+# chose one random location/point for each region
+
+# Fst by region on a map
+plot_3_fst <- ggplot() +
+  geom_polygon(data = world_map, aes(x = long, y = lat, group = group), fill = "grey90") +
+  geom_segment(data=fst, aes(x=POP1_LONG, y=POP1_LAT, xend=POP2_LONG, yend=POP2_LAT, color = cut(Fst, breaks = c(0, 0.1, 0.5, 1), labels = c("low", "mid", "high")), size = 0.5))
+  geom_point(data = location, aes(x = Longitude, y = Latitude, color = Region), size = 1.5) +
+  geom_text_repel(data = location, aes(x = Longitude, y = Latitude, label = Region), size = 8, fontface = "bold", max.overlaps = 20) +  # Add 
+  scale_color_manual(values = c("low" = "lightsalmon", "mid" = "tomato" , "orangered3" = "red")) +
+  new_scale_color() +
+  scale_color_manual(values = scale_colour_region, limits = c("USA", "CENAM", "EUR", "ASIA", "AUS")) +
+  theme_void() +
+  theme(
+    legend.position = "none"
+  )
+plot_3_fst
+
+# Save plot
+ggsave("fst_map_region.tif", height=5, width=10, dpi = 300)
+
+
+# Fst by region on a heatmap
+plot_4_fst <- ggplot(fst, aes(x = POP1, y=POP2, fill = Fst)) + 
+  geom_tile(color = "white", lwd = 1.5, linetype = 1) +
+  coord_fixed() +
+  scale_fill_gradient(low = "lightsalmon", high = "orangered3") +
+  guides(fill = guide_colourbar(title = expression(F[ST]), barwidth = 0.5, barheight = 20)) +
+  theme_minimal() +
+  labs(x = "Population", y = "Population") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+plot_4_fst
+
+ggsave(fst_heatmap_region.tif, height=5, width = 8, dpi = 300)
 ```
 
 
 Next...
+
 Run pixy by host
-Run pixy by city or focus on Aus/USA only
+
+Run pixy by city for AUS only
+
+Do the same for USA only
