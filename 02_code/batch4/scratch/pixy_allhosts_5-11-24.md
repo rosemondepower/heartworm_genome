@@ -1722,9 +1722,9 @@ plot_4_fst
 ggsave("fst_heatmap_host.tif", bg = "white", height=5, width = 8, dpi = 300)
 ggsave("fst_heatmap_host.png", bg = "white", height=5, width = 8, dpi = 300)
 ```
-When we break it down by host, we see some differences which could be inflating the region results we got. Re-do pixy by region for dog samples only.
 
-### Pixy by region - DOG ONLY
+
+### Pixy for Australia only
 
 ```bash
 conda activate pixy
@@ -1738,760 +1738,35 @@ WORKING_DIR=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA
 
 cd ${WORKING_DIR}/03_ANALYSIS/04_VARIANTS/FILTER1/NO_OUTGROUPS/FINAL_SETS
 
-# Select dog samples only in vcf
+# Select Australian samples only in vcf
 vcftools --gzvcf nuclearSNPssandINVARIANTs_124samples.chrXto4.recode.vcf.gz \
---keep ../../../../05_ANALYSIS/PIXY/DOG_ONLY_samplelist.keep \
---recode --out DOG_ONLY_nuclearSNPsandINVARIANTs.chrXto4
-# After filtering, kept 113 out of 124 Individuals
+--keep ../../../../05_ANALYSIS/PIXY/AUS_samplelist.keep \
+--recode --out AUS_nuclearSNPsandINVARIANTs.chrXto4
+# After filtering, kept 45 out of 124 Individuals
 # After filtering, kept 84210689 out of a possible 84210689 Sites
 
-##up to here
-bgzip DOG_ONLY_nuclearSNPsandINVARIANTs.chrXto4.recode.vcf;
-tabix -p vcf DOG_ONLY_nuclearSNPsandINVARIANTs.chrXto4.recode.vcf.gz
+bgzip AUS_nuclearSNPsandINVARIANTs.chrXto4.recode.vcf;
+tabix -p vcf AUS_nuclearSNPsandINVARIANTs.chrXto4.recode.vcf.gz
 
 # run pixy
-VCF=${WORKING_DIR}/03_ANALYSIS/04_VARIANTS/FILTER1/NO_OUTGROUPS/FINAL_SETS/DOG_ONLY_nuclearSNPsandINVARIANTs.chrXto4.recode.vcf.gz
+VCF=${WORKING_DIR}/03_ANALYSIS/04_VARIANTS/FILTER1/NO_OUTGROUPS/FINAL_SETS/AUS_nuclearSNPsandINVARIANTs.chrXto4.recode.vcf.gz
 
 cd ../../../../05_ANALYSIS/PIXY
 
-bsub.py --queue long --threads 10 20 pixy_region_DOG_ONLY \
+bsub.py --queue long --threads 10 20 pixy_AUS \
 "pixy --stats pi fst dxy \
 --vcf ${VCF} \
---populations region_DOG_ONLY_pop.list \
+--populations AUS_pop.list \
 --window_size 100000 \
 --n_cores 10 \
---output_prefix region_DOG_ONLY"
-# Successfully completed
-```
-
-```R
-# Batch 4 - Pixy for Pi, Fst and Dxy by REGION for dog samples only
-
-library(tidyverse)
-library(ggsci)
-library(ggpubr)
-library(patchwork)
-library(ggridges)
-library(RColorBrewer)
-library(ggplot2)
-library(dplyr)
-library(purrr)
-library(stats)
-library(graphics)
-library(grDevices)
-library(utils)
-library(datasets)
-library(methods)
-library(base)
-require(maps)
-library(mapdata)
-library(readxl)
-library(ozmaps) 
-library(grid)
-library(gridExtra)
-library(ggrepel)
-library(ggnewscale)
-library(reshape)
-library(wesanderson)
-
-setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/pixy/region_DOG_ONLY")
-
-##### Nucleotide diversity (Pi) #####
-
-# get nucleotide diversity (pi) data from pixy output
-pi_data <- read.table("input/region_DOG_ONLY_pi.txt", header=T)
-pi_data$chromosome <- str_remove(pi_data$chromosome, 'dirofilaria_immitis_')
-
-# subset
-pi_data_AUS <- pi_data %>%
-  filter(pop=="AUS")
-pi_data_ASIA <- pi_data %>%
-  filter(pop=="ASIA")
-pi_data_USA <- pi_data %>%
-  filter(pop=="USA")
-pi_data_EUR <- pi_data %>%
-  filter(pop=="EUR")
-pi_data_CENAM <- pi_data %>%
-  filter(pop=="CENAM")
-
-# filter pi data to remove small scaffolds not in the linkage groups, and to number the rows per group to help with plotting
-pi_data <- pi_data %>%
-  group_by(pop) %>%
-  mutate(position = 1:n())
-
-# get position for vertical lines used in plot to delineate the linkage groups
-pi_data %>%
-  group_by(chromosome) %>%
-  summarise(max = max(position, na.rm = TRUE))
-
-'
-# A tibble: 5 × 2
-  chromosome   max
-  <chr>      <int>
-1 chr1         440
-2 chr2         592
-3 chr3         744
-4 chr4         885
-5 chrX         283
-'
-
-#Let's add the chr type variable
-pi_data <- pi_data %>%
-  mutate(chr_type = ifelse(str_detect(chromosome, "X"), "sexchr", "autosome"))
-
-# calculate the median Pi and check the ratio of sex-to-autosome diversity. Should be about 0.75, as D. immitis is XX/XY
-pi_data_sex_median <- pi_data %>%
-  group_by(chr_type) %>%
-  summarise(median = median(avg_pi, na.rm = TRUE))
-pi_data_sex_median
-
-'
-# A tibble: 2 × 2
-  chr_type   median
-  <chr>       <dbl>
-1 autosome 0.000459
-2 sexchr   0.000177
-'
-# 0.000177 / 0.000459 = 0.3856209 (way off 0.75)
-
-pi_data_pop_sex_median <- pi_data %>%
-  group_by(pop, chr_type) %>%
-  summarise(median = median(avg_pi, na.rm = TRUE))
-pi_data_pop_sex_median
-
-'
-# A tibble: 10 × 3
-# Groups:   pop [5]
-   pop   chr_type   median
-   <chr> <chr>       <dbl>
- 1 ASIA  autosome 0.000289
- 2 ASIA  sexchr   0.000109
- 3 AUS   autosome 0.000561
- 4 AUS   sexchr   0.000190
- 5 CENAM autosome 0.000352
- 6 CENAM sexchr   0.000139
- 7 EUR   autosome 0.000429
- 8 EUR   sexchr   0.000186
- 9 USA   autosome 0.000739
-10 USA   sexchr   0.000323
-'
-
-# plot 1 - genome wide plots per population
-plot_1_pi <- ggplot(pi_data, aes(position*100000, avg_pi, col=chromosome)) +
-  geom_point(size=0.8) +
-  facet_grid(pop~.) +
-  scale_color_npg(guide = guide_legend(override.aes = list(size = 4))) +
-  theme_bw() +
-  theme(legend.position="top", 
-        legend.title = element_blank(),
-        axis.title = element_text(size = 18),
-        axis.text = element_text(size = 12),
-        strip.text = element_text(size = 18),
-        legend.text = element_text(size = 16)) +
-  labs(x="Genomic Position", y="Nucleotide Diversity (Pi)")
-plot_1_pi
-
-
-# plot 2 - density plots of pi per group
-plot_2_pi <- ggplot(pi_data, aes(avg_pi, chr_type, fill=chr_type), guide="none") +
-  geom_density_ridges(quantile_lines=TRUE, quantile_fun=function(x,...)median(x), size=0.5) +
-  theme_bw() + theme(legend.position = "none", axis.text.y=element_blank()) +
-  facet_grid(pop~.) +
-  xlim(0, 0.005) +
-  scale_x_continuous(breaks = c(0, 0.0025, 0.005)) +
-  scale_fill_npg() +
-  theme(legend.position="top",
-        legend.title = element_blank(),
-        axis.title = element_text(size = 18),
-        axis.text = element_text(size = 12),
-        strip.text = element_text(size = 18),
-        legend.text = element_text(size = 16)) +
-  labs(x="Nucleotide Diversity (Pi)", y="Density")
-plot_2_pi
-
-# combine plots
-plot_1_pi + plot_2_pi +  plot_layout(widths = c(5, 1))
-ggsave("genomewide_and_density_Pi_region_DOG_ONLY.tif", width=14, height=8, dpi = 300)
-ggsave("genomewide_and_density_Pi_region_DOG_ONLY.png", width=14, height=8, dpi = 300)
-
-#Now a boxplot of the pi value per population
-
-red_palette1 <- brewer.pal(n = 9, name = "YlOrRd")
-red_palette2 <- brewer.pal(n=9, name = "YlOrBr")
-blue_palette <- brewer.pal(n = 9, name = "Blues")
-green_palette1 <- brewer.pal(n = 9, name = "BuGn")
-green_palette2 <- brewer.pal(n=9, name = "YlGn")
-
-scale_colour_region <- function(...){
-  ggplot2:::manual_scale(
-    'colour', 
-    values = setNames(
-      c(blue_palette[5],
-        "violetred1",
-        red_palette1[7], 
-        "blueviolet",
-        green_palette1[7]),
-    c("AUS", "ASIA", "USA", "EUR", "CENAM")), 
-  ...
-)
-}    
-
-boxplot_pi <- ggplot(pi_data, aes(pop, avg_pi, col=pop)) +
-  geom_jitter(size = 1, alpha = 0.5) +
-  geom_boxplot(fill=NA, col="black") +
-  labs(x = "Population" , y = "Nucleotide diversity (Pi)", colour = "Population") +
-  theme_bw() +
-  theme(legend.position = "none") +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
-        axis.title = element_text(size = 24),
-        axis.text = element_text(size = 18)
-        ) +
-  scale_colour_region ()
-
-boxplot_pi
-
-ggsave("boxplot_Pi_region_DOG_ONLY.tif", width=6, height=6, dpi = 300)
-ggsave("boxplot_Pi_region_DOG_ONLY.png", width=6, height=6, dpi = 300)
-# higher pi value = more diverse population
-# lower pi value = less diverse population
-## Looks like USA and AUS have higher diversity.
-
-
-#let's check the statistical significance of the differences between pi values
-#Let's explore the normality
-pi_data %>% filter(chromosome != 'chrX') %>%
-  ggplot(., aes(x = avg_pi, colour = pop)) +
-  geom_histogram() +
-  theme_bw() +
-  facet_grid(. ~ pop)
-
-#Confirm the absence of normality by shapiro
-## If p > 0.05 the data is normal, if p < 0.05 the data is NOT normal
-pi_data_AUS <- pi_data_AUS %>% filter(chromosome != 'chrX')
-AUS_shapiro <- shapiro.test(pi_data_AUS$avg_pi)
-print(AUS_shapiro)
-# W = 0.91953, p-value < 2.2e-16
-
-pi_data_ASIA <- pi_data_ASIA %>% filter(chromosome != 'chrX')
-ASIA_shapiro <- shapiro.test(pi_data_ASIA$avg_pi)
-print(ASIA_shapiro)
-# W = 0.87735, p-value < 2.2e-16
-
-pi_data_USA <- pi_data_USA %>% filter(chromosome != 'chrX')
-USA_shapiro <- shapiro.test(pi_data_USA$avg_pi)
-print(USA_shapiro)
-# W = 0.91881, p-value < 2.2e-16
-
-pi_data_EUR <- pi_data_EUR %>% filter(chromosome != 'chrX')
-EUR_shapiro <- shapiro.test(pi_data_EUR$avg_pi)
-print(EUR_shapiro)
-# W = 0.91837, p-value < 2.2e-16
-
-pi_data_CENAM <- pi_data_CENAM %>% filter(chromosome != 'chrX')
-CENAM_shapiro <- shapiro.test(pi_data_CENAM$avg_pi)
-print(CENAM_shapiro)
-# W = 0.89723, p-value < 2.2e-16
-
-#Wilcoxson test for all pairs of pops
-## This tests whether the mean values of 2 dependent groups differ significantly from each other
-## If p < 0.05 they are sig different
-wilcox.test(pi_data_AUS$avg_pi, pi_data_ASIA$avg_pi)
-# W = 252451, p-value < 2.2e-16
-wilcox.test(pi_data_AUS$avg_pi, pi_data_USA$avg_pi)
-# W = 143196, p-value = 2.973e-10
-wilcox.test(pi_data_AUS$avg_pi, pi_data_EUR$avg_pi)
-# W = 218254, p-value = 8.156e-10
-wilcox.test(pi_data_AUS$avg_pi, pi_data_CENAM$avg_pi)
-# W = 234515, p-value < 2.2e-16
-wilcox.test(pi_data_ASIA$avg_pi, pi_data_USA$avg_pi)
-# W = 84065, p-value < 2.2e-16
-wilcox.test(pi_data_ASIA$avg_pi, pi_data_EUR$avg_pi)
-# W = 144658, p-value = 1.38e-09
-wilcox.test(pi_data_ASIA$avg_pi, pi_data_CENAM$avg_pi)
-# W = 158052, p-value = 0.0001243
-wilcox.test(pi_data_USA$avg_pi, pi_data_EUR$avg_pi)
-# W = 250455, p-value < 2.2e-16
-wilcox.test(pi_data_USA$avg_pi, pi_data_CENAM$avg_pi)
-# W = 264557, p-value < 2.2e-16
-wilcox.test(pi_data_EUR$avg_pi, pi_data_CENAM$avg_pi)
-# W = 197085, p-value = 0.008468
-
-## They're all sig different
-
-
-#let's generate some dataframes for the estatistics
-# subset
-pi_data_AUS <- pi_data %>%
-  filter(pop=="AUS") %>%
-  filter(chromosome != 'chrX')
-
-pi_data_ASIA <- pi_data %>%
-  filter(pop=="ASIA") %>%
-  filter(chromosome != 'chrX') 
-
-pi_data_USA <- pi_data %>%
-  filter(pop=="USA") %>%
-  filter(chromosome != 'chrX')
-
-pi_data_EUR <- pi_data %>%
-  filter(pop=="EUR") %>%
-  filter(chromosome != 'chrX')
-
-pi_data_CENAM <- pi_data %>%
-  filter(pop=="CENAM") %>%
-  filter(chromosome != 'chrX')
-
-
-
-
-#### Dxy and Fst ####
-
-# load data
-dxy_data <- read.table("input/region_DOG_ONLY_dxy.txt", header=T)
-fst_data <- read.table("input/region_DOG_ONLY_fst.txt", header=T)
-
-# add some columns
-dxy_data$data_type <- "Dxy"
-dxy_data <- mutate(dxy_data,
-                   comparison = paste(pop1, pop2, sep = '_v_'))
-fst_data$data_type <- "Fst"
-fst_data <- mutate(fst_data,
-                   comparison = paste(pop1, pop2, sep = '_v_'))
-
-# subset and merge dataframes
-dxy_data_sub <- dxy_data %>% select(comparison,data_type,chromosome,window_pos_1,window_pos_2,avg_dxy)
-colnames(dxy_data_sub) <- c("comparison","data_type","chromosome","window_pos_1","window_pos_2","value")
-
-fst_data_sub <- fst_data %>% select(comparison,data_type,chromosome,window_pos_1,window_pos_2,avg_wc_fst)
-colnames(fst_data_sub) <- c("comparison","data_type","chromosome","window_pos_1","window_pos_2","value")
-
-# cheeky fix to get matching rows from both datasets
-tmp_dxy <- semi_join(dxy_data_sub, fst_data_sub, by=c("comparison", "chromosome", "window_pos_1", "window_pos_2"))
-tmp_fst <- semi_join(fst_data_sub, dxy_data_sub,  by=c("comparison", "chromosome", "window_pos_1", "window_pos_2"))
-
-# join the datasets together to create a single dataframe
-data <- full_join(tmp_dxy, tmp_fst)
-data$chromosome <- str_remove(data$chromosome, 'dirofilaria_immitis_')
-
-# add numbering to help with plotting
-data <- data %>%
-  group_by(comparison, data_type) %>%
-  mutate(position = 1:n())
-
-# add sex chromosome information
-data <- data %>%
-  mutate(chr_type = ifelse(str_detect(chromosome, "X"), "sexchr", "autosome"))
-
-
-# summarise median data for Fst and Dxy
-data %>%
-  group_by(comparison,data_type) %>%
-  summarise(median = median(value, na.rm = TRUE))
-'
-# A tibble: 20 × 3
-# Groups:   comparison [10]
-   comparison   data_type   median
-   <chr>        <chr>        <dbl>
- 1 ASIA_v_CENAM Dxy       0.000613
- 2 ASIA_v_CENAM Fst       0.473   
- 3 ASIA_v_USA   Dxy       0.000600
- 4 ASIA_v_USA   Fst       0.185   
- 5 AUS_v_ASIA   Dxy       0.000513
- 6 AUS_v_ASIA   Fst       0.223   
- 7 AUS_v_CENAM  Dxy       0.000571
- 8 AUS_v_CENAM  Fst       0.290   
- 9 AUS_v_EUR    Dxy       0.000582
-10 AUS_v_EUR    Fst       0.278   
-11 AUS_v_USA    Dxy       0.000630
-12 AUS_v_USA    Fst       0.165   
-13 CENAM_v_USA  Dxy       0.000634
-14 CENAM_v_USA  Fst       0.211   
-15 EUR_v_ASIA   Dxy       0.000624
-16 EUR_v_ASIA   Fst       0.433   
-17 EUR_v_CENAM  Dxy       0.000495
-18 EUR_v_CENAM  Fst       0.268   
-19 EUR_v_USA    Dxy       0.000633
-20 EUR_v_USA    Fst       0.193     
-'
-
-
-#Plotting Dxy
-
-# plot 1 - genome wide plots per comparison
-plot_1_dxy <- data %>%
-  filter(data_type =='Dxy')%>%
-  ggplot(., aes(position*100000, value, col=chromosome)) +
-  geom_point(size=1.5) +
-  facet_grid(comparison~.) +
-  scale_color_npg(guide = guide_legend(override.aes = list(size = 4))) +
-  theme_bw() +
-  theme(legend.position="top", 
-        legend.title = element_blank(),
-        axis.title = element_text(size = 32),
-        axis.text = element_text(size = 16),
-        strip.text = element_text(size = 14),
-        legend.text = element_text(size = 20)) +
-  labs(x="Genomic Position", y="Dxy")
-plot_1_dxy
-
-# plot 2 - density plots of dxy per group
-plot_2_dxy <- data %>%
-  filter(data_type=='Dxy')%>%
-  ggplot(aes(value, chr_type, fill=chr_type), guide="none") +
-  geom_density_ridges(quantile_lines=TRUE, quantile_fun=function(x,...)median(x), size=0.5) +
-  theme_bw() + theme(legend.position = "top", 
-                     legend.title = element_blank(),
-                     axis.text.y=element_blank(),
-                     axis.title = element_text(size = 32),
-                     axis.text = element_text(size = 16),
-                     strip.text = element_text(size = 14),
-                     legend.text = element_text(size = 20)) +
-  facet_grid(comparison~.) +
-  scale_fill_npg() +
-  labs(x="Dxy", y="Density")
-plot_2_dxy
-
-# combine plots
-dxy_plot <- plot_1_dxy + plot_2_dxy +  plot_layout(widths = c(5, 1))
-ggsave("genomewide_and_density_dxy_region_DOG_ONLY.tif", width=16, height=18, dpi = 300)
-ggsave("genomewide_and_density_dxy_region_DOG_ONLY.png", width=16, height=18, dpi = 300)
-# higher Dxy = more divergent
-
-#some additional plots
-boxplot_dxy <- data %>%
-  filter(data_type =='Dxy') %>% 
-  ggplot(., aes(comparison, value, col=comparison)) +
-  geom_jitter(size = 1, alpha = 0.5) +
-  geom_boxplot(fill=NA, col="black") +
-  labs(x = "Population" , y = "Dxy", colour = "Population") +
-  theme_bw() +
-  scale_color_npg() +
-  theme(legend.position = "none",
-        axis.title = element_text(size = 24),
-        axis.text = element_text(size = 18),
-        strip.text = element_text(size = 18),
-        legend.text = element_text(size = 16)) +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-boxplot_dxy
-ggsave("boxplot_dxy_region_DOG_ONLY.tif", width=14, height = 6, dpi = 300)
-ggsave("boxplot_dxy_region_DOG_ONLY.png", width=14, height = 6, dpi = 300)
-
-density_dxy <- data %>%
-  filter(data_type =='Dxy') %>% 
-  ggplot(., aes(x=value, group = comparison, fill=comparison)) +
-  geom_density(adjust=1.5, alpha=.4) +
-  labs(x = "Dxy" , y = "Density", colour = "Comparison") +
-  theme_bw() +
-  scale_fill_npg() +
-  theme(legend.position = c(0.8,0.72),
-        legend.title = element_blank(),
-        legend.text = element_text(size = 16),
-        axis.title = element_text(size = 24),
-        axis.text = element_text(size = 18),
-        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank())
-density_dxy
-ggsave("density_dxy_region_DOG_ONLY.tif", width = 8, height = 6, dpi = 300)
-ggsave("density_dxy_region_DOG_ONLY.png", width = 8, height = 6, dpi = 300)
-
-# AUS_v_ASIA & AUS_v_EUR
-scatter_dxy_a <-  data %>%
-  filter(data_type == 'Dxy') %>%
-  as.data.frame() %>%
-  select('position', 'comparison', 'value', 'chromosome')%>%
-  as_tibble() %>%
-  pivot_wider(names_from = comparison, values_from = value) %>%
-  ggplot(., aes(x=AUS_v_ASIA, y = AUS_v_EUR, col=chromosome)) +
-  geom_point(alpha=.4) +
-  labs(x = "AUS_v_ASIA" , y = "AUS_v_EUR", colour = "Comparison") +
-  theme_bw() +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-scatter_dxy_a
-# can repeat for other pairs
-
-genome_pos_dxy_a <-  data %>%
-  filter(data_type == 'Dxy') %>%
-  as.data.frame() %>%
-  select('position', 'comparison', 'value', 'chromosome')%>%
-  as_tibble() %>%
-  pivot_wider(names_from = comparison, values_from = value) %>%
-  mutate("xx" = AUS_v_ASIA - AUS_v_EUR,
-         "yy" = AUS_v_ASIA - EUR_v_ASIA) %>%
-  ggplot(., aes(position*100000, xx, col=chromosome)) +
-  geom_point(size=1) +
-  scale_color_tron() +
-  theme_bw() +
-  theme(legend.position="top", 
-        legend.title = element_blank()) +
-  labs(x="Position", y="AUS vs ASIA - AUS vs EUR")
-genome_pos_dxy_a
-# can repeat for other pairs
-
-genome_pos_dxy_aa <-  data %>%
-  filter(data_type == 'Dxy') %>%
-  as.data.frame() %>%
-  select('position', 'comparison', 'value', 'chromosome')%>%
-  as_tibble() %>%
-  pivot_wider(names_from = comparison, values_from = value) %>%
-  mutate("xx" = AUS_v_ASIA / AUS_v_EUR,
-         "yy" = AUS_v_ASIA / EUR_v_ASIA) %>%
-  ggplot(., aes(position*100000, xx, col=chromosome)) +
-  geom_point(size=1) +
-  scale_color_tron() +
-  theme_bw() +
-  theme(legend.position="top", 
-        legend.title = element_blank()) +
-  labs(x="Position", y="AUS vs ASIA / AUS vs EUR")
-genome_pos_dxy_aa
-# can repeat for other pairs
-
-# ggarrange above plots if using them
-
-
-#Trying to plot lines
-#getting chr positions
-chr <- c('X', '1', '2', '3', '4')
-
-for (i in chr) {
-  x <- data %>%
-    filter(chromosome == paste0('chr', i))
-  print(quantile(x$position))
-}
-
-data$comparison <- str_replace_all(data$comparison, '_', ' ')
-data$comparison <- str_replace_all(data$comparison, 'v', 'vs')
-
-dxy_lineplot <- data %>%
-  filter(data_type=='Dxy')%>%
-  ggplot(., aes(position*100000, value, col=comparison)) +
-  geom_point(size=0.2, alpha = 0.1) +
-  geom_vline(xintercept=c(281*100000,
-                          438*100000,
-                          590*100000,
-                          740*100000),
-             size=1, linetype="dashed", col='grey41')+
-  annotate(geom="text", x=140*100000, y=0.004, label="ChrX", size = 6)+
-  annotate(geom="text", x=359.5*100000, y=0.004, label="Chr1", size = 6)+
-  annotate(geom="text", x=520*100000, y=0.004, label="Chr2", size = 6)+
-  annotate(geom="text", x=665*100000, y=0.004, label="Chr3", size = 6)+
-  annotate(geom="text", x=810.5*100000, y=0.004, label="Chr4", size = 6)+
-  geom_line() +
-  scale_color_npg() +
-  theme_bw() +
-  theme(legend.position="top", 
-        legend.title = element_blank(),
-        legend.text = element_text(size = 14),
-        axis.title = element_text(size = 18),
-        axis.text = element_text(size = 14)) +
-  labs(x="Genomic Position", y="Dxy") +
-  guides(col = guide_legend(override.aes = list(linewidth = 2)))
-dxy_lineplot
-ggsave("lineplot_dxy_region_DOG_ONLY.tif", width=14, height=8, dpi = 300)
-ggsave("lineplot_dxy_region_DOG_ONLY.png", width=14, height=8, dpi = 300)
-
-
-# Dxy by region on a heatmap
-# Get median dxy for each comparison
-dxy_median <- data %>%
-  filter(data_type == "Dxy") %>%
-  group_by(comparison) %>%
-  summarise(DXY_MEDIAN = median(value, na.rm = TRUE))
-
-# Save as csv file
-write.csv(dxy_median, "dxy_median.csv", row.names = TRUE)
-
-dxy_heatmap <- read.csv("dxy_heatmap.csv", header = TRUE)
-dxy_heatmap <- as.data.frame(dxy_heatmap)
-
-plot_3_dxy <- ggplot(dxy_heatmap, aes(x = POP1, y=POP2, fill = DXY_MEDIAN)) + 
-  geom_tile(color = "white", lwd = 1.5, linetype = 1) +
-  coord_fixed() +
-  scale_fill_material("indigo", labels = scales::label_number()) +
-  guides(fill = guide_colourbar(title = expression(D[XY]), barwidth = 1, barheight = 5)) +
-  theme_minimal() +
-  labs(x = "Population", y = "Population") +
-  theme(axis.text = element_text(size = 18),
-        axis.text.x = element_text(angle = 90, hjust = 1),
-        axis.title = element_text(size = 24),
-        legend.title = element_text(size = 18),
-        legend.text = element_text(size = 14),
-        panel.grid.major = element_blank())
-plot_3_dxy
-
-ggsave("dxy_heatmap_region_DOG_ONLY.tif", bg = "white", height=5, width = 8, dpi = 300)
-ggsave("dxy_heatmap_region_DOG_ONLY.png", bg = "white", height=5, width = 8, dpi = 300)
-
-
-# Plotting Fst
-
-# plot 1 - genome wide plots per population
-plot_1_fst <- data %>%
-  filter(data_type=='Fst')%>%
-  ggplot(., aes(position*100000, value, col=chromosome)) +
-  geom_point(size=1.5) +
-  facet_grid(comparison~.) +
-  scale_color_npg(guide = guide_legend(override.aes = list(size = 4))) +
-  theme_bw() +
-  theme(legend.position="top", 
-        legend.title = element_blank(),
-        axis.title = element_text(size = 32),
-        axis.text = element_text(size = 16),
-        strip.text = element_text(size = 14),
-        legend.text = element_text(size = 20)) +
-  labs(x="Genomic Position", y="Fst")
-plot_1_fst
-
-
-# plot 2 - density plots of Fst per group
-plot_2_fst <- data %>%
-  filter(data_type=='Fst')%>%
-  ggplot(aes(value, chr_type, fill=chr_type), guide="none") +
-  geom_density_ridges(quantile_lines=TRUE, quantile_fun=function(x,...)median(x), size=0.5) +
-  theme_bw() + 
-  theme(legend.position = "none", 
-        axis.text.y=element_blank(),
-        axis.title = element_text(size = 32),
-        axis.text = element_text(size = 16),
-        strip.text = element_text(size = 14),
-        legend.text = element_text(size = 20)) +
-  facet_grid(comparison~.) +
-  scale_fill_npg() +
-  labs(x="Fst", y="Density")
-plot_2_fst
-
-# combine plots
-plot_1_fst + plot_2_fst +  plot_layout(widths = c(5, 1))
-# 1: Removed 35 rows containing missing values or values outside the scale range (`geom_point()`). 
-# 2: Removed 35 rows containing non-finite outside the scale range (`stat_density_ridges()`).
-ggsave("genomewide_and_density_fst_region_DOG_ONLY.tif", width=16, height=18, dpi = 300)
-ggsave("genomewide_and_density_fst_region_DOG_ONLY.png", width=16, height=18, dpi = 300)
-# Fst closer to 1 = more genetically distinct
-# Fst closer to 0 = more genetically similar
-
-
-# Region map metadata. Just have one random point representing each region.
-location <- read.csv("input/region_metadata.csv", header = TRUE)
-
-## Make world map data
-world_map <- map_data("world")
-
-# Set colors for the points
-red_palette1 <- brewer.pal(n = 9, name = "YlOrRd")
-red_palette2 <- brewer.pal(n=9, name = "YlOrBr")
-blue_palette <- brewer.pal(n = 9, name = "Blues")
-green_palette1 <- brewer.pal(n = 9, name = "BuGn")
-green_palette2 <- brewer.pal(n=9, name = "YlGn")
-
-scale_colour_region <- 
-  c('USA' = red_palette2[7],
-    'CENAM' = "blueviolet",
-    'EUR' = green_palette1[7],
-    'ASIA' = "violetred1",
-    'AUS' = blue_palette[5])
-# chose one random location/point for each region
-
-# Get median fst for each comparison
-fst_median <- data %>%
-  filter(data_type == "Fst") %>%
-  group_by(comparison) %>%
-  summarise(FST_MEDIAN = median(value, na.rm = TRUE))
-# Save as csv file and then add required metadata such as population longitudes/latitudes
-write.csv(fst_median, "fst_median.csv", row.names = TRUE)
-
-# read new csv file with map metadata and median fst between groups
-fst_map <- read.csv("fst_map.csv", header = TRUE)
-
-# Fst by region on a map
-plot_3_fst <- ggplot() +
-  geom_polygon(data = world_map, aes(x = long, y = lat, group = group), fill = "grey90") +
-  geom_segment(data=fst_map, aes(x=POP1_LONG, y=POP1_LAT, xend=POP2_LONG, yend=POP2_LAT, color = FST_MEDIAN), size = 1) +
-  scale_color_gradient(low = "gold", high = "red3", name = expression(F[ST])) +
-  geom_point(data = location, aes(x = Longitude, y = Latitude, fill = Region), size = 6, shape = 21) +
-  scale_fill_manual(values = scale_colour_region, limits = c("USA", "CENAM", "EUR", "ASIA", "AUS"), name = "Region") +
-  geom_text_repel(data = location, aes(x = Longitude, y = Latitude, label = Region), size = 4, fontface = "bold", nudge_y = 7) +
-  theme_void() +
-  theme(
-    legend.position = c(0.1,0.3),
-    legend.title = element_text(size = 16),
-    legend.text = element_text(size = 14)) +
-  guides(fill = "none") +
-  coord_fixed()
-plot_3_fst
-
-# Save plot
-ggsave("fst_map_region_DOG_ONLY.tif", bg = "white", height=5, width=10, dpi = 300)
-ggsave("fst_map_region_DOG_ONLY.png", bg = "white", height=5, width=10, dpi = 300)
-
-
-# Fst by region on a heatmap
-fst_heatmap <- read.csv("fst_heatmap.csv", header = TRUE)
-
-plot_4_fst <- ggplot(fst_heatmap, aes(x = POP1, y=POP2, fill = FST_MEDIAN)) + 
-  geom_tile(color = "white", lwd = 1.5, linetype = 1) +
-  coord_fixed() +
-  scale_fill_material("indigo") +
-  guides(fill = guide_colourbar(title = expression(F[ST]), barwidth = 1, barheight = 5)) +
-  theme_minimal() +
-  labs(x = "Population", y = "Population") +
-  theme(axis.text = element_text(size = 18),
-    axis.text.x = element_text(angle = 90, hjust = 1),
-        axis.title = element_text(size = 24),
-        legend.title = element_text(size = 18),
-        legend.text = element_text(size = 14),
-        panel.grid.major = element_blank())
-plot_4_fst
-
-ggsave("fst_heatmap_region_DOG_ONLY.tif", bg = "white", height=5, width = 8, dpi = 300)
-ggsave("fst_heatmap_region_DOG_ONLY.png", bg = "white", height=5, width = 8, dpi = 300)
-```
-
-
-
-### Pixy for Australian dog samples only
-
-```bash
-conda activate pixy
-
-module load PaM/environment
-module load bsub.py/0.42.1
-module load vcftools/0.1.16-c4
-module load htslib-1.19/perl-5.38.0
-
-WORKING_DIR=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA
-
-cd ${WORKING_DIR}/03_ANALYSIS/04_VARIANTS/FILTER1/NO_OUTGROUPS/FINAL_SETS
-
-# Select Australian dog samples only in vcf
-vcftools --gzvcf nuclearSNPssandINVARIANTs_124samples.chrXto4.recode.vcf.gz \
---keep ../../../../05_ANALYSIS/PIXY/AUS_DOG_ONLY_samplelist.keep \
---recode --out AUS_DOG_ONLY_nuclearSNPsandINVARIANTs.chrXto4
-# After filtering, kept 44 out of 124 Individuals
-# After filtering, kept 84210689 out of a possible 84210689 Sites
-
-# up to here
-bgzip AUS_DOG_ONLY_nuclearSNPsandINVARIANTs.chrXto4.recode.vcf;
-tabix -p vcf AUS_DOG_ONLY_nuclearSNPsandINVARIANTs.chrXto4.recode.vcf.gz
-
-# run pixy
-VCF=${WORKING_DIR}/03_ANALYSIS/04_VARIANTS/FILTER1/NO_OUTGROUPS/FINAL_SETS/AUS_DOG_ONLY_nuclearSNPsandINVARIANTs.chrXto4.recode.vcf.gz
-
-cd ../../../../05_ANALYSIS/PIXY
-
-bsub.py --queue long --threads 10 20 pixy_AUS_DOG_ONLY \
-"pixy --stats pi fst dxy \
---vcf ${VCF} \
---populations AUS_DOG_ONLY_pop.list \
---window_size 100000 \
---n_cores 10 \
---output_prefix AUS_DOG_ONLY"
+--output_prefix AUS"
 # Successfully completed
 ```
 
 Plots in R
 
 ```R
-# Batch 4 - Pixy for Pi, Fst and Dxy for Australian dog cohort only
+# Batch 4 - Pixy for Pi, Fst and Dxy for Australian cohort only
 
 library(tidyverse)
 library(ggsci)
@@ -2520,12 +1795,12 @@ library(ggnewscale)
 library(reshape)
 library(wesanderson)
 
-setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/pixy/AUS_DOG_ONLY")
+setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/pixy/AUS")
 
 ##### Nucleotide diversity (Pi) #####
 
 # get nucleotide diversity (pi) data from pixy output
-pi_data <- read.table("input/AUS_DOG_ONLY_pi.txt", header=T)
+pi_data <- read.table("input/AUS_pi.txt", header=T)
 pi_data$chromosome <- str_remove(pi_data$chromosome, 'dirofilaria_immitis_')
 
 # filter pi data to remove small scaffolds not in the linkage groups, and to number the rows per group to help with plotting
@@ -2547,10 +1822,10 @@ pi_data_sex_median
 # A tibble: 2 × 2
   chr_type   median
   <chr>       <dbl>
-1 autosome 0.000479
-2 sexchr   0.000128
+1 autosome 0.000489
+2 sexchr   0.000139
 '
-# 0.000128 / 0.000479 = 0.2672234 (way off 0.75)
+# 0.000139 / 0.000489 = 0.2842536 (way off 0.75)
 
 pi_data_pop_sex_median <- pi_data %>%
   group_by(pop, chr_type) %>%
@@ -2562,8 +1837,8 @@ pi_data_pop_sex_median
 # Groups:   pop [6]
    pop            chr_type    median
    <chr>          <chr>        <dbl>
- 1 Brisbane       autosome 0.000433 
- 2 Brisbane       sexchr   0.000106 
+ 1 Brisbane       autosome 0.000474 
+ 2 Brisbane       sexchr   0.000132 
  3 Cairns         autosome 0.000451 
  4 Cairns         sexchr   0.0000692
  5 Lockhart_River autosome 0.000812 
@@ -2573,7 +1848,7 @@ pi_data_pop_sex_median
  9 Sydney         autosome 0.000385 
 10 Sydney         sexchr   0.000134 
 11 Townsville     autosome 0.000636 
-12 Townsville     sexchr   0.000220 
+12 Townsville     sexchr   0.000220
 '
 
 # plot 1 - genome wide plots per population
@@ -2611,8 +1886,8 @@ plot_2_pi
 
 # combine plots
 plot_1_pi + plot_2_pi +  plot_layout(widths = c(5, 1))
-ggsave("genomewide_and_density_Pi_AUS_DOG_ONLY.tif", width=14, height=8, dpi = 300)
-ggsave("genomewide_and_density_Pi_AUS_DOG_ONLY.png", width=14, height=8, dpi = 300)
+ggsave("genomewide_and_density_Pi_AUS.tif", width=14, height=8, dpi = 300)
+ggsave("genomewide_and_density_Pi_AUS.png", width=14, height=8, dpi = 300)
 
 #Now a boxplot of the pi value per population
 #Now a boxplot of the pi value per population
@@ -2645,15 +1920,15 @@ boxplot_pi <- ggplot(pi_data, aes(pop, avg_pi, col=pop)) +
   theme_bw() +
   theme(legend.position = "none") +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
-        axis.title = element_text(size = 24),
-        axis.text = element_text(size = 18)
+        axis.title = element_text(size = 18),
+        axis.text = element_text(size = 12)
         ) +
   scale_colour_AUS ()
 
 boxplot_pi
 
-ggsave("boxplot_Pi_AUS_DOG_ONLY.tif", width=6, height=6, dpi = 300)
-ggsave("boxplot_Pi_AUS_DOG_ONLY.png", width=6, height=6, dpi = 300)
+ggsave("boxplot_Pi_AUS.tif", width=6, height=6, dpi = 300)
+ggsave("boxplot_Pi_AUS.png", width=6, height=6, dpi = 300)
 # higher pi value = more diverse population
 # lower pi value = less diverse population
 ## Diversity is pretty similar between cities. Sydney and Brisbane are on par, Townsville is slightly higher.
@@ -2664,8 +1939,8 @@ ggsave("boxplot_Pi_AUS_DOG_ONLY.png", width=6, height=6, dpi = 300)
 #### Dxy and Fst ####
 
 # load data
-dxy_data <- read.table("input/AUS_DOG_ONLY_dxy.txt", header=T)
-fst_data <- read.table("input/AUS_DOG_ONLY_fst.txt", header=T)
+dxy_data <- read.table("input/AUS_dxy.txt", header=T)
+fst_data <- read.table("input/AUS_fst.txt", header=T)
 
 # add some columns
 dxy_data$data_type <- "Dxy"
@@ -2710,16 +1985,16 @@ data %>%
 # Groups:   comparison [15]
    comparison                   data_type    median
    <chr>                        <chr>         <dbl>
- 1 Brisbane_v_Cairns            Dxy        0.000487
- 2 Brisbane_v_Cairns            Fst        0.231   
- 3 Brisbane_v_Lockhart_River    Dxy        0.000503
- 4 Brisbane_v_Lockhart_River    Fst        0.0798  
- 5 Brisbane_v_Rockhampton       Dxy        0.000444
- 6 Brisbane_v_Rockhampton       Fst        0.104   
- 7 Brisbane_v_Sydney            Dxy        0.000471
- 8 Brisbane_v_Sydney            Fst        0.219   
- 9 Brisbane_v_Townsville        Dxy        0.000468
-10 Brisbane_v_Townsville        Fst        0.0626  
+ 1 Brisbane_v_Cairns            Dxy        0.000493
+ 2 Brisbane_v_Cairns            Fst        0.180   
+ 3 Brisbane_v_Lockhart_River    Dxy        0.000507
+ 4 Brisbane_v_Lockhart_River    Fst        0.00731 
+ 5 Brisbane_v_Rockhampton       Dxy        0.000445
+ 6 Brisbane_v_Rockhampton       Fst        0.0626  
+ 7 Brisbane_v_Sydney            Dxy        0.000462
+ 8 Brisbane_v_Sydney            Fst        0.192   
+ 9 Brisbane_v_Townsville        Dxy        0.000471
+10 Brisbane_v_Townsville        Fst        0.0437  
 11 Cairns_v_Lockhart_River      Dxy        0.000449
 12 Cairns_v_Lockhart_River      Fst        0.164   
 13 Cairns_v_Rockhampton         Dxy        0.000464
@@ -2781,8 +2056,8 @@ plot_2_dxy
 
 # combine plots
 dxy_plot <- plot_1_dxy + plot_2_dxy +  plot_layout(widths = c(5, 1))
-ggsave("genomewide_and_density_dxy_AUS_DOG_ONLY.tif", width=20, height=25, dpi = 300)
-ggsave("genomewide_and_density_dxy_AUS_DOG_ONLY.png", width=20, height=25, dpi = 300)
+ggsave("genomewide_and_density_dxy_AUS.tif", width=20, height=25, dpi = 300)
+ggsave("genomewide_and_density_dxy_AUS.png", width=20, height=25, dpi = 300)
 # higher Dxy = more divergent
 
 #some additional plots
@@ -2794,12 +2069,14 @@ boxplot_dxy <- data %>%
   labs(x = "Population" , y = "Dxy", colour = "Population") +
   theme_bw() +
   theme(legend.position = "none",
-        axis.title = element_text(size =24),
-        axis.text = element_text(size = 14),
-        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+        axis.title = element_text(size = 18),
+        axis.text = element_text(size = 12),
+        strip.text = element_text(size = 18),
+        legend.text = element_text(size = 16)) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 boxplot_dxy
-ggsave("boxplot_dxy_AUS_DOG_ONLY.tif", width=14, height = 6, dpi = 300)
-ggsave("boxplot_dxy_AUS_DOG_ONLY.png", width=14, height = 6, dpi = 300)
+ggsave("boxplot_dxy_AUS.tif", width=14, height = 6, dpi = 300)
+ggsave("boxplot_dxy_AUS.png", width=14, height = 6, dpi = 300)
 
 density_dxy <- data %>%
   filter(data_type =='Dxy') %>% 
@@ -2807,17 +2084,16 @@ density_dxy <- data %>%
   geom_density(adjust=1.5, alpha=.4) +
   labs(x = "Dxy" , y = "Density", colour = "Comparison") +
   theme_bw() +
-  theme(legend.position = c(0.78, 0.6),
+  theme(legend.position = c(0.8,0.6),
         legend.title = element_blank(),
-        legend.text = element_text(size = 12),
-        axis.title = element_text(size = 24),
-        axis.text = element_text(size = 18),
+        axis.title = element_text(size = 18),
+        axis.text = element_text(size = 12),
         axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank())
 density_dxy
-ggsave("density_dxy_AUS_DOG_ONLY.tif", width = 8, height = 6, dpi = 300)
-ggsave("density_dxy_AUS_DOG_ONLY.png", width = 8, height = 6, dpi = 300)
+ggsave("density_dxy_AUS.tif", width = 8, height = 6, dpi = 300)
+ggsave("density_dxy_AUS.png", width = 8, height = 6, dpi = 300)
 
 
 #Trying to plot lines
@@ -2851,46 +2127,14 @@ dxy_lineplot <- data %>%
   theme(legend.position="top", 
         legend.title = element_blank(),
         legend.text = element_text(size = 14),
-        axis.title = element_text(size = 24),
-        axis.text = element_text(size = 18)) +
+        axis.title = element_text(size = 18),
+        axis.text = element_text(size = 14)) +
   labs(x="Genomic Position", y="Dxy") +
   guides(col = guide_legend(override.aes = list(linewidth = 2)))
 dxy_lineplot
-ggsave("lineplot_dxy_AUS_DOG_ONLY.tif", width=16, height=8, dpi = 300)
-ggsave("lineplot_dxy_AUS_DOG_ONLY.png", width=16, height=8, dpi = 300)
+ggsave("lineplot_dxy_AUS.tif", width=16, height=8, dpi = 300)
+ggsave("lineplot_dxy_AUS.png", width=16, height=8, dpi = 300)
 
-
-
-# Dxy by city on a heatmap
-# Get median dxy for each comparison
-dxy_median <- data %>%
-  filter(data_type == "Dxy") %>%
-  group_by(comparison) %>%
-  summarise(DXY_MEDIAN = median(value, na.rm = TRUE))
-
-# Save as csv file
-write.csv(dxy_median, "dxy_median.csv", row.names = TRUE)
-
-dxy_heatmap <- read.csv("dxy_heatmap.csv", header = TRUE)
-dxy_heatmap <- as.data.frame(dxy_heatmap)
-
-plot_3_dxy <- ggplot(dxy_heatmap, aes(x = POP1, y=POP2, fill = DXY_MEDIAN)) + 
-  geom_tile(color = "white", lwd = 1.5, linetype = 1) +
-  coord_fixed() +
-  scale_fill_material("indigo", labels = scales::label_number()) +
-  guides(fill = guide_colourbar(title = expression(D[XY]), barwidth = 1, barheight = 5)) +
-  theme_minimal() +
-  labs(x = "Population", y = "Population") +
-  theme(axis.text = element_text(size = 18),
-        axis.text.x = element_text(angle = 90, hjust = 1),
-        axis.title = element_text(size = 24),
-        legend.title = element_text(size = 18),
-        legend.text = element_text(size = 14),
-        panel.grid.major = element_blank())
-plot_3_dxy
-
-ggsave("dxy_heatmap_AUS_DOG_ONLY.tif", bg = "white", height=5, width = 8, dpi = 300)
-ggsave("dxy_heatmap_AUS_DOG_ONLY.png", bg = "white", height=5, width = 8, dpi = 300)
 
 
 
@@ -2934,8 +2178,6 @@ plot_2_fst
 
 # combine plots
 plot_1_fst + plot_2_fst +  plot_layout(widths = c(5, 1))
-# 1: Removed 224 rows containing missing values or values outside the scale range (`geom_point()`). 
-# 2: Removed 224 rows containing non-finite outside the scale range (`stat_density_ridges()`). 
 ## Fst values should only range between 0 and 1. Set anything <0 to 0 and re-do the plots.
 
 # Data cleaning
@@ -2973,10 +2215,8 @@ plot_2_fst_clean
 
 # combine plots
 plot_1_fst_clean + plot_2_fst_clean +  plot_layout(widths = c(5, 1))
-# 1: Removed 224 rows containing missing values or values outside the scale range (`geom_point()`). 
-# 2: Removed 224 rows containing non-finite outside the scale range (`stat_density_ridges()`).
-ggsave("genomewide_and_density_fst_AUS_DOG_ONLY.tif", width=20, height=25, dpi = 300)
-ggsave("genomewide_and_density_fst_AUS_DOG_ONLY.png", width=20, height=25, dpi = 300)
+ggsave("genomewide_and_density_fst_AUS.tif", width=20, height=25, dpi = 300)
+ggsave("genomewide_and_density_fst_AUS.png", width=20, height=25, dpi = 300)
 # Fst closer to 1 = more genetically distinct
 # Fst closer to 0 = more genetically similar
 # Some cities only have 1 sample so they look funny.
@@ -2988,7 +2228,7 @@ ggsave("genomewide_and_density_fst_AUS_DOG_ONLY.png", width=20, height=25, dpi =
 ## Make world map data
 world_map <- map_data("world")
 
-# Add map inset to zoom in on Australian dog samples
+# Add map inset to zoom in on Australian samples
 # Manually specify the coordinates for the area of the world map to show in the inset
 aus_xmin <- 141
 aus_xmax <- 155
@@ -3026,7 +2266,7 @@ fst_map <- read.csv("fst_map.csv", header = TRUE)
 # Fst on AUS map
 plot_3_fst <- ggplot() +
   geom_polygon(data = aus_data, aes(x = long, y = lat, group = group), fill = "grey90") +
-  geom_segment(data=fst_map, aes(x=POP1_LONG, y=POP1_LAT, xend=POP2_LONG, yend=POP2_LAT, color = FST_MEDIAN), size = 1) +
+  geom_segment(data=fst_map, aes(x=POP1_LONG, y=POP1_LAT, xend=POP2_LONG, yend=POP2_LAT, color = FST_MEDIAN), size = 0.7) +
   scale_color_gradient(low = "gold", high = "red3", name = expression(F[ST])) +
   geom_point(data = location_AUS, aes(x = Longitude, y = Latitude, fill = City), size = 10, shape = 21) +
   scale_fill_manual(values = scale_colour_AUS, limits = c("Lockhart River", "Cairns", "Townsville", "Rockhampton", "Brisbane", "Sydney"), name = "City") +
@@ -3041,8 +2281,8 @@ plot_3_fst <- ggplot() +
 plot_3_fst
 
 # Save plot
-ggsave("fst_map_AUS_DOG_ONLY.tif", bg = "white", height=10, width=5, dpi = 300)
-ggsave("fst_map_AUS_DOG_ONLY.png", bg = "white", height=10, width=5, dpi = 300)
+ggsave("fst_map_AUS.tif", bg = "white", height=10, width=5, dpi = 300)
+ggsave("fst_map_AUS.png", bg = "white", height=10, width=5, dpi = 300)
 
 
 # Fst by AUS on a heatmap
@@ -3055,653 +2295,18 @@ plot_4_fst <- ggplot(fst_heatmap, aes(x = POP1, y=POP2, fill = FST_MEDIAN)) +
   guides(fill = guide_colourbar(title = expression(F[ST]), barwidth = 1, barheight = 5)) +
   theme_minimal() +
   labs(x = "Population", y = "Population") +
-  theme(axis.text = element_text(size = 18),
+  theme(axis.text = element_text(size = 12),
     axis.text.x = element_text(angle = 90, hjust = 1),
-        axis.title = element_text(size = 24),
-        legend.title = element_text(size = 18),
-        legend.text = element_text(size = 14),
-        panel.grid.major = element_blank())
-plot_4_fst
-
-ggsave("fst_heatmap_AUS_DOG_ONLY.tif", bg = "white", height=5, width = 8, dpi = 300)
-ggsave("fst_heatmap_AUS_DOG_ONLY.png", bg = "white", height=5, width = 8, dpi = 300)
-
-
-# Plot comparing genetic vs geographical distance
-## Calculated direct distances between cities using: https://www.nhc.noaa.gov/gccalc.shtml
-fst_distance <- read.csv("fst_distance.csv", header = TRUE)
-
-plot_5_fst <- ggplot(fst_distance, aes(x = Distance_km, y = FST_MEDIAN)) +
-  geom_point(size = 4, col = "cornflowerblue") +
-  labs(x = "Distance (km)", y = expression(F[ST])) +
-  theme_bw() +
-  theme(axis.title = element_text(size = 24),
-        axis.text = element_text(size = 18),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank())
-plot_5_fst
-
-ggsave("fst_distance_AUS_DOG_ONLY.tif", bg = "white", height = 6, width = 8, dpi = 300)
-ggsave("fst_distance_AUS_DOG_ONLY.png", bg = "white", height = 6, width = 8, dpi = 300)
-```
-
-
-
-
-### Pixy for USA dog samples only
-
-```bash
-conda activate pixy
-
-module load PaM/environment
-module load bsub.py/0.42.1
-module load vcftools/0.1.16-c4
-module load htslib-1.19/perl-5.38.0
-
-WORKING_DIR=/lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA
-
-cd ${WORKING_DIR}/03_ANALYSIS/04_VARIANTS/FILTER1/NO_OUTGROUPS/FINAL_SETS
-
-# Select USA dog samples only in vcf
-vcftools --gzvcf nuclearSNPssandINVARIANTs_124samples.chrXto4.recode.vcf.gz \
---keep ../../../../05_ANALYSIS/PIXY/USA_DOG_ONLY_samplelist.keep \
---recode --out USA_DOG_ONLY_nuclearSNPsandINVARIANTs.chrXto4
-# After filtering, kept 34 out of 124 Individuals
-# After filtering, kept 84210689 out of a possible 84210689 Sites
-
-bgzip USA_DOG_ONLY_nuclearSNPsandINVARIANTs.chrXto4.recode.vcf;
-tabix -p vcf USA_DOG_ONLY_nuclearSNPsandINVARIANTs.chrXto4.recode.vcf.gz
-
-# run pixy
-VCF=${WORKING_DIR}/03_ANALYSIS/04_VARIANTS/FILTER1/NO_OUTGROUPS/FINAL_SETS/USA_DOG_ONLY_nuclearSNPsandINVARIANTs.chrXto4.recode.vcf.gz
-
-cd ../../../../05_ANALYSIS/PIXY
-
-bsub.py --queue long --threads 10 20 pixy_USA_DOG_ONLY \
-"pixy --stats pi fst dxy \
---vcf ${VCF} \
---populations USA_DOG_ONLY_pop.list \
---window_size 100000 \
---n_cores 10 \
---output_prefix USA_DOG_ONLY"
-# Successfully completed
-```
-
-```R
-# Batch 4 - Pixy for Pi, Fst and Dxy for USA dog cohort only
-
-library(tidyverse)
-library(ggsci)
-library(ggpubr)
-library(patchwork)
-library(ggridges)
-library(RColorBrewer)
-library(ggplot2)
-library(dplyr)
-library(purrr)
-library(stats)
-library(graphics)
-library(grDevices)
-library(utils)
-library(datasets)
-library(methods)
-library(base)
-require(maps)
-library(mapdata)
-library(readxl)
-library(ozmaps) 
-library(grid)
-library(gridExtra)
-library(ggrepel)
-library(ggnewscale)
-library(reshape)
-library(wesanderson)
-
-setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/pixy/USA_DOG_ONLY")
-
-##### Nucleotide diversity (Pi) #####
-
-# get nucleotide diversity (pi) data from pixy output
-pi_data <- read.table("input/USA_DOG_ONLY_pi.txt", header=T)
-pi_data$chromosome <- str_remove(pi_data$chromosome, 'dirofilaria_immitis_')
-
-# filter pi data to remove small scaffolds not in the linkage groups, and to number the rows per group to help with plotting
-pi_data <- pi_data %>%
-  group_by(pop) %>%
-  mutate(position = 1:n())
-
-#Let's add the chr type variable
-pi_data <- pi_data %>%
-  mutate(chr_type = ifelse(str_detect(chromosome, "X"), "sexchr", "autosome"))
-
-# calculate the median Pi and check the ratio of sex-to-autosome diversity. Should be about 0.75, as D. immitis is XX/XY
-pi_data_sex_median <- pi_data %>%
-  group_by(chr_type) %>%
-  summarise(median = median(avg_pi, na.rm = TRUE))
-pi_data_sex_median
-
-'
-# A tibble: 2 × 2
-  chr_type   median
-  <chr>       <dbl>
-1 autosome 0.000652
-2 sexchr   0.000257
-'
-# 0.000257 / 0.000652 = 0.3941718 (way off 0.75)
-
-pi_data_pop_sex_median <- pi_data %>%
-  group_by(pop, chr_type) %>%
-  summarise(median = median(avg_pi, na.rm = TRUE))
-pi_data_pop_sex_median
-
-'
-# A tibble: 12 × 3
-# Groups:   pop [6]
-   pop       chr_type   median
-   <chr>     <chr>       <dbl>
- 1 Florida   autosome 0.000773
- 2 Florida   sexchr   0.000341
- 3 Georgia   autosome 0.000732
- 4 Georgia   sexchr   0.000330
- 5 Illinois  autosome 0.000585
- 6 Illinois  sexchr   0.000178
- 7 Louisiana autosome 0.000599
- 8 Louisiana sexchr   0.000219
- 9 Missouri  autosome 0.000516
-10 Missouri  sexchr   0.000211
-11 Texas     autosome 0.000722
-12 Texas     sexchr   0.000305
-'
-
-# plot 1 - genome wide plots per population
-plot_1_pi <- ggplot(pi_data, aes(position*100000, avg_pi, col=chromosome)) +
-  geom_point(size=0.8) +
-  facet_grid(pop~.) +
-  scale_color_npg(guide = guide_legend(override.aes = list(size = 4))) +
-  theme_bw() +
-  theme(legend.position="top", 
-        legend.title = element_blank(),
         axis.title = element_text(size = 18),
-        axis.text = element_text(size = 12),
-        strip.text = element_text(size = 14),
-        legend.text = element_text(size = 16)) +
-  labs(x="Genomic Position", y="Nucleotide Diversity (Pi)")
-plot_1_pi
-
-
-# plot 2 - density plots of pi per group
-plot_2_pi <- ggplot(pi_data, aes(avg_pi, chr_type, fill=chr_type), guide="none") +
-  geom_density_ridges(quantile_lines=TRUE, quantile_fun=function(x,...)median(x), size=0.5) +
-  theme_bw() + theme(legend.position = "none", axis.text.y=element_blank()) +
-  facet_grid(pop~.) +
-  xlim(0, 0.005) +
-  scale_x_continuous(breaks = c(0, 0.0025, 0.005)) +
-  scale_fill_npg() +
-  theme(legend.position="top",
-        legend.title = element_blank(),
-        axis.title = element_text(size = 18),
-        axis.text = element_text(size = 12),
-        strip.text = element_text(size = 14),
-        legend.text = element_text(size = 16)) +
-  labs(x="Nucleotide Diversity (Pi)", y="Density")
-plot_2_pi
-
-# combine plots
-plot_1_pi + plot_2_pi +  plot_layout(widths = c(5, 1))
-ggsave("genomewide_and_density_Pi_USA_DOG_ONLY.tif", width=14, height=8, dpi = 300)
-ggsave("genomewide_and_density_Pi_USA_DOG_ONLY.png", width=14, height=8, dpi = 300)
-
-#Now a boxplot of the pi value per population
-#Now a boxplot of the pi value per population
-pi_data$pop <- factor(pi_data$pop, 
-                      levels = c('Florida', 'Georgia', 'Illinois', 'Louisiana', 
-                                 'Missouri', 'Texas'))
-
-red_palette1 <- brewer.pal(n = 9, name = "YlOrRd")
-red_palette2 <- brewer.pal(n=9, name = "YlOrBr")
-
-scale_colour_USA <- function(...){
-  ggplot2:::manual_scale(
-    'colour', 
-    values = setNames(
-      c(red_palette1[5],
-        red_palette2[5],
-        red_palette1[8],
-        red_palette1[6],
-        red_palette2[7],
-        red_palette1[7]),
-    c("Florida", "Georgia", "Illinois", "Louisiana", "Missouri", "Texas")), 
-  ...
-)
-}    
-
-
-boxplot_pi <- ggplot(pi_data, aes(pop, avg_pi, col=pop)) +
-  geom_jitter(size = 1, alpha = 0.5) +
-  geom_boxplot(fill=NA, col="black") +
-  labs(x = "Population" , y = "Nucleotide diversity (Pi)", colour = "Population") +
-  theme_bw() +
-  theme(legend.position = "none") +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
-        axis.title = element_text(size = 24),
-        axis.text = element_text(size = 18)
-        ) +
-  scale_colour_USA ()
-
-boxplot_pi
-
-ggsave("boxplot_Pi_USA_DOG_ONLY.tif", width=6, height=6, dpi = 300)
-ggsave("boxplot_Pi_USA_DOG_ONLY.png", width=6, height=6, dpi = 300)
-# higher pi value = more diverse population
-# lower pi value = less diverse population
-## Diversity slightly higher in Florida, Georgia & Texas.
-
-
-
-
-#### Dxy and Fst ####
-
-# load data
-dxy_data <- read.table("input/USA_DOG_ONLY_dxy.txt", header=T)
-fst_data <- read.table("input/USA_DOG_ONLY_fst.txt", header=T)
-
-# add some columns
-dxy_data$data_type <- "Dxy"
-dxy_data <- mutate(dxy_data,
-                   comparison = paste(pop1, pop2, sep = '_v_'))
-fst_data$data_type <- "Fst"
-fst_data <- mutate(fst_data,
-                   comparison = paste(pop1, pop2, sep = '_v_'))
-
-# subset and merge dataframes
-dxy_data_sub <- dxy_data %>% select(comparison,data_type,chromosome,window_pos_1,window_pos_2,avg_dxy)
-colnames(dxy_data_sub) <- c("comparison","data_type","chromosome","window_pos_1","window_pos_2","value")
-
-fst_data_sub <- fst_data %>% select(comparison,data_type,chromosome,window_pos_1,window_pos_2,avg_wc_fst)
-colnames(fst_data_sub) <- c("comparison","data_type","chromosome","window_pos_1","window_pos_2","value")
-
-# cheeky fix to get matching rows from both datasets
-tmp_dxy <- semi_join(dxy_data_sub, fst_data_sub, by=c("comparison", "chromosome", "window_pos_1", "window_pos_2"))
-tmp_fst <- semi_join(fst_data_sub, dxy_data_sub,  by=c("comparison", "chromosome", "window_pos_1", "window_pos_2"))
-
-# join the datasets together to create a single dataframe
-data <- full_join(tmp_dxy, tmp_fst)
-data$chromosome <- str_remove(data$chromosome, 'dirofilaria_immitis_')
-
-# add numbering to help with plotting
-data <- data %>%
-  group_by(comparison, data_type) %>%
-  mutate(position = 1:n())
-
-# add sex chromosome information
-data <- data %>%
-  mutate(chr_type = ifelse(str_detect(chromosome, "X"), "sexchr", "autosome"))
-
-
-# summarise median data for Fst and Dxy
-data %>%
-  group_by(comparison,data_type) %>%
-  summarise(median = median(value, na.rm = TRUE)) %>%
-  print(n = 30)
-'
-# A tibble: 30 × 3
-# Groups:   comparison [15]
-   comparison           data_type   median
-   <chr>                <chr>        <dbl>
- 1 Florida_v_Georgia    Dxy       0.000569
- 2 Florida_v_Georgia    Fst       0.0157  
- 3 Florida_v_Illinois   Dxy       0.000610
- 4 Florida_v_Illinois   Fst       0.0784  
- 5 Florida_v_Louisiana  Dxy       0.000607
- 6 Florida_v_Louisiana  Fst       0.0601  
- 7 Florida_v_Missouri   Dxy       0.000615
- 8 Florida_v_Missouri   Fst       0.0910  
- 9 Florida_v_Texas      Dxy       0.000627
-10 Florida_v_Texas      Fst       0.0181  
-11 Georgia_v_Illinois   Dxy       0.000513
-12 Georgia_v_Illinois   Fst       0.169   
-13 Georgia_v_Louisiana  Dxy       0.000533
-14 Georgia_v_Louisiana  Fst       0.118   
-15 Georgia_v_Missouri   Dxy       0.000532
-16 Georgia_v_Missouri   Fst       0.225   
-17 Georgia_v_Texas      Dxy       0.000540
-18 Georgia_v_Texas      Fst       0.000749
-19 Illinois_v_Louisiana Dxy       0.000520
-20 Illinois_v_Louisiana Fst       0.149   
-21 Illinois_v_Missouri  Dxy       0.000560
-22 Illinois_v_Missouri  Fst       0.237   
-23 Illinois_v_Texas     Dxy       0.000567
-24 Illinois_v_Texas     Fst       0.0474  
-25 Louisiana_v_Missouri Dxy       0.000514
-26 Louisiana_v_Missouri Fst       0.221   
-27 Louisiana_v_Texas    Dxy       0.000551
-28 Louisiana_v_Texas    Fst       0.0296  
-29 Missouri_v_Texas     Dxy       0.000574
-30 Missouri_v_Texas     Fst       0.0856
-'
-
-
-#Plotting Dxy
-
-# plot 1 - genome wide plots per comparison
-plot_1_dxy <- data %>%
-  filter(data_type =='Dxy')%>%
-  ggplot(., aes(position*100000, value, col=chromosome)) +
-  geom_point(size=1.5) +
-  facet_grid(comparison~.) +
-  scale_color_npg(guide = guide_legend(override.aes = list(size = 4))) +
-  theme_bw() +
-  theme(legend.position="top", 
-        legend.title = element_blank(),
-        axis.title = element_text(size = 32),
-        axis.text = element_text(size = 10),
-        strip.text = element_text(size = 10),
-        legend.text = element_text(size = 20)) +
-  labs(x="Genomic Position", y="Dxy")
-plot_1_dxy
-
-# plot 2 - density plots of dxy per group
-plot_2_dxy <- data %>%
-  filter(data_type=='Dxy')%>%
-  ggplot(aes(value, chr_type, fill=chr_type), guide="none") +
-  geom_density_ridges(quantile_lines=TRUE, quantile_fun=function(x,...)median(x), size=0.5) +
-  theme_bw() + theme(legend.position = "top", 
-                     legend.title = element_blank(),
-                     axis.text.y=element_blank(),
-                     axis.title = element_text(size = 32),
-                     axis.text = element_text(size = 16),
-                     strip.text = element_text(size = 10),
-                     legend.text = element_text(size = 20)) +
-  facet_grid(comparison~.) +
-  scale_fill_npg() +
-  labs(x="Dxy", y="Density")
-plot_2_dxy
-
-# combine plots
-dxy_plot <- plot_1_dxy + plot_2_dxy +  plot_layout(widths = c(5, 1))
-ggsave("genomewide_and_density_dxy_USA_DOG_ONLY.tif", width=20, height=25, dpi = 300)
-ggsave("genomewide_and_density_dxy_USA_DOG_ONLY.png", width=20, height=25, dpi = 300)
-# higher Dxy = more divergent
-
-#some additional plots
-boxplot_dxy <- data %>%
-  filter(data_type =='Dxy') %>% 
-  ggplot(., aes(comparison, value, col=comparison)) +
-  geom_jitter(size = 1, alpha = 0.5) +
-  geom_boxplot(fill=NA, col="black") +
-  labs(x = "Population" , y = "Dxy", colour = "Population") +
-  theme_bw() +
-  theme(legend.position = "none",
-        axis.title = element_text(size =24),
-        axis.text = element_text(size = 14),
-        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-boxplot_dxy
-ggsave("boxplot_dxy_USA_DOG_ONLY.tif", width=14, height = 6, dpi = 300)
-ggsave("boxplot_dxy_USA_DOG_ONLY.png", width=14, height = 6, dpi = 300)
-
-density_dxy <- data %>%
-  filter(data_type =='Dxy') %>% 
-  ggplot(., aes(x=value, group = comparison, fill=comparison)) +
-  geom_density(adjust=1.5, alpha=.4) +
-  labs(x = "Dxy" , y = "Density", colour = "Comparison") +
-  theme_bw() +
-  theme(legend.position = c(0.78, 0.7),
-        legend.title = element_blank(),
+        legend.title = element_text(size = 14),
         legend.text = element_text(size = 10),
-        axis.title = element_text(size = 24),
-        axis.text = element_text(size = 18),
-        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank())
-density_dxy
-ggsave("density_dxy_USA_DOG_ONLY.tif", width = 8, height = 8, dpi = 300)
-ggsave("density_dxy_USA_DOG_ONLY.png", width = 8, height = 8, dpi = 300)
-
-
-#Trying to plot lines
-#getting chr positions
-chr <- c('X', '1', '2', '3', '4')
-
-for (i in chr) {
-  x <- data %>%
-    filter(chromosome == paste0('chr', i))
-  print(quantile(x$position))
-}
-
-data$comparison <- str_replace_all(data$comparison, '_', ' ')
-
-dxy_lineplot <- data %>%
-  filter(data_type=='Dxy')%>%
-  ggplot(., aes(position*100000, value, col=comparison)) +
-  geom_point(size=0.2, alpha = 0.1) +
-  geom_vline(xintercept=c(281*100000,
-                          438*100000,
-                          590*100000,
-                          740*100000),
-             size=1, linetype="dashed", col='grey41')+
-  annotate(geom="text", x=140*100000, y=0.004, label="ChrX", size = 6)+
-  annotate(geom="text", x=359.5*100000, y=0.004, label="Chr1", size = 6)+
-  annotate(geom="text", x=520*100000, y=0.004, label="Chr2", size = 6)+
-  annotate(geom="text", x=665*100000, y=0.004, label="Chr3", size = 6)+
-  annotate(geom="text", x=810.5*100000, y=0.004, label="Chr4", size = 6)+
-  geom_line() +
-  theme_bw() +
-  theme(legend.position="top", 
-        legend.title = element_blank(),
-        legend.text = element_text(size = 14),
-        axis.title = element_text(size = 24),
-        axis.text = element_text(size = 18)) +
-  labs(x="Genomic Position", y="Dxy") +
-  guides(col = guide_legend(override.aes = list(linewidth = 2)))
-dxy_lineplot
-ggsave("lineplot_dxy_USA_DOG_ONLY.tif", width=16, height=8, dpi = 300)
-ggsave("lineplot_dxy_USA_DOG_ONLY.png", width=16, height=8, dpi = 300)
-
-
-
-# Dxy by city on a heatmap
-# Get median dxy for each comparison
-dxy_median <- data %>%
-  filter(data_type == "Dxy") %>%
-  group_by(comparison) %>%
-  summarise(DXY_MEDIAN = median(value, na.rm = TRUE))
-
-# Save as csv file
-write.csv(dxy_median, "dxy_median.csv", row.names = TRUE)
-
-dxy_heatmap <- read.csv("dxy_heatmap.csv", header = TRUE)
-dxy_heatmap <- as.data.frame(dxy_heatmap)
-
-plot_3_dxy <- ggplot(dxy_heatmap, aes(x = POP1, y=POP2, fill = DXY_MEDIAN)) + 
-  geom_tile(color = "white", lwd = 1.5, linetype = 1) +
-  coord_fixed() +
-  scale_fill_material("indigo", labels = scales::label_number()) +
-  guides(fill = guide_colourbar(title = expression(D[XY]), barwidth = 1, barheight = 5)) +
-  theme_minimal() +
-  labs(x = "Population", y = "Population") +
-  theme(axis.text = element_text(size = 18),
-        axis.text.x = element_text(angle = 90, hjust = 1),
-        axis.title = element_text(size = 24),
-        legend.title = element_text(size = 18),
-        legend.text = element_text(size = 14),
-        panel.grid.major = element_blank())
-plot_3_dxy
-
-ggsave("dxy_heatmap_USA_DOG_ONLY.tif", bg = "white", height=5, width = 8, dpi = 300)
-ggsave("dxy_heatmap_USA_DOG_ONLY.png", bg = "white", height=5, width = 8, dpi = 300)
-
-
-
-
-# Plotting Fst
-
-# plot 1 - genome wide plots per population
-plot_1_fst <- data %>%
-  filter(data_type=='Fst')%>%
-  ggplot(., aes(position*100000, value, col=chromosome)) +
-  geom_point(size=1.5) +
-  facet_grid(comparison~.) +
-  scale_color_npg(guide = guide_legend(override.aes = list(size = 4))) +
-  theme_bw() +
-  theme(legend.position="top", 
-        legend.title = element_blank(),
-        axis.title = element_text(size = 32),
-        axis.text = element_text(size = 10),
-        strip.text = element_text(size = 8),
-        legend.text = element_text(size = 20)) +
-  labs(x="Genomic Position", y="Fst")
-plot_1_fst
-
-
-# plot 2 - density plots of Fst per group
-plot_2_fst <- data %>%
-  filter(data_type=='Fst')%>%
-  ggplot(aes(value, chr_type, fill=chr_type), guide="none") +
-  geom_density_ridges(quantile_lines=TRUE, quantile_fun=function(x,...)median(x), size=0.5) +
-  theme_bw() + 
-  theme(legend.position = "none", 
-        axis.text.y=element_blank(),
-        axis.title = element_text(size = 32),
-        axis.text = element_text(size = 10),
-        strip.text = element_text(size = 8),
-        legend.text = element_text(size = 20)) +
-  facet_grid(comparison~.) +
-  scale_fill_npg() +
-  labs(x="Fst", y="Density")
-plot_2_fst
-
-# combine plots
-plot_1_fst + plot_2_fst +  plot_layout(widths = c(5, 1))
-# 1: Removed 22 rows containing missing values or values outside the scale range (`geom_point()`). 
-# 2: Removed 22 rows containing non-finite outside the scale range (`stat_density_ridges()`). 
-## Fst values should only range between 0 and 1. Set anything <0 to 0 and re-do the plots.
-
-# Data cleaning
-data_fst_clean <- data %>% filter(data_type == 'Fst') %>% mutate(value = ifelse(value < 0, 0, value)) # this takes my original data, filters it to only include rows where the data_type is Fst. Then mutate function is used to create/modify columns. It modifies the value column, checks if the value is less than 0. If the value is <0, it replaces it with 0. If the value is >0, it keeps the original value.
-
-# Re-do plots with cleaned data
-# plot 1 - genome wide plots per population
-plot_1_fst_clean <- data_fst_clean %>%
-  filter(data_type=='Fst')%>%
-  ggplot(., aes(position*100000, value, col=chromosome)) +
-  geom_point(size=1) +
-  facet_grid(comparison~.) +
-  scale_color_tron() +
-  theme_bw() +
-  theme(legend.position="top", 
-        legend.title = element_blank(),
-        axis.title = element_text(size = 32),
-        axis.text = element_text(size = 16),
-        strip.text = element_text(size = 8),
-        legend.text = element_text(size = 20)) +
-  labs(x="Genomic Position", y="Fst")
-plot_1_fst_clean
-
-
-# plot 2 - density plots of Fst per group
-plot_2_fst_clean <- data_fst_clean %>%
-  filter(data_type=='Fst')%>%
-  ggplot(aes(value, chr_type, fill=chr_type), guide="none") +
-  geom_density_ridges(quantile_lines=TRUE, quantile_fun=function(x,...)median(x), size=0.5) +
-  theme_bw() + theme(legend.position = "none", axis.text.y=element_blank()) +
-  facet_grid(comparison~.) +
-  scale_fill_npg() +
-  labs(x="Fst", y="Density")
-plot_2_fst_clean
-
-# combine plots
-plot_1_fst_clean + plot_2_fst_clean +  plot_layout(widths = c(5, 1))
-# 1: Removed 22 rows containing missing values or values outside the scale range (`geom_point()`). 
-# 2: Removed 22 rows containing non-finite outside the scale range (`stat_density_ridges()`).
-ggsave("genomewide_and_density_fst_USA_DOG_ONLY.tif", width=20, height=25, dpi = 300)
-ggsave("genomewide_and_density_fst_USA_DOG_ONLY.png", width=20, height=25, dpi = 300)
-# Fst closer to 1 = more genetically distinct
-# Fst closer to 0 = more genetically similar
-# Some cities only have 1 sample so they look funny.
-
-
-
-# USA map
-
-## Make world map data
-world_map <- map_data("world")
-
-# Add map inset to zoom in on USA dog samples
-# Manually specify the coordinates for the area of the world map to show in the inset
-USA_xmin <- -105
-USA_xmax <- -70
-USA_ymin <- 20
-USA_ymax <- 50
-
-# Filter the world map data for the inset area
-USA_data <- subset(world_map, long >= USA_xmin & long <= USA_xmax & lat >= USA_ymin & lat <= USA_ymax)
-
-# USA metadata
-location_USA <- read.csv("input/USA_metadata.csv", header = TRUE)
-
-# Set colors for the points
-red_palette1 <- brewer.pal(n = 9, name = "YlOrRd")
-red_palette2 <- brewer.pal(n=9, name = "YlOrBr")
-
-scale_colour_USA <- 
-  c('Florida' = red_palette1[5],
-    'Georgia' = red_palette2[5],
-    'Illinois' = red_palette1[8],
-    'Louisiana' = red_palette1[6],
-    'Missouri' = red_palette2[7],
-    'Texas' = red_palette1[7])
-
-# Get median fst for each comparison
-fst_median <- data_fst_clean %>%
-  filter(data_type == "Fst") %>%
-  group_by(comparison) %>%
-  summarise(FST_MEDIAN = median(value, na.rm = TRUE))
-# Save as csv file and then add required metadata such as population longitudes/latitudes
-write.csv(fst_median, "fst_median.csv", row.names = TRUE)
-
-# read new csv file with map metadata and median fst between groups
-fst_map <- read.csv("fst_map.csv", header = TRUE)
-
-# Fst on USA map
-plot_3_fst <- ggplot() +
-  geom_polygon(data = USA_data, aes(x = long, y = lat, group = group), fill = "grey90") +
-  geom_segment(data=fst_map, aes(x=POP1_LONG, y=POP1_LAT, xend=POP2_LONG, yend=POP2_LAT, color = FST_MEDIAN), size = 1) +
-  scale_color_gradient(low = "gold", high = "red3", name = expression(F[ST])) +
-  geom_point(data = location_USA, aes(x = Longitude, y = Latitude, fill = State), size = 10, shape = 21) +
-  scale_fill_manual(values = scale_colour_USA, limits = c("Florida", "Georgia", "Illinois", "Louisiana", "Missouri", "Texas"), name = "State") +
-  geom_text_repel(data = location_USA, aes(x = Longitude, y = Latitude, label = State), size = 6, fontface = "bold", nudge_x = 2, nudge_y = 1) +
-  theme_void() +
-  theme(
-    legend.position = c(0.9,0.1),
-    legend.title = element_text(size = 18),
-    legend.text = element_text(size = 14)) +
-  guides(fill = "none") +
-  coord_fixed(ratio=1)
-plot_3_fst
-
-# Save plot
-ggsave("fst_map_USA_DOG_ONLY.tif", bg = "white", height=8, width=10, dpi = 300)
-ggsave("fst_map_USA_DOG_ONLY.png", bg = "white", height=8, width=10, dpi = 300)
-
-
-# Fst by USA on a heatmap
-fst_heatmap <- read.csv("fst_heatmap.csv", header = TRUE)
-
-plot_4_fst <- ggplot(fst_heatmap, aes(x = POP1, y=POP2, fill = FST_MEDIAN)) + 
-  geom_tile(color = "white", lwd = 1.5, linetype = 1) +
-  coord_fixed() +
-  scale_fill_material("indigo") +
-  guides(fill = guide_colourbar(title = expression(F[ST]), barwidth = 1, barheight = 5)) +
-  theme_minimal() +
-  labs(x = "Population", y = "Population") +
-  theme(axis.text = element_text(size = 18),
-    axis.text.x = element_text(angle = 90, hjust = 1),
-        axis.title = element_text(size = 24),
-        legend.title = element_text(size = 18),
-        legend.text = element_text(size = 14),
         panel.grid.major = element_blank())
 plot_4_fst
 
-ggsave("fst_heatmap_USA_DOG_ONLY.tif", bg = "white", height=5, width = 8, dpi = 300)
-ggsave("fst_heatmap_USA_DOG_ONLY.png", bg = "white", height=5, width = 8, dpi = 300)
+ggsave("fst_heatmap_AUS.tif", bg = "white", height=5, width = 8, dpi = 300)
+ggsave("fst_heatmap_AUS.png", bg = "white", height=5, width = 8, dpi = 300)
 ```
+
+Next...
+
+Do the same for USA only
