@@ -1,4 +1,4 @@
-# Linkage disequilibrium
+install.packages("lat# Linkage disequilibrium
 
 Get linkage disequilibrium statistics using vcftools.
 
@@ -91,38 +91,116 @@ pop_colours <- c("USA" = "tomato2", "EUR" = "forestgreen", "CENAM" = "purple", "
 # Plot
 plot <- ggplot(all_data, aes(x = Mean_Distance, y = Mean_R.2, group = Pop, color = Pop)) +
   geom_line(size = 1) +
+  guides(color = guide_legend(override.aes = list(size = 10, linewidth=3))) +
   labs(x = "Distance (kb)", y = expression(R^2), color = "Population") +
   theme(panel.background = element_rect(fill = "white"),
         panel.border = element_rect(color = "black", fill = NA, size = 1),
         legend.key = element_rect(fill = "white"),
-        axis.title.x = element_text(size = 18),
-        axis.title.y = element_text(size = 18),
-        axis.text = element_text(size = 14),
-        legend.title = element_text(size = 18),
-        legend.text = element_text(size = 14)) +
+        axis.title = element_text(size = 24),
+        axis.text = element_text(size = 18),
+        legend.title = element_text(size = 20),
+        legend.text = element_text(size = 18)) +
   scale_y_continuous(limits = c(0, 0.8), breaks = seq(0, 1, by = 0.2)) +
   scale_color_manual(values = pop_colours)
 
 # Save the plot
 ggsave("plot_LD.pdf", plot, dpi = 300, height = 6, width = 10)
+ggsave("plot_LD.tif", plot, dpi = 300, height = 6, width = 10)
+ggsave("plot_LD.png", plot, dpi = 300, height = 6, width = 10)
 
 
 # Plot with a smoother line
 plot <- ggplot(all_data, aes(x = Mean_Distance, y = Mean_R.2, group = Pop, color = Pop)) +
   geom_point(alpha = 0.1, size = 1) +  # Adjust alpha for point visibility
-  geom_smooth(method = "loess", se = FALSE) +  # Optional: Add a smooth line for better visualization
+  geom_smooth(method = "loess", se = FALSE) +  # Add smooth line for better visualization
+  guides(color = guide_legend(override.aes = list(size = 10, linewidth=3))) +
   labs(x = "Distance (kb)", y = expression(R^2), title = "Linkage Disequilibrium") +
   theme(panel.background = element_rect(fill = "white"),
         panel.border = element_rect(color = "black", fill = NA, size = 1),
-        legend.key = element_rect(fill = "white")) +
+        legend.key = element_rect(fill = "white"),
+        axis.title = element_text(size = 24),
+        axis.text = element_text(size = 18),
+        legend.title = element_text(size = 20),
+        legend.text = element_text(size = 18)) +
   scale_y_continuous(limits = c(0, 0.8), breaks = seq(0, 1, by = 0.2)) +
   scale_color_manual(values = pop_colours)
 
 # Save the plot
 ggsave("plot_LD_smooth.pdf", plot, dpi = 300, height = 6, width = 8)
+ggsave("plot_LD_smooth.tif", plot, dpi = 300, height = 6, width = 8)
+ggsave("plot_LD_smooth.png", plot, dpi = 300, height = 6, width = 8)
 ```
 
 LD for most populations remains quite high at long distances, which is as bit strange. It should decay towards zero. Run kinship analysis.
+
+
+## Plot showing LD(1/2)
+
+LD(1/2) is the distance between SNPs in which the LD is half the maximum value. Do for each population, it will allow us to be more quantitative about different rates of decay.
+
+```R
+version
+# version 4.4.0
+
+install.packages("rlang")
+install.packages("dplyr", dependencies = TRUE)
+install.packages("ggplot2", dependencies = TRUE)
+
+library(ggplot2)
+library(dplyr)
+
+
+# get points for each pop where LD is 1/2 the max value
+LD_half <- all_data %>%
+group_by(Pop) %>%
+summarise(Max_R.2 = max(Mean_R.2, na.rm = TRUE), #get maximum R2 for each pop
+          Half_R.2 = Max_R.2/2, # Get half of max R2
+          Half_distance = ifelse(
+            is.infinite(min(Mean_Distance[Mean_R.2 <= Half_R.2])),
+            NA,
+            min(Mean_Distance[Mean_R.2 <= Half_R.2]))) # get the ~distance where there's half of max R2. Some populations never reach this half and it itnroduced Inf value, so turn these into NA values.
+
+print(LD_half)
+'
+# A tibble: 5 × 4
+  Pop   Max_R.2 Half_R.2 Half_distance
+  <chr>   <dbl>    <dbl>         <dbl>
+1 ASIA    0.755    0.377           NA
+2 AUS     0.603    0.302          565.
+3 CENAM   0.643    0.322           NA
+4 EUR     0.586    0.293           NA
+5 USA     0.413    0.207          251.
+'
+# So ASIA, CENAM & EUR never reach 1/2 their max LD
+
+# Plot with vertical lines for each pop at 1/2 LD distance
+plot <- ggplot(all_data, aes(x = Mean_Distance, y = Mean_R.2, group = Pop, color = Pop)) +
+  geom_line(size = 1) +
+  guides(color = guide_legend(override.aes = list(size = 10, linewidth=3))) +
+  geom_segment(data=LD_half, aes(x=Half_distance, y=Half_R.2, xend=Half_distance, yend=0, color = Pop), size = 0.6, linetype = "dashed") +
+  labs(x = "Distance (kb)", y = expression(R^2), color = "Population") +
+  theme(panel.background = element_rect(fill = "white"),
+        panel.border = element_rect(color = "black", fill = NA, size = 1),
+        legend.key = element_rect(fill = "white"),
+        axis.title = element_text(size = 24),
+        axis.text = element_text(size = 18),
+        legend.title = element_text(size = 20),
+        legend.text = element_text(size = 18)) +
+  scale_y_continuous(limits = c(0, 0.8), breaks = seq(0, 1, by = 0.2)) +
+  scale_color_manual(values = pop_colours)
+
+# Save the plot
+ggsave("plot_LD_half.pdf", plot, dpi = 300, height = 6, width = 10)
+ggsave("plot_LD_half.png", plot, dpi = 300, height = 6, width = 10)
+ggsave("plot_LD_half.tif", plot, dpi = 300, height = 6, width = 10)
+
+```
+
+
+
+
+
+
 
 
 ### Kinship analysis
