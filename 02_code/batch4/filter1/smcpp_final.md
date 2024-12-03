@@ -105,7 +105,7 @@ tabix -p vcf smcpp.vcf.gz
 
 
 
-## Run smc++ again but for DOG HOSTS ONLY
+## Run smc++ by region again but for DOG HOSTS ONLY
 
 ### timepoint = 1 to 5 mill, generation time = 1, 2, 4 & 6 years
 
@@ -405,7 +405,7 @@ smc++ plot -g 6 -c g6/SMCPP_USA_DOG_ONLY_t5m_g6.pdf USA_DOG_ONLY/model.final.jso
 ```
 Successfully completed
 
-#### Stacked plot for all populations
+### Stacked plot for all populations, comparing the various generation times
 
 ```R
 # smc++ - plotting all populations together
@@ -462,7 +462,7 @@ final_data <- do.call(rbind, lapply(data_list, function(x) do.call(rbind, x)))
 
 pop_colours <- c("ASIA" = "hotpink", "AUS" = "cornflowerblue", "CENAM" = "purple", "EUR" = "forestgreen", "USA" = "tomato2")
 
-# Plot all generation times together for comparison
+# Plot all generation times together for comparison. Do stacked plot.
 plot <- ggplot(final_data, aes(x = x, y = y, col = ID)) +
   geom_rect(aes(xmin=25000,ymin=0,xmax=35000,ymax=125000), fill="grey80", col=NA) + # dog domestication
   geom_rect(aes(xmin=116000,ymin=0,xmax=130000,ymax=125000), fill="grey80", col=NA) + # last interglacial
@@ -585,7 +585,7 @@ process_pair EUR USA
 Successfully completed
 
 
-#### Plot the split times for g=4 years
+### Plot the split times for g=4 years
 
 ```R
 # smc++ Split - combine all split dates into a single csv file
@@ -650,18 +650,85 @@ end_points <- data.frame(
 write.csv(end_points, "split_dates_g4.csv", row.names=FALSE)
 ```
 
+```R
+# smc++ - plotting all populations together
+# timepoint = 1 to 5 million years
+
+# load libraries
+library(tidyverse)
+library(patchwork)
+library(ggsci)
+library(RColorBrewer)
+
+setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/smcpp/DOG_ONLY/t5m")
+
+# Directories for each generation time
+gen_times <- list(
+  "1" = "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/smcpp/DOG_ONLY/t5m/g1",
+  "2" = "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/smcpp/DOG_ONLY/t5m/g2",
+  "4" = "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/smcpp/DOG_ONLY/t5m/g4",
+  "6" = "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/smcpp/DOG_ONLY/t5m/g6"
+)
 
 
+data_list <- list()
+
+# get data
+for (gen in names(gen_times)) {
+  # Set working directory
+  setwd(gen_times[[gen]])
+  
+  # Set filenames
+  file_paths <- list(
+    "ASIA" = paste0("SMCPP_ASIA_DOG_ONLY_t5m_g", gen, ".csv"),
+    "AUS" = paste0("SMCPP_AUS_DOG_ONLY_t5m_g", gen, ".csv"),
+    "CENAM" = paste0("SMCPP_CENAM_DOG_ONLY_t5m_g", gen, ".csv"),
+    "EUR" = paste0("SMCPP_EUR_DOG_ONLY_t5m_g", gen, ".csv"),
+    "USA" = paste0("SMCPP_USA_DOG_ONLY_t5m_g", gen, ".csv")
+  )
+
+  data_list[[gen]] <- list()
+  
+  # Load each file
+  for (region in names(file_paths)) {
+    file_path <- file_paths[[region]]
+      region_data <- read.delim(file_path, header = T, sep = ",")
+      region_data$ID <- region
+      region_data$Generation <- as.numeric(gen)
+      data_list[[gen]][[region]] <- region_data
+    }
+  }
 
 
+# Combine data
+final_data <- do.call(rbind, lapply(data_list, function(x) do.call(rbind, x)))
 
+pop_colours <- c("ASIA" = "hotpink", "AUS" = "cornflowerblue", "CENAM" = "purple", "EUR" = "forestgreen", "USA" = "tomato2")
 
+# Plot all generation times together for comparison
+plot <- ggplot(final_data, aes(x = x, y = y, col = ID)) +
+  geom_rect(aes(xmin=25000,ymin=0,xmax=35000,ymax=125000), fill="grey80", col=NA) + # dog domestication
+  geom_rect(aes(xmin=116000,ymin=0,xmax=130000,ymax=125000), fill="peachpuff1", col=NA) + # last interglacial
+  geom_rect(aes(xmin=58000,ymin=0,xmax=72000,ymax=125000), fill="lightblue", col=NA) + # MIS 4
+  geom_line(size = 1) +
+  guides(color = guide_legend(override.aes = list(size = 8, linewidth=6))) +
+  facet_grid(Generation~., scales = "free_y", labeller = labeller(Generation = c("1" = "1 year", "2" = "2 years", "4" = "4 years", "6" = "6 years"))) +
+  labs(x = "Years before present", y = expression("Effective population size" ~ (N[e])), col = "Population") +
+  theme_bw() +
+  theme(panel.grid = element_blank(),
+        axis.title = element_text(size = 24),
+        axis.text = element_text(size = 14),
+        strip.text = element_text(size = 18),
+        legend.title = element_text(size = 20),
+        legend.text = element_text(size = 18)) +
+  scale_x_log10(labels = prettyNum) +
+  ylim(0,125000) +
+  scale_colour_manual(values = pop_colours)
 
-
-
-
-
-
+# Save the plot
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/smcpp/DOG_ONLY/t5m/plot_smcpp_t5m_DOG_ONLY.tif", plot, dpi = 300, height = 10, width = 8)
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/smcpp/DOG_ONLY/t5m/plot_smcpp_t5m_DOG_ONLY.png", plot, dpi = 300, height = 10, width = 8)
+```
 
 
 
@@ -1037,3 +1104,86 @@ smc++ plot -g 4 -c g4/SMCPP_FERRET_t5m_g4.pdf FERRET/model.final.json
 smc++ plot -g 6 -c g6/SMCPP_FERRET_t5m_g6.pdf FERRET/model.final.json
 ```
 Successfully completed
+
+### Stacked plot for all hosts, comparing the various generation times
+
+```R
+# smc++ - plotting all hosts together
+# timepoint = 1 to 5 million years
+
+# load libraries
+library(tidyverse)
+library(patchwork)
+library(ggsci)
+library(RColorBrewer)
+
+setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/smcpp/HOST/t5m")
+
+# Directories for each generation time
+gen_times <- list(
+  "1" = "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/smcpp/HOST/t5m/g1",
+  "2" = "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/smcpp/HOST/t5m/g2",
+  "4" = "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/smcpp/HOST/t5m/g4",
+  "6" = "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/smcpp/HOST/t5m/g6"
+)
+
+
+data_list <- list()
+
+# get data
+for (gen in names(gen_times)) {
+  # Set working directory
+  setwd(gen_times[[gen]])
+  
+  # Set filenames
+  file_paths <- list(
+    "DOG" = paste0("SMCPP_DOG_t5m_g", gen, ".csv"),
+    "FOX" = paste0("SMCPP_FOX_t5m_g", gen, ".csv"),
+    "CAT" = paste0("SMCPP_CAT_t5m_g", gen, ".csv"),
+    "LEOPARD" = paste0("SMCPP_LEOPARD_t5m_g", gen, ".csv"),
+    "WILDCAT" = paste0("SMCPP_WILDCAT_t5m_g", gen, ".csv"),
+    "JACKAL" = paste0("SMCPP_JACKAL_t5m_g", gen, ".csv"),
+    "FERRET" = paste0("SMCPP_FERRET_t5m_g", gen, ".csv")
+  )
+
+  data_list[[gen]] <- list()
+  
+  # Load each file
+  for (region in names(file_paths)) {
+    file_path <- file_paths[[region]]
+      region_data <- read.delim(file_path, header = T, sep = ",")
+      region_data$ID <- region
+      region_data$Generation <- as.numeric(gen)
+      data_list[[gen]][[region]] <- region_data
+    }
+  }
+
+
+# Combine data
+final_data <- do.call(rbind, lapply(data_list, function(x) do.call(rbind, x)))
+
+# Plot all generation times together for comparison
+plot <- ggplot(final_data, aes(x = x, y = y, col = ID)) +
+  geom_rect(aes(xmin=25000,ymin=0,xmax=35000,ymax=500000), fill="grey80", col=NA) + # dog domestication
+  geom_rect(aes(xmin=116000,ymin=0,xmax=130000,ymax=500000), fill="peachpuff1", col=NA) + # last interglacial
+  geom_rect(aes(xmin=58000,ymin=0,xmax=72000,ymax=500000), fill="lightblue", col=NA) + # MIS 4
+  geom_line(size = 1) +
+  guides(color = guide_legend(override.aes = list(size = 8, linewidth=6))) +
+  facet_grid(Generation~., scales = "free_y", labeller = labeller(Generation = c("1" = "1 year", "2" = "2 years", "4" = "4 years", "6" = "6 years"))) +
+  labs(x = "Years before present", y = expression("Effective population size" ~ (N[e])), col = "Host") +
+  theme_bw() +
+  theme(panel.grid = element_blank(),
+        axis.title = element_text(size = 24),
+        axis.text = element_text(size = 14),
+        strip.text = element_text(size = 18),
+        legend.title = element_text(size = 20),
+        legend.text = element_text(size = 18)) +
+  scale_x_log10(labels = prettyNum) +
+  #ylim(0,250000) +
+  scale_color_jama()
+plot
+
+# Save the plot
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/smcpp/HOST/t5m/plot_smcpp_t5m_HOST.tif", plot, dpi = 300, height = 10, width = 8)
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/smcpp/HOST/t5m/plot_smcpp_t5m_HOST.png", plot, dpi = 300, height = 10, width = 8)
+```
