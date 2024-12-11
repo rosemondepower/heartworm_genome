@@ -1,4 +1,4 @@
-install.packages("lat# Linkage disequilibrium
+# Linkage disequilibrium
 
 Get linkage disequilibrium statistics using vcftools.
 
@@ -149,35 +149,31 @@ install.packages("ggplot2", dependencies = TRUE)
 library(ggplot2)
 library(dplyr)
 
-
 # get points for each pop where LD is 1/2 the max value
 LD_half <- all_data %>%
 group_by(Pop) %>%
-summarise(Max_R.2 = max(Mean_R.2, na.rm = TRUE), #get maximum R2 for each pop
-          Half_R.2 = Max_R.2/2, # Get half of max R2
-          Half_distance = ifelse(
-            is.infinite(min(Mean_Distance[Mean_R.2 <= Half_R.2])),
-            NA,
-            min(Mean_Distance[Mean_R.2 <= Half_R.2]))) # get the ~distance where there's half of max R2. Some populations never reach this half and it itnroduced Inf value, so turn these into NA values.
+summarise(LD_Background = mean(Mean_R.2[Mean_Distance > 800]), # get LD background for each pop
+          LD_Max = max(Mean_R.2), #get max LD for each pop
+          LD_Half = (0.5 * (LD_Max - LD_Background) + LD_Background), # Get half of max R2
+          Distance_Half = min(Mean_Distance[Mean_R.2 <= LD_Half])) # get the ~distance where LD is half the maximum value
 
 print(LD_half)
 '
-# A tibble: 5 × 4
-  Pop   Max_R.2 Half_R.2 Half_distance
-  <chr>   <dbl>    <dbl>         <dbl>
-1 ASIA    0.755    0.377           NA
-2 AUS     0.603    0.302          565.
-3 CENAM   0.643    0.322           NA
-4 EUR     0.586    0.293           NA
-5 USA     0.413    0.207          251.
+# A tibble: 5 × 5
+  Pop   LD_Background LD_Max LD_Half Distance_Half
+  <chr>         <dbl>  <dbl>   <dbl>         <dbl>
+1 ASIA          0.420  0.755   0.587          31.5
+2 AUS           0.287  0.603   0.445          49.5
+3 CENAM         0.359  0.643   0.501          42.5
+4 EUR           0.315  0.586   0.451          37.5
+5 USA           0.175  0.413   0.294          36.5
 '
-# So ASIA, CENAM & EUR never reach 1/2 their max LD
 
-# Plot with vertical lines for each pop at 1/2 LD distance
+# Plot with vertical lines for each pop where the distance is half LD
 plot <- ggplot(all_data, aes(x = Mean_Distance, y = Mean_R.2, group = Pop, color = Pop)) +
   geom_line(size = 1) +
   guides(color = guide_legend(override.aes = list(size = 10, linewidth=3))) +
-  geom_segment(data=LD_half, aes(x=Half_distance, y=Half_R.2, xend=Half_distance, yend=0, color = Pop), size = 0.6, linetype = "dashed") +
+  geom_segment(data=LD_half, aes(x=Distance_Half, y=LD_Half, xend=Distance_Half, yend=0, color = Pop), size = 0.6) +
   labs(x = "Distance (kb)", y = expression(R^2), color = "Population") +
   theme(panel.background = element_rect(fill = "white"),
         panel.border = element_rect(color = "black", fill = NA, size = 1),
@@ -190,9 +186,9 @@ plot <- ggplot(all_data, aes(x = Mean_Distance, y = Mean_R.2, group = Pop, color
   scale_color_manual(values = pop_colours)
 
 # Save the plot
-ggsave("plot_LD_half.pdf", plot, dpi = 300, height = 6, width = 10)
-ggsave("plot_LD_half.png", plot, dpi = 300, height = 6, width = 10)
-ggsave("plot_LD_half.tif", plot, dpi = 300, height = 6, width = 10)
+ggsave("plot_LD_half_v2.pdf", plot, dpi = 300, height = 6, width = 8)
+ggsave("plot_LD_half_v2.png", plot, dpi = 300, height = 6, width = 8)
+ggsave("plot_LD_half_v2.tif", plot, dpi = 300, height = 6, width = 8)
 
 ```
 
