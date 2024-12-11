@@ -175,6 +175,7 @@ plot <- ggplot(all_data, aes(x = Mean_Distance, y = Mean_R.2, group = Pop, color
   guides(color = guide_legend(override.aes = list(size = 10, linewidth=3))) +
   geom_segment(data=LD_Half, aes(x=Distance_Half, y=LD_Half, xend=Distance_Half, yend=0, color = Pop), size = 0.6) +
   labs(x = "Distance (kb)", y = expression(R^2), color = "Population") +
+  theme_bw() +
   theme(panel.background = element_rect(fill = "white"),
         panel.border = element_rect(color = "black", fill = NA, linewidth = 2),
         legend.key = element_rect(fill = "white"),
