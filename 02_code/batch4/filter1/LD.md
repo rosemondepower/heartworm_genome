@@ -150,14 +150,14 @@ library(ggplot2)
 library(dplyr)
 
 # get points for each pop where LD is 1/2 the max value
-LD_half <- all_data %>%
+LD_Half <- all_data %>%
 group_by(Pop) %>%
 summarise(LD_Background = mean(Mean_R.2[Mean_Distance > 800]), # get LD background for each pop
           LD_Max = max(Mean_R.2), #get max LD for each pop
           LD_Half = (0.5 * (LD_Max - LD_Background) + LD_Background), # Get half of max R2
           Distance_Half = min(Mean_Distance[Mean_R.2 <= LD_Half])) # get the ~distance where LD is half the maximum value
 
-print(LD_half)
+print(LD_Half)
 '
 # A tibble: 5 × 5
   Pop   LD_Background LD_Max LD_Half Distance_Half
@@ -173,10 +173,10 @@ print(LD_half)
 plot <- ggplot(all_data, aes(x = Mean_Distance, y = Mean_R.2, group = Pop, color = Pop)) +
   geom_line(size = 1) +
   guides(color = guide_legend(override.aes = list(size = 10, linewidth=3))) +
-  geom_segment(data=LD_half, aes(x=Distance_Half, y=LD_Half, xend=Distance_Half, yend=0, color = Pop), size = 0.6) +
+  geom_segment(data=LD_Half, aes(x=Distance_Half, y=LD_Half, xend=Distance_Half, yend=0, color = Pop), size = 0.6) +
   labs(x = "Distance (kb)", y = expression(R^2), color = "Population") +
   theme(panel.background = element_rect(fill = "white"),
-        panel.border = element_rect(color = "black", fill = NA, size = 1),
+        panel.border = element_rect(color = "black", fill = NA, linewidth = 2),
         legend.key = element_rect(fill = "white"),
         axis.title = element_text(size = 24),
         axis.text = element_text(size = 18),
@@ -186,9 +186,9 @@ plot <- ggplot(all_data, aes(x = Mean_Distance, y = Mean_R.2, group = Pop, color
   scale_color_manual(values = pop_colours)
 
 # Save the plot
-ggsave("plot_LD_half_v2.pdf", plot, dpi = 300, height = 6, width = 8)
-ggsave("plot_LD_half_v2.png", plot, dpi = 300, height = 6, width = 8)
-ggsave("plot_LD_half_v2.tif", plot, dpi = 300, height = 6, width = 8)
+ggsave("plot_LD_half_v2.pdf", plot, dpi = 300, height = 6, width = 7)
+ggsave("plot_LD_half_v2.png", plot, dpi = 300, height = 6, width = 7)
+ggsave("plot_LD_half_v2.tif", plot, dpi = 300, height = 6, width = 7)
 
 ```
 
