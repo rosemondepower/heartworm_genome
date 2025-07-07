@@ -12,32 +12,36 @@ Heartworms (*Dirofilaria immitis*) are parasitic nematodes causing significant c
 
 **Workbooks:**
 
-* [Sampling](02_code/sampling_maps.md)
-* [Genome mapping](02_code/mapping_workbook.md)
-* [Coverage](02_code/coverage.md)
-* [Variant calling](02_code/variant_calling_workbook.md)
-* [Variant filtering](filtered/filter1_filtering.md)
-* [SNP concordance](02_code/filtered/snp_concordance.md)
-* [SNP density](02_code/filtered/snp_density.md)
+* [Sampling](02_code/01_sampling_maps.md)
+* [Genome mapping](02_code/02_mapping_workbook.md)
+* [Coverage](02_code/03_coverage.md)
+* [Variant calling](02_code/04_variant_calling_workbook.md)
+* [Variant filtering](05_filtered/filter1_filtering.md)
+* [SNP concordance](02_code/05_filtered/snp_concordance.md)
+* [SNP density](02_code/05_filtered/snp_density.md)
 * PCAs
-    - [Nuclear](02_code/filtered/filter1_pca_nuc.md)
-    - [Mitochondrial](02_code/filtered/filter1_pca_mito.md)
-    - [*Wolbachia*](02_code/filtered/filter1_pca_wb.md)
-* [Pixy (Pi, Dxy, Fst)](02_code/filtered/pixy.md)
-* [SMC++](02_code/filtered/smcpp_v2.md)
-* [Linkage disequilibrium](02_code/filtered/LD.md)
-* [NGSadmix](02_code/filtered/NGSadmix.md)
-* [Treemix](02_code/filtered/treemix.md)
-* [D-statistics](02_code/filtered/admixtools.md)
+    - [Nuclear](02_code/05_filtered/filter1_pca_nuc.md)
+    - [Mitochondrial](02_code/05_filtered/filter1_pca_mito.md)
+    - [*Wolbachia*](02_code/05_filtered/filter1_pca_wb.md)
+* [Pixy (Pi, Dxy, Fst)](02_code/05_filtered/pixy.md)
+* [SMC++](02_code/05_filtered/smcpp_v2.md)
+* [Linkage disequilibrium](02_code/05_filtered/LD.md)
+* [NGSadmix](02_code/05_filtered/NGSadmix.md)
+* [Treemix](02_code/05_filtered/treemix.md)
+* [D-statistics](02_code/05_filtered/admixtools.md)
 
 
 **Other** analyses not included in the manuscript:
 * Alternative variant filtering parameters
-    - [Filter2(more stringent)](02_code/alternative_filter2/batch4_filter2.md)
-    - [Filter3 (less stringent)](02_code/alternative_filter3/batch4_filter3.md)
+    - [Filter2(more stringent)](02_code/05_filtered_2/batch4_filter2.md)
+    - [Filter3 (less stringent)](02_code/05_filtered_3/batch4_filter3.md)
 * [Mitochondrial genome assembly](02_code/get_organelle.md)
-* MEGA
+* MEGA (alignments, variable sites)
 * IQ-TREE
 * [BEAST2](02_code/BEAST2_v2.md)
 * PopART
 * SplitsTree
+
+**Results** can be found [here](03_results).
+
+![](03_results/sampling/Fig6_v3.png)
