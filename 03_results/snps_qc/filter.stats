@@ -1,0 +1,8 @@
+| Filtered_VCF | Variants_PASS | Variants_FILTERED |
+| -- | -- | -- | 
+| DIMMITIS_POPGEN.cohort.2024-06-27.NO_OUTGROUPS.mitoINDELs.filtered.vcf | 240 | 30 |
+| DIMMITIS_POPGEN.cohort.2024-06-27.NO_OUTGROUPS.mitoSNPs.filtered.vcf | 1511 | 141 |
+| DIMMITIS_POPGEN.cohort.2024-06-27.NO_OUTGROUPS.nuclearINDELs.filtered.vcf | 748192 | 85599 |
+| DIMMITIS_POPGEN.cohort.2024-06-27.NO_OUTGROUPS.nuclearSNPs.filtered.vcf | 1775848 | 189001 |
+| DIMMITIS_POPGEN.cohort.2024-06-27.NO_OUTGROUPS.WbINDELs.filtered.vcf | 8897 | 731 |
+| DIMMITIS_POPGEN.cohort.2024-06-27.NO_OUTGROUPS.WbSNPs.filtered.vcf | 69952 | 5110 |

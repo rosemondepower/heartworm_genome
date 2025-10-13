@@ -1,0 +1,414 @@
+AUS_BNE_AD_001
+2024-06-30 03:38:36,924 - INFO: Average animal_mt base-coverage = 214.8
+
+AUS_BNE_AD_002
+2024-06-30 03:37:08,335 - INFO: Average animal_mt base-coverage = 216.5
+
+AUS_BNE_AD_003
+2024-06-30 03:37:02,886 - INFO: Average animal_mt base-coverage = 207.8
+
+AUS_BNE_AD_003_R
+2024-06-30 03:36:47,249 - INFO: Average animal_mt base-coverage = 200.6
+
+AUS_BNE_AD_004
+2024-06-30 05:54:02,973 - INFO: Average animal_mt base-coverage = 166.0
+
+AUS_BNE_AD_005
+2024-06-30 03:36:51,184 - INFO: Average animal_mt base-coverage = 197.8
+
+AUS_BNE_AD_006
+2024-06-30 03:42:01,134 - INFO: Average animal_mt base-coverage = 217.1
+
+AUS_BNE_AD_008
+2024-06-30 03:39:02,604 - INFO: Average animal_mt base-coverage = 199.4
+
+AUS_BNE_AD_009
+2024-06-30 03:42:56,158 - INFO: Average animal_mt base-coverage = 165.8
+
+AUS_CNS_AD_001
+2024-06-30 03:41:28,381 - INFO: Average animal_mt base-coverage = 204.3
+
+AUS_CNS_AD_002
+2024-06-30 03:39:22,516 - INFO: Average animal_mt base-coverage = 219.0
+
+AUS_LHR_AD_001
+2024-06-30 03:43:18,770 - INFO: Average animal_mt base-coverage = 156.9
+
+AUS_ROK_AD_001
+2024-06-30 03:41:27,122 - INFO: Average animal_mt base-coverage = 193.7
+
+AUS_SYD_AD_001
+2024-06-30 03:42:34,046 - INFO: Average animal_mt base-coverage = 184.1
+
+AUS_SYD_AD_002
+2024-06-30 03:42:59,419 - INFO: Average animal_mt base-coverage = 199.9
+
+AUS_SYD_AD_003
+2024-06-30 03:43:39,709 - INFO: Average animal_mt base-coverage = 206.0
+
+AUS_SYD_AD_004
+2024-06-30 04:00:13,005 - INFO: Average animal_mt base-coverage = 206.6
+
+AUS_SYD_AD_005
+2024-06-30 03:46:32,455 - INFO: Average animal_mt base-coverage = 203.1
+
+AUS_SYD_AD_005_R
+2024-06-30 03:47:22,535 - INFO: Average animal_mt base-coverage = 189.8
+
+AUS_SYD_AD_006
+2024-06-30 03:47:30,437 - INFO: Average animal_mt base-coverage = 192.4
+
+AUS_SYD_AD_007
+2024-06-30 03:47:55,436 - INFO: Average animal_mt base-coverage = 188.5
+
+AUS_SYD_AD_008
+2024-06-30 03:49:35,894 - INFO: Average animal_mt base-coverage = 228.4
+
+AUS_SYD_AD_008_R
+2024-06-30 03:46:39,709 - INFO: Average animal_mt base-coverage = 195.1
+
+AUS_SYD_AD_009
+2024-06-30 03:50:20,467 - INFO: Average animal_mt base-coverage = 200.2
+
+AUS_SYD_AD_010
+2024-06-30 03:49:38,746 - INFO: Average animal_mt base-coverage = 188.1
+
+AUS_SYD_AD_011
+2024-06-30 03:49:41,898 - INFO: Average animal_mt base-coverage = 191.6
+
+AUS_SYD_AD_012
+2024-06-30 03:50:10,971 - INFO: Average animal_mt base-coverage = 184.6
+
+AUS_SYD_AD_013
+2024-06-30 03:53:39,440 - INFO: Average animal_mt base-coverage = 213.4
+
+AUS_SYD_AD_014
+2024-06-30 03:51:53,913 - INFO: Average animal_mt base-coverage = 206.3
+
+AUS_SYD_AD_015
+2024-06-30 03:51:37,971 - INFO: Average animal_mt base-coverage = 213.7
+
+AUS_SYD_AD_016
+2024-06-30 03:51:49,981 - INFO: Average animal_mt base-coverage = 217.6
+
+AUS_SYD_AD_017
+2024-06-30 03:52:42,684 - INFO: Average animal_mt base-coverage = 232.7
+
+AUS_TVS_AD_001
+2024-06-30 03:59:00,151 - INFO: Average animal_mt base-coverage = 216.2
+
+AUS_TVS_AD_002
+2024-06-30 03:56:39,486 - INFO: Average animal_mt base-coverage = 190.5
+
+AUS_TVS_AD_003
+2024-06-30 04:05:14,470 - INFO: Average animal_mt base-coverage = 187.7
+
+AUS_TVS_AD_004
+2024-06-30 04:00:34,278 - INFO: Average animal_mt base-coverage = 213.7
+
+AUS_TVS_AD_005
+2024-06-30 03:55:54,671 - INFO: Average animal_mt base-coverage = 207.3
+
+AUS_TVS_AD_006
+2024-06-30 03:57:33,678 - INFO: Average animal_mt base-coverage = 205.0
+
+AUS_TVS_AD_007
+2024-06-30 04:06:27,106 - INFO: Average animal_mt base-coverage = 209.9
+
+AUS_TVS_AD_008
+2024-06-30 04:08:17,810 - INFO: Average animal_mt base-coverage = 201.1
+
+AUS_TVS_AD_009
+2024-06-30 04:00:50,787 - INFO: Average animal_mt base-coverage = 196.1
+
+AUS_TVS_AD_010
+2024-06-30 04:02:03,517 - INFO: Average animal_mt base-coverage = 203.1
+
+AUS_TVS_AD_011
+2024-06-30 04:02:05,722 - INFO: Average animal_mt base-coverage = 202.5
+
+AUS_TVS_AD_012
+2024-06-30 04:04:25,159 - INFO: Average animal_mt base-coverage = 186.7
+
+AUS_TVS_AD_013
+2024-06-30 04:07:36,185 - INFO: Average animal_mt base-coverage = 204.6
+
+AUS_TVS_AD_014
+2024-06-30 04:06:20,193 - INFO: Average animal_mt base-coverage = 205.7
+
+AUS_TVS_AD_015
+2024-06-30 04:09:57,657 - INFO: Average animal_mt base-coverage = 193.4
+
+AUS_TVS_AD_016
+2024-06-30 04:09:41,129 - INFO: Average animal_mt base-coverage = 211.8
+
+AUS_TVS_AD_017
+2024-06-30 04:08:03,762 - INFO: Average animal_mt base-coverage = 203.3
+
+AUS_TVS_AD_018
+2024-06-30 04:12:15,392 - INFO: Average animal_mt base-coverage = 198.3
+
+AUS_TVS_AD_019
+2024-06-30 04:13:48,288 - INFO: Average animal_mt base-coverage = 193.0
+
+CRI_SJO_AD_001
+2024-06-30 04:12:17,062 - INFO: Average animal_mt base-coverage = 187.3
+
+GRC_XAN_AD_001
+2024-06-30 04:10:12,699 - INFO: Average animal_mt base-coverage = 205.4
+
+GRC_XAN_AD_002
+2024-06-30 04:11:58,339 - INFO: Average animal_mt base-coverage = 211.1
+
+GRC_XAN_AD_003
+2024-06-30 04:22:44,146 - INFO: Average animal_mt base-coverage = 194.9
+
+GRC_XAN_AD_004
+2024-06-30 04:11:49,599 - INFO: Average animal_mt base-coverage = 214.7
+
+GRC_XAN_AD_005
+2024-06-30 04:25:10,257 - INFO: Average animal_mt base-coverage = 158.0
+
+GRC_XAN_AD_006
+2024-06-30 04:13:38,629 - INFO: Average animal_mt base-coverage = 212.3
+
+GRC_XAN_AD_007
+2024-06-30 04:23:09,258 - INFO: Average animal_mt base-coverage = 210.4
+
+GRC_XAN_AD_008
+2024-06-30 05:22:43,682 - INFO: Average animal_mt base-coverage = 206.4
+
+GRC_XAN_AD_009
+2024-06-30 04:15:13,658 - INFO: Average animal_mt base-coverage = 213.7
+
+GRC_XAN_AD_010
+2024-06-30 12:22:14,308 - INFO: Average animal_mt base-coverage = 58.0
+
+GRC_XAN_AD_011
+2024-06-30 12:38:40,079 - INFO: Average animal_mt base-coverage = 57.4
+
+GRC_XAN_AD_012
+2024-06-30 14:53:27,916 - INFO: Average animal_mt base-coverage = 118.4
+
+ITA_NEA_AD_001
+2024-06-30 04:25:11,654 - INFO: Average animal_mt base-coverage = 265.6
+
+ITA_NEA_AD_002
+2024-06-30 04:28:21,265 - INFO: Average animal_mt base-coverage = 293.3
+
+ITA_NEA_AD_003
+2024-06-30 04:27:24,224 - INFO: Average animal_mt base-coverage = 280.4
+
+ITA_NEA_AD_004
+2024-06-30 08:53:05,092 - INFO: Average animal_mt base-coverage = 86.8
+
+ITA_NEA_AD_005
+2024-06-30 08:46:27,679 - INFO: Average animal_mt base-coverage = 102.6
+
+ITA_PAV_AD_001
+2024-06-30 05:26:59,244 - INFO: Average animal_mt base-coverage = 122.0
+
+MYS_SEL_AD_001
+2024-06-30 05:02:04,389 - INFO: Average animal_mt base-coverage = 244.2
+
+MYS_SEL_AD_001_R
+2024-06-30 04:55:28,094 - INFO: Average animal_mt base-coverage = 100.8
+
+PAN_BOC_AD_001
+2024-06-30 05:07:40,278 - INFO: Average animal_mt base-coverage = 214.0
+
+PAN_BOC_AD_002
+2024-06-30 05:10:49,512 - INFO: Average animal_mt base-coverage = 186.6
+
+PAN_BOC_AD_003
+2024-06-30 05:18:13,052 - INFO: Average animal_mt base-coverage = 215.2
+
+PAN_BOC_AD_004
+2024-06-30 05:20:30,943 - INFO: Average animal_mt base-coverage = 202.4
+
+PAN_BOC_AD_005
+2024-06-30 05:22:04,944 - INFO: Average animal_mt base-coverage = 203.0
+
+PAN_PUE_AD_001
+2024-06-30 05:24:45,022 - INFO: Average animal_mt base-coverage = 205.5
+
+PAN_PUE_AD_002
+2024-06-30 05:29:30,641 - INFO: Average animal_mt base-coverage = 212.4
+
+PAN_PUE_AD_003
+2024-06-30 05:32:58,266 - INFO: Average animal_mt base-coverage = 195.2
+
+PAN_PUE_AD_004
+2024-06-30 05:32:36,854 - INFO: Average animal_mt base-coverage = 207.8
+
+PAN_PUE_AD_004_R
+2024-06-30 05:34:51,085 - INFO: Average animal_mt base-coverage = 208.9
+
+PAN_PUE_AD_005
+2024-06-30 05:46:56,813 - INFO: Average animal_mt base-coverage = 160.7
+
+PAN_PUE_AD_006
+2024-06-30 05:37:15,723 - INFO: Average animal_mt base-coverage = 217.9
+
+PAN_SLO_AD_001
+2024-06-30 05:36:49,358 - INFO: Average animal_mt base-coverage = 204.9
+
+PAN_SLO_AD_002
+2024-06-30 05:41:05,562 - INFO: Average animal_mt base-coverage = 221.2
+
+PAN_SLO_AD_003
+2024-06-30 05:39:18,868 - INFO: Average animal_mt base-coverage = 202.5
+
+ROU_BUC_AD_001
+2024-06-30 05:41:11,576 - INFO: Average animal_mt base-coverage = 198.4
+
+ROU_COM_AD_001
+2024-06-30 07:41:41,112 - INFO: Average animal_mt base-coverage = 203.0
+
+ROU_GIU_AD_001
+2024-06-30 05:47:07,170 - INFO: Average animal_mt base-coverage = 217.8
+
+ROU_GIU_AD_001_R
+2024-06-30 05:44:38,176 - INFO: Average animal_mt base-coverage = 209.1
+
+THA_BKK_AD_001
+2024-06-30 05:49:49,512 - INFO: Average animal_mt base-coverage = 191.7
+
+THA_BKK_AD_002
+2024-06-30 05:50:21,861 - INFO: Average animal_mt base-coverage = 216.4
+
+THA_BKK_AD_003
+2024-06-30 05:51:50,255 - INFO: Average animal_mt base-coverage = 206.2
+
+THA_BKK_AD_004
+2024-06-30 05:54:37,739 - INFO: Average animal_mt base-coverage = 229.9
+
+THA_BKK_AD_005
+2024-06-30 05:55:47,954 - INFO: Average animal_mt base-coverage = 248.5
+
+THA_BKK_AD_006
+2024-06-30 05:57:02,443 - INFO: Average animal_mt base-coverage = 218.3
+
+USA_FLO_AD_001
+2024-06-30 05:58:47,342 - INFO: Average animal_mt base-coverage = 214.5
+
+USA_FLO_AD_002
+2024-06-30 05:57:41,074 - INFO: Average animal_mt base-coverage = 209.4
+
+USA_FLO_AD_003
+2024-06-30 05:58:33,665 - INFO: Average animal_mt base-coverage = 205.6
+
+USA_FLO_AD_004
+2024-06-30 06:20:36,530 - INFO: Average animal_mt base-coverage = 213.2
+
+USA_FLO_AD_005
+2024-06-30 06:01:32,693 - INFO: Average animal_mt base-coverage = 228.7
+
+USA_FLO_AD_006
+2024-06-30 06:07:39,614 - INFO: Average animal_mt base-coverage = 211.7
+
+USA_FLO_AD_007
+2024-06-30 06:02:57,895 - INFO: Average animal_mt base-coverage = 202.4
+
+USA_FLO_AD_008
+2024-06-30 06:52:12,228 - INFO: Average animal_mt base-coverage = 203.3
+
+USA_FLO_AD_009
+2024-06-30 06:25:15,755 - INFO: Average animal_mt base-coverage = 210.7
+
+USA_FLO_AD_010
+2024-06-30 06:24:54,504 - INFO: Average animal_mt base-coverage = 199.6
+
+USA_FLO_AD_011
+2024-06-30 06:30:01,370 - INFO: Average animal_mt base-coverage = 214.0
+
+USA_FLO_AD_012
+2024-06-30 06:28:55,854 - INFO: Average animal_mt base-coverage = 208.1
+
+USA_FLO_AD_013
+2024-06-30 06:30:40,059 - INFO: Average animal_mt base-coverage = 213.2
+
+USA_FLO_AD_014
+2024-06-30 06:33:37,525 - INFO: Average animal_mt base-coverage = 212.3
+
+USA_FLO_AD_015
+2024-06-30 06:32:13,563 - INFO: Average animal_mt base-coverage = 209.2
+
+USA_FLO_AD_016
+2024-06-30 06:47:00,574 - INFO: Average animal_mt base-coverage = 216.7
+
+USA_GEO_AD_001
+2024-06-30 06:36:56,753 - INFO: Average animal_mt base-coverage = 160.3
+
+USA_ILL_AD_001
+2024-06-30 06:39:22,842 - INFO: Average animal_mt base-coverage = 196.8
+
+USA_ILL_AD_002
+2024-06-30 06:41:43,257 - INFO: Average animal_mt base-coverage = 216.3
+
+USA_LOU_AD_001
+2024-06-30 06:43:41,622 - INFO: Average animal_mt base-coverage = 213.3
+
+USA_LOU_AD_002
+2024-06-30 06:46:20,653 - INFO: Average animal_mt base-coverage = 210.8
+
+USA_MIS_AD_001
+2024-06-30 06:49:11,642 - INFO: Average animal_mt base-coverage = 197.2
+
+USA_MIS_AD_002
+2024-06-30 07:01:29,335 - INFO: Average animal_mt base-coverage = 158.3
+
+USA_TEX_AD_001
+2024-06-30 06:51:24,906 - INFO: Average animal_mt base-coverage = 203.0
+
+USA_TEX_AD_002
+2024-06-30 06:53:41,442 - INFO: Average animal_mt base-coverage = 201.8
+
+USA_TEX_AD_003
+2024-06-30 06:57:12,126 - INFO: Average animal_mt base-coverage = 208.7
+
+USA_TEX_AD_004
+2024-06-30 07:05:01,261 - INFO: Average animal_mt base-coverage = 191.7
+
+USA_TEX_AD_005
+2024-06-30 07:05:41,790 - INFO: Average animal_mt base-coverage = 196.0
+
+USA_TEX_AD_006
+2024-06-30 07:03:43,680 - INFO: Average animal_mt base-coverage = 200.3
+
+USA_TEX_AD_007
+2024-06-30 07:21:28,447 - INFO: Average animal_mt base-coverage = 214.5
+
+USA_TEX_AD_008
+2024-06-30 07:08:26,175 - INFO: Average animal_mt base-coverage = 210.6
+
+USA_TEX_AD_009
+2024-06-30 07:19:25,462 - INFO: Average animal_mt base-coverage = 202.6
+
+USA_TEX_AD_010
+2024-06-30 07:10:52,128 - INFO: Average animal_mt base-coverage = 223.0
+
+USA_TEX_AD_011
+2024-06-30 07:12:41,314 - INFO: Average animal_mt base-coverage = 212.4
+
+USA_TEX_AD_012
+2024-06-30 07:16:07,227 - INFO: Average animal_mt base-coverage = 200.9
+
+USA_TEX_AD_013
+2024-06-30 07:18:41,257 - INFO: Average animal_mt base-coverage = 212.6
+
+USA_TEX_AD_014
+2024-06-30 07:20:44,917 - INFO: Average animal_mt base-coverage = 208.6
+
+USA_TEX_AD_015
+2024-06-30 07:21:34,728 - INFO: Average animal_mt base-coverage = 228.8
+
+USA_WIS_AD_001
+2024-06-30 07:24:19,774 - INFO: Average animal_mt base-coverage = 147.8
+
+VNM_HAI_AD_001
+2024-06-30 07:27:43,688 - INFO: Average animal_mt base-coverage = 93.7
+
+VNM_HAN_AD_001
+2024-06-30 07:24:52,463 - INFO: Average animal_mt base-coverage = 93.4
+
