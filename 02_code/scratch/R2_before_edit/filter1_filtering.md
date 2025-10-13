@@ -1275,26 +1275,21 @@ vcftools --vcf ${VCF%.vcf.gz}.Wb_SNPs.final.recode.vcf \
 
 ### Select only the variants in the chr 1 to chr4, avoiding the chrX and the scaffolds. Select chr1-4 and chrX separately.
 
-NB: this section below was edited and re-run for Manuscript Revision 2 (R2), only to reflect the new file and directory names.
-
-module load PaM/environment
-module load bsub.py/0.42.1
-cd /lustre/scratch127/pam/teams/team333/rp24/dirofilaria_immitis/R2/vcf
 bsub.py 4 run_select_chr "run_select_chr.sh"
 
 ```bash
 # load modules
 module load vcftools/0.1.16-c4
 
-cd /lustre/scratch127/pam/teams/team333/rp24/dirofilaria_immitis/R2/vcf
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER1/NO_OUTGROUPS/FINAL_SETS
 
 # chr1-4
-#vcftools --vcf nuclear_samples3x_missing0.9.recode.vcf \
-#--chr dirofilaria_immitis_chr1 \
-#--chr dirofilaria_immitis_chr2 \
-#--chr dirofilaria_immitis_chr3 \
-#--chr dirofilaria_immitis_chr4 \
-#--recode --out nuclear_samples3x_missing0.9.chr1to4
+vcftools --vcf nuclear_samples3x_missing0.9.recode.vcf \
+--chr dirofilaria_immitis_chr1 \
+--chr dirofilaria_immitis_chr2 \
+--chr dirofilaria_immitis_chr3 \
+--chr dirofilaria_immitis_chr4 \
+--recode --out nuclear_samples3x_missing0.9.chr1to4
 #After filtering, kept 128 out of 128 Individuals
 #After filtering, kept 196550 out of a possible 264558 Sites
 
@@ -1309,74 +1304,39 @@ vcftools --vcf nuclear_samples3x_missing0.9.chr1to4.recode.vcf --keep-only-indel
 
 
 # chr1
-vcftools --vcf dirofilaria_global.cohort.2025-06-18.nuclearSNPs..keep_samples.dimmitis-only.recode.vcf \
+vcftools --vcf nuclear_samples3x_missing0.9.recode.vcf \
 --chr dirofilaria_immitis_chr1 \
---recode --out dirofilaria_global.cohort.2025-06-18.nuclearSNPs..keep_samples.dimmitis-only.chr1
-#After filtering, kept 129 out of 129 Individuals
-#After filtering, kept 56379 out of a possible 301310 Sites
-
+--recode --out nuclear_samples3x_missing0.9.chr1
+#After filtering, kept 128 out of 128 Individuals
+#After filtering, kept 50075 out of a possible 264558 Sites
 
 # chr2
-vcftools --vcf dirofilaria_global.cohort.2025-06-18.nuclearSNPs..keep_samples.dimmitis-only.recode.vcf \
+vcftools --vcf nuclear_samples3x_missing0.9.recode.vcf \
 --chr dirofilaria_immitis_chr2 \
---recode --out dirofilaria_global.cohort.2025-06-18.nuclearSNPs..keep_samples.dimmitis-only.chr2
-#After filtering, kept 129 out of 129 Individuals
-#After filtering, kept 52442 out of a possible 301310 Sites
-
+--recode --out nuclear_samples3x_missing0.9.chr2
+#After filtering, kept 128 out of 128 Individuals
+#After filtering, kept 44937 out of a possible 264558 Sites
 
 # chr3
-vcftools --vcf dirofilaria_global.cohort.2025-06-18.nuclearSNPs..keep_samples.dimmitis-only.recode.vcf \
+vcftools --vcf nuclear_samples3x_missing0.9.recode.vcf \
 --chr dirofilaria_immitis_chr3 \
---recode --out dirofilaria_global.cohort.2025-06-18.nuclearSNPs..keep_samples.dimmitis-only.chr3
-#After filtering, kept 129 out of 129 Individuals
-#After filtering, kept 55633 out of a possible 301310 Sites
-
+--recode --out nuclear_samples3x_missing0.9.chr3
+#After filtering, kept 128 out of 128 Individuals
+#After filtering, kept 50855 out of a possible 264558 Sites
 
 # chr4
-vcftools --vcf dirofilaria_global.cohort.2025-06-18.nuclearSNPs..keep_samples.dimmitis-only.recode.vcf \
+vcftools --vcf nuclear_samples3x_missing0.9.recode.vcf \
 --chr dirofilaria_immitis_chr4 \
---recode --out dirofilaria_global.cohort.2025-06-18.nuclearSNPs..keep_samples.dimmitis-only.chr4
-#After filtering, kept 129 out of 129 Individuals
-#After filtering, kept 53939 out of a possible 301310 Sites
-
+--recode --out nuclear_samples3x_missing0.9.chr4
+#After filtering, kept 128 out of 128 Individuals
+#After filtering, kept 50683 out of a possible 264558 Sites
 
 # chrX
-vcftools --vcf dirofilaria_global.cohort.2025-06-18.nuclearSNPs..keep_samples.dimmitis-only.recode.vcf \
+vcftools --vcf nuclear_samples3x_missing0.9.recode.vcf \
 --chr dirofilaria_immitis_chrX \
---recode --out dirofilaria_global.cohort.2025-06-18.nuclearSNPs..keep_samples.dimmitis-only.chrX
-#After filtering, kept 129 out of 129 Individuals
-#After filtering, kept 82277 out of a possible 301310 Sites
-
-
-# How many polymorphic sites in nuclear D. immitis cohort?
-vcftools --vcf dirofilaria_global.cohort.2025-06-18.nuclearSNPs..keep_samples.dimmitis-only.recode.vcf \
-         --mac 1 \
-         --recode --recode-INFO-all \
-         --out dirofilaria_global.cohort.2025-06-18.nuclearSNPs..keep_samples.dimmitis-only_POLY
-
-# --mac 1 includes sites with at least 1 variant allele
-#After filtering, kept 129 out of 129 Individuals
-#After filtering, kept 301004 out of a possible 301310 Sites
-
-# How many polymorphic sites in mito D. immitis cohort?
-vcftools --vcf dirofilaria_global.cohort.2025-06-18.mitoSNPs..keep_samples.dimmitis-only.recode.vcf \
-         --mac 1 \
-         --recode --recode-INFO-all \
-         --out dirofilaria_global.cohort.2025-06-18.mitoSNPs..keep_samples.dimmitis-only_POLY
-
-#After filtering, kept 133 out of 133 Individuals
-#After filtering, kept 57 out of a possible 498 Sites
-
-# How many polymorphic sites in Wb D. immitis cohort?
-vcftools --vcf dirofilaria_global.cohort.2025-06-18.WbSNPs..keep_samples.dimmitis-only.recode.vcf \
-         --mac 1 \
-         --recode --recode-INFO-all \
-         --out dirofilaria_global.cohort.2025-06-18.WbSNPs..keep_samples.dimmitis-only_POLY
-
-#After filtering, kept 124 out of 124 Individuals
-#After filtering, kept 360 out of a possible 25473 Sites
-
-
+--recode --out nuclear_samples3x_missing0.9.chrX
+#After filtering, kept 128 out of 128 Individuals
+#After filtering, kept 67561 out of a possible 264558 Sites
 ```
 
 ```bash

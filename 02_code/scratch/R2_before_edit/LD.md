@@ -5,55 +5,48 @@ Get linkage disequilibrium statistics using vcftools.
 ## Obtain R2 stats per population
 
 ```bash
-module load PaM/environment
-module load bsub.py/0.42.1
 module load vcftools/0.1.16-c4
 
-cd /lustre/scratch127/pam/teams/team333/rp24/dirofilaria_immitis/R2/LD
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/05_ANALYSIS/LD
 
-ln -s ../vcf/dirofilaria_global.cohort.2025-06-18.nuclearSNPs..final.autosomal.recode.vcf.keep_samples.dimmitis-only.recode.vcf
+ln -s /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER1/NO_OUTGROUPS/FINAL_SETS/nuclear_samples3x_missing0.9.recode.vcf
 
 # loop through each continent
 # removed replicate samples
-bsub.py 40 pop_ld "./pop_ld.sh"
+bsub.py 20 pop_vcfs "./pop_vcfs.sh"
 #!/bin/bash
-cd /lustre/scratch127/pam/teams/team333/rp24/dirofilaria_immitis/R2/LD
 for i in ASIA AUS CENAM EUR USA; do
-  vcftools --vcf dirofilaria_global.cohort.2025-06-18.nuclearSNPs..final.autosomal.recode.vcf.keep_samples.dimmitis-only.recode.vcf \
+  vcftools --vcf nuclear_samples3x_missing0.9.recode.vcf \
     --maf 0.02 \
+    --thin 1000 \
     --max-missing 1 \
     --keep ${i}_samplelist.keep \
     --recode \
-    --out dirofilaria_global.cohort.2025-06-18.nuclearSNPs..final.autosomal.recode.vcf.keep_samples.dimmitis-only.${i} ;
+    --out nuclear_samples3x_missing0.9.thinned1000.${i} ;
 done
 
 
 for i in ASIA AUS CENAM EUR USA; do
-  vcftools --vcf dirofilaria_global.cohort.2025-06-18.nuclearSNPs..final.autosomal.recode.vcf.keep_samples.dimmitis-only.${i}.recode.vcf \
+  vcftools --vcf nuclear_samples3x_missing0.9.thinned1000.${i}.recode.vcf \
     --ld-window-bp 1000000 \
     --max-alleles 2 \
     --min-alleles 2 \
+    --min-r2 0.1 \
     --geno-r2 \
     --out ${i}_LD ;
 done
 ```
 
 --ld-window-bp: maximum number of physical bases between the SNPs being tested for LD
---thin: thin sites so that no two sites are within the specified distance from one another. --> EDIT: not appropriate to do this for LD
---min-r2 0.1 --> don't set a minimum so we capture the whole decay curve
+--thin: thin sites so that no two sites are within the specified distance from one another.
 
 
 
 ## Plot
 
-```bash
-bsub.py 400 plot_ld "Rscript ./LD.R"
-```
-
-
 ```R
 version
-# version 4.4.0
+# version 4.3.1
 
 library(ggplot2)
 library(dplyr)
@@ -149,9 +142,9 @@ LD(1/2) is the distance between SNPs in which the LD is half the maximum value. 
 version
 # version 4.4.0
 
-#install.packages("rlang")
-#install.packages("dplyr", dependencies = TRUE)
-#install.packages("ggplot2", dependencies = TRUE)
+install.packages("rlang")
+install.packages("dplyr", dependencies = TRUE)
+install.packages("ggplot2", dependencies = TRUE)
 
 library(ggplot2)
 library(dplyr)

@@ -12,7 +12,6 @@ ADMIXTOOLS requires eigenstrat input files. To convert a vcf file to eigenstrat,
 
 ```bash
 # create conda environment
-module load ISG/conda
 conda create --name admixtools
 conda init --all
 conda activate admixtools
@@ -22,7 +21,6 @@ conda install bioconda::admixtools
 conda install bioconda::eigensoft
 
 # load other modules
-module load PaM/environment
 module load bsub.py/0.42.1
 #module load compilers/gcc/12.2
 module load vcftools/0.1.16-c4
@@ -30,19 +28,19 @@ module load vcftools/0.1.16-c4
 module load plink/1.90b6.18--h516909a_0
 module load bcftools/1.14--h88f3f91_0
 
-cd /lustre/scratch127/pam/teams/team333/rp24/dirofilaria_immitis/R2/dstats
+cd /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/06_ANALYSIS/ADMIXTOOLS
 
 # create link
-zcat ../treemix/treemix.vcf.gz > admixtools.vcf
+ln -s /lustre/scratch125/pam/teams/team333/rp24/DIRO/DATA/03_ANALYSIS/04_VARIANTS/FILTER1/OUTGROUPS/FINAL_SETS/nuclear_samples3x_missing0.9.chr1to4.recode.vcf
 
 # generate "chrom-map.txt" for chromosome names
-bcftools view -H admixtools.vcf | cut -f 1 | uniq | awk '{print $0"\t"$0}' > chrom-map.txt
+bcftools view -H nuclear_samples3x_missing0.9.chr1to4.recode.vcf | cut -f 1 | uniq | awk '{print $0"\t"$0}' > chrom-map.txt
 ## This command appends each chromosome name ($0) with a tab character ("\t") and then repeats the chromosome name again ($0) before redirecting the output to "chrom-map.txt".
 
 
 # Convert vcf to eigenstrat format
 chmod a+x convertVCFtoEigenstrat_hw.sh
-bsub.py 4 eigenstrat "./convertVCFtoEigenstrat_hw.sh admixtools"
+bsub.py 4 eigenstrat "./convertVCFtoEigenstrat_hw.sh nuclear_samples3x_missing0.9.chr1to4.recode"
 ## modify to allow non-standard chromosomes because eigenstrat format expects chromosomes to be called "1, 2, 3 etc". Indicate a "chom-map.txt" file in the vcftools command.
 
 # this produced 3 important files I need for admixtools:
@@ -92,12 +90,11 @@ done
 qpDstat -p PARAMETER_FILE_dstat_ursi > qpDstat_ursi.out
 
 # PARAMETER_FILE_dstat:
-genotypename:   admixtools.eigenstratgeno (in eigenstrat format)
-snpname:        admixtools.snp      (in eigenstrat format)
-indivname:      admixtools.ind    (in eigenstrat format)
+genotypename:   nuclear_samples3x_missing0.9.chr1to4.recode.eigenstratgeno (in eigenstrat format)
+snpname:        nuclear_samples3x_missing0.9.chr1to4.recode.snp      (in eigenstrat format)
+indivname:      nuclear_samples3x_missing0.9.chr1to4.recode.ind    (in eigenstrat format)
 popfilename:    admixtools_pops_dstat_ursi.txt
 inbreed: YES
-printsd: YES
 
 # extract the relevant output lines
 grep "result" qpDstat_ursi.out | awk '{print $2,$3,$4,$5,$6,$7,$8,$9,$10,$11}' OFS="\t" > qpDstat_ursi.clean.out
@@ -113,9 +110,9 @@ library(tidyverse)
 library(RColorBrewer)
 library(ggstance)
 
-setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/admixtools")
+setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/OUTGROUPS/admixtools")
 
-set.seed(3)
+set.see
 ############################### URSI AS OUTGROUP
 # read data
 data <- read.delim("qpDstat_ursi.clean.out", header=F, sep="\t")
@@ -268,7 +265,6 @@ qpDstat_ursi_plot_USA <- ggplot(data_USA, aes(x = D_stat, y = Pop1, color = Colo
   )
 qpDstat_ursi_plot_USA
 ggsave("qpDstat_ursi_plot_USA.png", qpDstat_ursi_plot_USA, height=8, width=5)
-
 ```
 
 ![](images/qpDstat_ursi_plot.png)
@@ -287,6 +283,7 @@ Excess allele sharing for CENAM:
 - EUR
 
 Excess allele sharing for EUR:
+- AUS
 - CENAM
 
 Excess allele sharing for USA:
