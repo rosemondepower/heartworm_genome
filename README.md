@@ -16,7 +16,7 @@ Heartworms (*Dirofilaria immitis*) are parasitic nematodes causing significant c
 * [Genome mapping](02_code/02_mapping_workbook.md)
 * [Coverage](02_code/03_coverage.md)
 * [Variant calling](02_code/04_variant_calling_workbook.md)
-* [Variant filtering](05_filtered/filter1_filtering.md)
+* [Variant filtering](02_code/05_filtered/filter1_filtering.md)
 * [SNP concordance](02_code/05_filtered/snp_concordance.md)
 * [SNP density](02_code/05_filtered/snp_density.md)
 * PCAs
@@ -33,8 +33,8 @@ Heartworms (*Dirofilaria immitis*) are parasitic nematodes causing significant c
 
 **Other** analyses not included in the manuscript:
 * Alternative variant filtering parameters
-    - [Filter2(more stringent)](02_code/05_filtered_2/batch4_filter2.md)
-    - [Filter3 (less stringent)](02_code/05_filtered_3/batch4_filter3.md)
+    - [Filter2(more stringent)](02_code/05_filterered_2/batch4_filter2.md)
+    - [Filter3 (less stringent)](02_code/05_filterered_3/batch4_filter3.md)
 * [Mitochondrial genome assembly](02_code/get_organelle.md)
 * MEGA (alignments, variable sites)
 * IQ-TREE
