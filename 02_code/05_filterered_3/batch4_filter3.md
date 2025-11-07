@@ -1348,13 +1348,3 @@ vcftools --vcf nuclear_samples3x_missing1.chr1to4.recode.vcf \
 #After filtering, kept 48 out of 128 Individuals
 #After filtering, kept 149467 out of a possible 149467 Sites
 ```
-
-**PCA**
-
-![](images/plot_nuc_5.png)
-
-![](images/PC3_PC4_plot.png)
-
-![](images/plot_mt_5.png)
-
-![](images/plot_wb_5.png)
