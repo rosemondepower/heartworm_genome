@@ -44,6 +44,14 @@ Heartworms (*Dirofilaria immitis*) are parasitic nematodes causing significant c
 
 **Results** can be found [here](03_results).
 
+**Figures** can be found [here](04_manuscript/figures/)
+
+**Supplementary figures** can be found [here](04_manuscript/supplementary_figures/)
+
+**Supplementary data** can be found [here](04_manuscript/supplementary_data)
+
+**Source data for manuscript figures** can be found [here](04_manuscript/source_data)
+
 ![](04_manuscript/figures/Fig6_R3_v1.png)
 
 
