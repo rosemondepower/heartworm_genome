@@ -166,14 +166,14 @@ summarise(LD_Background = mean(Mean_R.2[Mean_Distance > 800]), # get LD backgrou
 
 print(LD_Half)
 '
-# A tibble: 5 × 5
+# A tibble: 5 Ã— 5
   Pop   LD_Background LD_Max LD_Half Distance_Half
   <chr>         <dbl>  <dbl>   <dbl>         <dbl>
-1 ASIA          0.420  0.755   0.587          31.5
-2 AUS           0.287  0.603   0.445          49.5
-3 CENAM         0.359  0.643   0.501          42.5
-4 EUR           0.315  0.586   0.451          37.5
-5 USA           0.175  0.413   0.294          36.5
+1 ASIA         0.281   0.666  0.474          15.5 
+2 AUS          0.0838  0.399  0.242          16.5 
+3 CENAM        0.180   0.507  0.343          15.5 
+4 EUR          0.144   0.433  0.289          10.5 
+5 USA          0.0317  0.156  0.0938          2.50
 '
 
 # Plot with vertical lines for each pop where the distance is half LD

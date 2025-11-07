@@ -28,7 +28,7 @@ library(ggimage)
 
 
 # Set working directory
-setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/pca_mito/input")
+setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_mito/input")
 
 #Preparing the data for plotting
 # Set colours for different cities
@@ -89,7 +89,7 @@ scale_colour_pop <- function(...){
 
 #PCA on nuclear variants using genotypes
 snpgdsClose(genofile) # you need this line to close any previous file open, otherwise it won't work if you want to re-run
-vcf.in <- "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/pca_mito/input/mito_samples3x_missing0.9.recode.vcf"
+vcf.in <- "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_mito/input/dirofilaria_global.cohort.2025-06-18.mitoSNPs..keep_samples.dimmitis-only.recode.vcf"
 gds<-snpgdsVCF2GDS(vcf.in, "mtDNA.gds", method="biallelic.only")
 genofile <- snpgdsOpen(gds)
 
@@ -99,7 +99,7 @@ samples <- as.data.frame(pca$sample.id)
 colnames(samples) <- "name"
 
 # Metadata file that describes where the samples come from
-metadata_file <- "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/pca_mito/location_mito.csv"
+metadata_file <- "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_mito/location_mito.csv"
 metadata <- read.csv(metadata_file, header = TRUE)
 
 data <- data.frame(sample.id = pca$sample.id,
@@ -149,7 +149,7 @@ create_plot <- function(data_subset) {
     labs(x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
          y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%"),
          title = "Mitochondrial",
-         subtitle = "SNPS: 32") +
+         subtitle = "SNPS: 57") +
     theme(legend.key.width = unit(0, "cm"),
           legend.text = element_text(size = 10),
           legend.key.size = unit(0.4, "cm"),
@@ -192,8 +192,8 @@ plot_width <- 7.5   # Adjust as needed
 legend_width <- 0  # Adjust as needed
 
 # Define fixed x-axis limits
-x_limits <- c(-0.15, 0.45)  # Adjust as needed
-y_limits <- c(-0.25, 0.25)
+x_limits <- c(-0.1, 0.4)  # Adjust as needed
+y_limits <- c(-0.15, 0.23)
 
 
 # Iterate through subsets and create/save plots
@@ -206,9 +206,40 @@ for (i in seq_along(subset_list)) {
   # Set fixed x-axis limits
   plot <- plot + scale_x_continuous(limits = x_limits)
   
-  ggsave(paste0("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/pca_mito/plot_mt_", i, ".png"), plot, height = plot_height, width = plot_width, dpi = 300)
-  ggsave(paste0("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/pca_mito/plot_mt_", i, ".tif"), plot, height = plot_height, width = plot_width, dpi = 300)
-  ggsave(paste0("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/pca_mito/plot_mt_", i, ".pdf"), plot, height = plot_height, width = plot_width, dpi = 300)
+  ggsave(paste0("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_mito/plot_mt_", i, ".png"), plot, height = plot_height, width = plot_width, dpi = 300)
+  ggsave(paste0("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_mito/plot_mt_", i, ".tif"), plot, height = plot_height, width = plot_width, dpi = 300)
+  ggsave(paste0("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_mito/plot_mt_", i, ".pdf"), plot, height = plot_height, width = plot_width, dpi = 300)
 }
+
+
+# Mito with replicates labelled
+
+replicates <- c("AUS_BNE_AD_003", "AUS_BNE_AD_003_R", "AUS_SYD_AD_005", "AUS_SYD_AD_005_R", "AUS_SYD_AD_008", "AUS_SYD_AD_008_R", "MYS_SEL_AD_001", "MYS_SEL_AD_001_R", "PAN_PUE_AD_004", "PAN_PUE_AD_004_R")
+
+rep_plot <- base_plot +
+  geom_point(data = data, aes(EV1, EV2, col = POPULATION), alpha = 0.8, size = 2) +
+  xlim(x_limits) + ylim(y_limits) +  # Set fixed limits for x and y axes
+  scale_colour_pop() +
+  labs(x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
+       y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%"),
+       title = "Mitochondrial",
+       subtitle = "SNPS: 57") +
+  theme(legend.key.width = unit(0, "cm"),
+        legend.text = element_text(size = 10),
+        legend.key.size = unit(0.4, "cm"),
+        legend.position = "right",
+        axis.title = element_text(size = 16),
+        axis.text = element_text(size = 14), 
+        plot.title = element_text(size = 18), 
+        plot.subtitle = element_text(size = 16)) +
+  guides (colour = guide_legend(ncol = 1)) +
+geom_text_repel(data = subset(data, SAMPLEID %in% replicates), aes (EV1, EV2, label = SAMPLEID), size = 3.5, max.overlaps = 20)
+rep_plot
+
+ggsave(paste0("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_mito/plot_mito_rep", ".tif"), rep_plot, height = plot_height, width = plot_width, dpi = 300)
+
+ggsave(paste0("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_mito/plot_mito_rep", ".png"), rep_plot, height = plot_height, width = plot_width, dpi = 300)
+
+ggsave(paste0("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_mito/plot_mito_rep", ".pdf"), rep_plot, height = plot_height, width = plot_width, dpi = 300)
 ```
 

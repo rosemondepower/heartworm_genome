@@ -1,0 +1,24 @@
+﻿city,country,latitude,longitude,species
+USA: Wisconsin,USA,46.665,-91.1222,D.ursi
+USA: Illinois,USA,40.6331,-89.3985,D.immitis
+USA: Missouri,USA,37.9643,-91.8318,D.immitis
+USA: Texas,USA,31.9686,-99.9018,D.immitis
+USA: Louisiana,USA,32.1632,-91.7207,D.immitis
+USA: Georgia,USA,32.1574,-82.9071,D.immitis
+USA: Florida,USA,27.6648,-81.5158,D.immitis
+CRI,Costa Rica,9.9281,-84.0907,D.immitis
+PAN,Panama,8.307,-82.0952,D.immitis
+ITA,Italy,45.9295,11.5621,D.repens
+ITA,Italy,45.183334,9.15,D.immitis
+ROU,Romania,44.1713,26.1431,D.immitis
+GRC,Greece,40.6401,22.9444,D.immitis
+THA,Thailand,13.736717,100.523186,D.immitis
+VNM,Vietnam,20.8746,105.6712,D.Thai
+MYS,Malaysia,3.5092,101.5248,D.immitis
+AUS: Lockhart River,Australia,-12.7861,143.3419,D.immitis
+AUS: Cairns,Australia,-16.9203,145.771,D.immitis
+AUS: Townsville,Australia,-19.259,146.8169,D.immitis
+AUS: Rockhampton,Australia,-23.375,150.511673,D.immitis
+AUS: Brisbane,Australia,-27.4705,153.026,D.immitis
+AUS: Sydney,Australia,-33.8688,151.2093,D.immitis
+AUS: Sydney,Australia,-33.8688,151.2093,D.immitis

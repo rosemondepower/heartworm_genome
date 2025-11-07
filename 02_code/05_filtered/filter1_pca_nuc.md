@@ -21,7 +21,7 @@ Summary of PCAs:
  # R version 4.4.1 (2024-06-14 ucrt) -- "Race for Your Life"
 
 library(tidyverse) # v.2.0.0
-library(gdsfmt) # v.1.40.0
+library(gdsfmt) # v.1.44.0
 library(SNPRelate) # v.1.38.0
 library(ggsci) # v.3.2.0
 library(ggpubr) # v.0.6.0
@@ -29,17 +29,17 @@ library(reshape2) # v.1.4.4
 library(viridis) # v.0.6.5
 library(vcfR) # v.1.15.0
 library(factoextra) # v.1.0.7
-library(ggrepel) # v.0.9.5
-library(ggtree) # v.3.12.0
-library(poppr) # v.2.9.6
-library(adegenet) # v.2.1.10
-library(ape) # v.5.8
+library(ggrepel) # v.0.9.6
+library(ggtree) # v.3.16.0
+library(poppr) # v.2.9.7
+library(adegenet) # v.2.1.11
+library(ape) # v.5.8-1
 library(RColorBrewer) # v.1.1-3
 library(ggimage) # v.0.3.3
 
 
 # Set working directory
-setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/pca_nuc/input")
+setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/input")
 
 #Preparing the data for plotting
 # Set colours for different cities
@@ -81,7 +81,7 @@ scale_colour_pop <- function(...){
         blue_palette[4]),
       c("USA: Illinois", "USA: Missouri", "USA: Texas", "USA: Louisiana", "USA: Georgia", "USA: Florida",
         "CRI: San Jose", "PAN: Boca Chica", "PAN: Puerto Armuelles", "PAN: San Lorenzo",
-        "ITA: Northeast", "ITA: Pavia", "ROU: Bucharest", "ROU: Comana", "ROU: Giurgiu", "GRC: Thessaloniki/Xanthi",
+        "ITA: Northeast", "ITA: Pavia", "ROU: Bucharest", "ROU: Comana", "ROU: Giurgiu", "GRC: Thess/Xanthi",
         "THA: Bangkok", "MYS: Selangor",
         "AUS: Lockhart River", "AUS: Cairns", "AUS: Townsville", "AUS: Rockhampton", "AUS: Brisbane", "AUS: Sydney")), 
     ...
@@ -97,7 +97,7 @@ scale_colour_pop <- function(...){
 
 #PCA on nuclear variants using genotypes
 snpgdsClose(genofile) # you need this line to close any previous file open, otherwise it won't work if you want to re-run
-vcf.in <- "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/pca_nuc/input/nuclear_samples3x_missing0.9.chr1to4.recode.vcf"
+vcf.in <- "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/input/dirofilaria_global.cohort.2025-06-18.nuclearSNPs..final.autosomal.recode.vcf.keep_samples.dimmitis-only.recode.vcf"
 gds<-snpgdsVCF2GDS(vcf.in, "nucDNA.gds", method="biallelic.only")
 genofile <- snpgdsOpen(gds)
 
@@ -107,7 +107,7 @@ samples <- as.data.frame(pca$sample.id)
 colnames(samples) <- "name"
 
 # Metadata file that describes where the samples come from
-metadata_file <- "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/pca_nuc/location_nuclear.csv"
+metadata_file <- "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/location_nuclear.csv"
 metadata <- read.csv(metadata_file, header = TRUE)
 
 data <- data.frame(sample.id = pca$sample.id,
@@ -126,7 +126,7 @@ data <- data.frame(sample.id = pca$sample.id,
 data$POPULATION <- factor(data$POPULATION, 
                           levels = c("USA: Illinois", "USA: Missouri", "USA: Texas", "USA: Louisiana", "USA: Georgia", "USA: Florida",
                                      "CRI: San Jose", "PAN: Boca Chica", "PAN: Puerto Armuelles", "PAN: San Lorenzo",
-                                     "ITA: Northeast", "ITA: Pavia", "ROU: Bucharest", "ROU: Comana", "ROU: Giurgiu", "GRC: Thessaloniki/Xanthi",
+                                     "ITA: Northeast", "ITA: Pavia", "ROU: Bucharest", "ROU: Comana", "ROU: Giurgiu", "GRC: Thess/Xanthi",
                                      "THA: Bangkok", "MYS: Selangor",
                                      "AUS: Lockhart River", "AUS: Cairns", "AUS: Townsville", "AUS: Rockhampton", "AUS: Brisbane", "AUS: Sydney"))
 
@@ -157,11 +157,20 @@ create_plot <- function(data_subset) {
     labs(x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
          y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%"),
          title = "Nuclear",
-         subtitle = "SNPS: 196,550") +
-    theme(legend.key.width = unit(1, "cm"),
-          legend.text = element_text(size = 6),
+         subtitle = "SNPS: 218,158") +
+    theme(
+          legend.title = element_text(size = 24),    
+          legend.text = element_text(size = 14),
           legend.key.size = unit(0.4, "cm"),
-          legend.position = "right") +
+          legend.position = "right",
+          axis.title = element_text(size = 24),
+          axis.text = element_text(size = 18, color = "black"), 
+          plot.title = element_text(size = 24), 
+          plot.subtitle = element_text(size = 18),
+          #panel.grid.major = element_blank(),
+         # panel.grid.minor = element_blank(),
+          panel.border = element_rect(color = "black", fill = NA, linewidth = 2)
+      ) +
     guides (colour = guide_legend(ncol = 1))
   return(p)
 }
@@ -174,14 +183,14 @@ subset_list <- list(
                                  "CRI: San Jose", "PAN: Boca Chica", "PAN: Puerto Armuelles", "PAN: San Lorenzo")),
   subset(data, POPULATION %in% c("USA: Illinois", "USA: Missouri", "USA: Texas", "USA: Mississippi", "USA: Louisiana", "USA: Georgia", "USA: Florida",
                                  "CRI: San Jose", "PAN: Boca Chica", "PAN: Puerto Armuelles", "PAN: San Lorenzo",
-                                 "ITA: Northeast", "ITA: Pavia", "ROU: Bucharest", "ROU: Comana", "ROU: Giurgiu", "GRC: Thessaloniki/Xanthi")),
+                                 "ITA: Northeast", "ITA: Pavia", "ROU: Bucharest", "ROU: Comana", "ROU: Giurgiu", "GRC: Thess/Xanthi")),
   subset(data, POPULATION %in% c("USA: Illinois", "USA: Missouri", "USA: Texas", "USA: Louisiana", "USA: Georgia", "USA: Florida",
                                  "CRI: San Jose", "PAN: Boca Chica", "PAN: Puerto Armuelles", "PAN: San Lorenzo",
-                                 "ITA: Northeast", "ITA: Pavia", "ROU: Bucharest", "ROU: Comana", "ROU: Giurgiu", "GRC: Thessaloniki/Xanthi",
+                                 "ITA: Northeast", "ITA: Pavia", "ROU: Bucharest", "ROU: Comana", "ROU: Giurgiu", "GRC: Thess/Xanthi",
                                  "THA: Bangkok", "MYS: Selangor")),
   subset(data, POPULATION %in% c("USA: Illinois", "USA: Missouri", "USA: Texas", "USA: Louisiana", "USA: Georgia", "USA: Florida",
                                  "CRI: San Jose", "PAN: Boca Chica", "PAN: Puerto Armuelles", "PAN: San Lorenzo",
-                                 "ITA: Northeast", "ITA: Pavia", "ROU: Bucharest", "ROU: Comana", "ROU: Giurgiu", "GRC: Thessaloniki/Xanthi",
+                                 "ITA: Northeast", "ITA: Pavia", "ROU: Bucharest", "ROU: Comana", "ROU: Giurgiu", "GRC: Thess/Xanthi",
                                  "THA: Bangkok", "MYS: Selangor",
                                  "AUS: Lockhart River", "AUS: Cairns", "AUS: Townsville", "AUS: Rockhampton", "AUS: Brisbane", "AUS: Sydney"))
 )
@@ -193,11 +202,11 @@ plot_height <- 6  # Adjust as needed
 plot_width <- 8   # Adjust as needed
 
 # Define a fixed legend width
-legend_width <- 2  # Adjust as needed
+legend_width <- 0  # Adjust as needed
 
 # Define fixed x-axis limits
-x_limits <- c(-0.15, 0.18)  # Adjust as needed
-y_limits <- c(-0.15, 0.2)
+x_limits <- c(-0.13, 0.13)  # Adjust as needed
+y_limits <- c(-0.11, 0.17)
 
 
 # Iterate through subsets and create/save plots
@@ -210,7 +219,13 @@ for (i in seq_along(subset_list)) {
   # Set fixed x-axis limits
   plot <- plot + scale_x_continuous(limits = x_limits)
   
-  ggsave(paste0("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/pca_nuc/plot_nuc_", i, ".png"), plot, height = plot_height, width = plot_width)
+  ggsave(paste0("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/plot_nuc_grid", i, ".tif"), plot, height = plot_height, width = plot_width, dpi = 300)
+
+ggsave(paste0("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/plot_nuc_grid", i, ".png"), plot, height = plot_height, width = plot_width, dpi = 300)
+
+ggsave(paste0("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/plot_nuc_grid", i, ".pdf"), plot, height = plot_height, width = plot_width, dpi = 300)
+
+ggsave(paste0("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/plot_nuc_grid_ESEB", i, ".tif"), plot, height = plot_height, width = plot_width, dpi = 600)
 }
 
 
@@ -223,13 +238,21 @@ PC1_PC2_plot_ellipse <- ggplot(data, aes(x = EV1, y = EV2, color = POPULATION)) 
   labs(x = paste0("PC1 variance: ", round(pca$varprop[1] * 100, digits = 2), "%"),
        y = paste0("PC2 variance: ", round(pca$varprop[2] * 100, digits = 2), "%"),
        title = "Nuclear",
-       subtitle = "SNPS: 196,550") +
+       subtitle = "SNPS: 218,158") +
   scale_colour_pop() +
-  theme(legend.position = "right") +  # Adjust legend position as needed
+  theme(legend.position = "right",
+        axis.title = element_text(size = 16),
+        axis.text = element_text(size = 14), 
+        plot.title = element_text(size = 18), 
+        plot.subtitle = element_text(size = 16)) +  # Adjust legend position as needed
   guides(color = guide_legend(ncol=1))
 PC1_PC2_plot_ellipse
 
-ggsave(paste0("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/pca_nuc/plot_nuc_ellipse", ".png"), PC1_PC2_plot_ellipse, height = plot_height, width = plot_width)
+ggsave(paste0("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/plot_nuc_ellipse", ".tif"), PC1_PC2_plot_ellipse, height = plot_height, width = plot_width, dpi = 300)
+
+ggsave(paste0("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/plot_nuc_ellipse", ".png"), PC1_PC2_plot_ellipse, height = plot_height, width = plot_width, dpi = 300)
+
+ggsave(paste0("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/plot_nuc_ellipse", ".pdf"), PC1_PC2_plot_ellipse, height = plot_height, width = plot_width, dpi = 300)
 
 
   
@@ -246,16 +269,29 @@ rep_plot <- base_plot +
     labs(x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
          y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%"),
          title = "Nuclear",
-         subtitle = "SNPS: 196,550") +
-    theme(legend.key.width = unit(1, "cm"),
-          legend.text = element_text(size = 6),
+         subtitle = "SNPS: 218,158") +
+    theme(legend.title = element_text(size = 24),
+          legend.key.width = unit(legend_width, "cm"),
+          legend.text = element_text(size = 14),
           legend.key.size = unit(0.4, "cm"),
-          legend.position = "right") +
+          legend.position = "right",
+          axis.title = element_text(size = 24),
+          axis.text = element_text(size = 18, color = "black"), 
+          plot.title = element_text(size = 24), 
+          plot.subtitle = element_text(size = 18),
+          #panel.grid = element_blank(),
+          panel.border = element_rect(color = "black", fill = NA, linewidth = 2)
+          ) +
     guides (colour = guide_legend(ncol = 1)) +
-    geom_text_repel(data = subset(data, SAMPLEID %in% replicates), aes (EV1, EV2, label = SAMPLEID), size = 3)
+    geom_text_repel(data = subset(data, SAMPLEID %in% replicates), aes (EV1, EV2, label = SAMPLEID), size = 3.5, max.overlaps = 20)
 rep_plot
-  
-ggsave(paste0("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/pca_nuc/plot_nuc_rep", ".png"), rep_plot, height = plot_height, width = plot_width)
+
+
+ggsave(paste0("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/plot_nuc_rep", ".tif"), rep_plot, height = plot_height, width = plot_width, dpi = 300)
+
+ggsave(paste0("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/plot_nuc_rep", ".png"), rep_plot, height = plot_height, width = plot_width, dpi = 300)
+
+ggsave(paste0("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/plot_nuc_rep", ".pdf"), rep_plot, height = plot_height, width = plot_width, dpi = 300)
 
 
 #####################################################################################################################################
@@ -268,17 +304,30 @@ ggsave(paste0("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Doc
 PC1_PC2_plot <- ggplot(data, aes(x = EV1, y = EV2, color = POPULATION, label = SAMPLEID)) +
   theme_bw() +
   geom_point(alpha = 0.8, size = 2) +
-  geom_text_repel(aes(label = SAMPLEID), box.padding = 0.05, point.padding = 0.01, segment.color = 'grey50', size = 3, hjust = 0, vjust = 0, max.overlaps = Inf, show.legend=FALSE) +
+  geom_text_repel(aes(label = SAMPLEID), box.padding = 0.05, point.padding = 0.01, segment.color = 'grey50', size = 2, hjust = 0, vjust = 0, max.overlaps = Inf, show.legend=FALSE) +
   labs(x = paste0("PC1 variance: ", round(pca$varprop[1] * 100, digits = 2), "%"),
        y = paste0("PC2 variance: ", round(pca$varprop[2] * 100, digits = 2), "%"),
        title = "Nuclear",
-       subtitle = "SNPS: 196,550") +
+       subtitle = "SNPS: 218,158") +
   scale_colour_pop() +
-  theme(legend.position = "right") +  # Adjust legend position as needed
+  theme(legend.title = element_text(size = 18),
+        legend.key.width = unit(legend_width, "cm"),
+        legend.text = element_text(size = 14),
+        legend.key.size = unit(0.4, "cm"),
+        legend.position = "right",
+        axis.title = element_text(size = 20),
+        axis.text = element_text(size = 14, color = "black"), 
+        plot.title = element_text(size = 24), 
+        plot.subtitle = element_text(size = 16),
+        panel.border = element_rect(color = "black", fill = NA, linewidth = 2)) +
   guides (color = guide_legend(ncol=1))
 
 PC1_PC2_plot
-ggsave(paste0("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/pca_nuc/PC1_PC2_plot_sampleid.png"), PC1_PC2_plot, height = 8, width = 10)
+ggsave(paste0("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/PC1_PC2_plot_sampleid.png"), PC1_PC2_plot, height = plot_height, width = plot_width, dpi = 300)
+
+ggsave(paste0("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/PC1_PC2_plot_sampleid.tif"), PC1_PC2_plot, height = plot_height, width = plot_width, dpi = 300)
+
+ggsave(paste0("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/PC1_PC2_plot_sampleid.pdf"), PC1_PC2_plot, height = plot_height, width = plot_width, dpi = 300)
 
 # PC3 vs PC4
 PC3_PC4_plot <- ggplot(data, aes(x = EV3, y = EV4, color = POPULATION, label = SAMPLEID)) +
@@ -288,13 +337,28 @@ PC3_PC4_plot <- ggplot(data, aes(x = EV3, y = EV4, color = POPULATION, label = S
   labs(x = paste0("PC3 variance: ", round(pca$varprop[3] * 100, digits = 2), "%"),
        y = paste0("PC4 variance: ", round(pca$varprop[4] * 100, digits = 2), "%"),
        title = "Nuclear",
-       subtitle = "SNPS: 196,550") +
+       subtitle = "SNPS: 218,158") +
   scale_colour_pop() +
-  theme(legend.position = "right") +  # Adjust legend position as needed
+  theme(legend.title = element_text(size = 24),
+        legend.key.width = unit(legend_width, "cm"),
+        legend.text = element_text(size = 14),
+        legend.key.size = unit(0.4, "cm"),
+        legend.position = "right",
+        axis.title = element_text(size = 24),
+        axis.text = element_text(size = 18, color = "black"), 
+        plot.title = element_text(size = 24), 
+        plot.subtitle = element_text(size = 18),
+       # panel.grid.major = element_blank(),
+       # panel.grid.minor = element_blank(),
+        panel.border = element_rect(color = "black", fill = NA, linewidth = 2)) +
   guides (color = guide_legend(ncol=1))
 
 PC3_PC4_plot
-ggsave(paste0("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/pca_nuc/PC3_PC4_plot.png"), PC3_PC4_plot, height = 8, width = 10)
+ggsave(paste0("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/PC3_PC4_plot.png"), PC3_PC4_plot, height = plot_height, width = plot_width, dpi = 300)
+
+ggsave(paste0("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/PC3_PC4_plot.tif"), PC3_PC4_plot, height = plot_height, width = plot_width, dpi = 300)
+
+ggsave(paste0("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/PC3_PC4_plot.pdf"), PC3_PC4_plot, height = plot_height, width = plot_width, dpi = 300)
 
 ######################################################################
 
@@ -316,7 +380,9 @@ PC1_line <- ggplot(pc1_line_data, aes(x = PC1, y = Y)) +
 # Print the plot
 print(PC1_line)
 # Save plot
-ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/pca_nuc/PC1_line.png", height=2, width=8)
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/PC1_line.tif", height=2, width=8, dpi = 300)
+
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/PC1_line.pdf", height=2, width=8, dpi = 300)
 
 # PC2
 constant_y <- 0
@@ -332,7 +398,9 @@ PC2_line <- ggplot(pc2_line_data, aes(x = PC2, y = Y)) +
 # Print the plot
 print(PC2_line)
 # Save plot
-ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/pca_nuc/PC2_line.png", height=2, width=8)
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/PC2_line.tif", height=2, width=8, dpi = 300)
+
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/PC2_line.pdf", height=2, width=8, dpi = 300)
 
 
 
@@ -347,7 +415,7 @@ ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/
 # Chromosome 1
 
 snpgdsClose(genofile_chr1)
-vcf.in_chr1 <- "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/pca_nuc/input/nuclear_samples3x_missing0.9.chr1.recode.vcf"
+vcf.in_chr1 <- "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/input/dirofilaria_global.cohort.2025-06-18.nuclearSNPs..keep_samples.dimmitis-only.chr1.recode.vcf"
 gds_chr1<-snpgdsVCF2GDS(vcf.in_chr1, "nucDNA_chr1.gds", method="biallelic.only")
 genofile_chr1 <- snpgdsOpen(gds_chr1)
 
@@ -371,7 +439,7 @@ data_chr1 <- data.frame(sample.id = pca_chr1$sample.id,
 data_chr1$POPULATION <- factor(data_chr1$POPULATION, 
                                levels = c("USA: Illinois", "USA: Missouri", "USA: Texas", "USA: Louisiana", "USA: Georgia", "USA: Florida",
                                           "CRI: San Jose", "PAN: Boca Chica", "PAN: Puerto Armuelles", "PAN: San Lorenzo",
-                                          "ITA: Northeast", "ITA: Pavia", "ROU: Bucharest", "ROU: Comana", "ROU: Giurgiu", "GRC: Thessaloniki/Xanthi",
+                                          "ITA: Northeast", "ITA: Pavia", "ROU: Bucharest", "ROU: Comana", "ROU: Giurgiu", "GRC: Thess/Xanthi",
                                           "THA: Bangkok", "MYS: Selangor",
                                           "AUS: Lockhart River", "AUS: Cairns", "AUS: Townsville", "AUS: Rockhampton", "AUS: Brisbane", "AUS: Sydney"))
 
@@ -384,21 +452,36 @@ PC1_PC2_plot_chr1 <- ggplot(data_chr1, aes(x = EV1_chr1, y = EV2_chr1, color = P
   labs(x = paste0("PC1 variance: ", round(pca_chr1$varprop[1] * 100, digits = 2), "%"),
        y = paste0("PC2 variance: ", round(pca_chr1$varprop[2] * 100, digits = 2), "%"),
        title = "Nuclear Chr1",
-       subtitle = "SNPS: 50,075") +
+       subtitle = "SNPS: 56,314") +
   scale_colour_pop() +
-  theme(legend.position = "right") +  # Adjust legend position as needed
+  theme(legend.title = element_text(size = 24),
+        legend.key.width = unit(legend_width, "cm"),
+        legend.text = element_text(size = 14),
+        legend.key.size = unit(0.4, "cm"),
+        legend.position = "right",
+        axis.title = element_text(size = 24),
+        axis.text = element_text(size = 18, color = "black"), 
+        plot.title = element_text(size = 24), 
+        plot.subtitle = element_text(size = 18),
+        #panel.grid.major = element_blank(),
+        #panel.grid.minor = element_blank(),
+        panel.border = element_rect(color = "black", fill = NA, linewidth = 2)) +
   guides(color = guide_legend(ncol=1))
 
 PC1_PC2_plot_chr1
 
-ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/pca_nuc/PC1_PC2_plot_chr1.png", PC1_PC2_plot_chr1, height = 8, width = 10)
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/PC1_PC2_plot_chr1.png", PC1_PC2_plot_chr1, height = plot_height, width = plot_width)
+
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/PC1_PC2_plot_chr1.tif", PC1_PC2_plot_chr1, height = plot_height, width = plot_width)
+
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/PC1_PC2_plot_chr1.pdf", PC1_PC2_plot_chr1, height = plot_height, width = plot_width)
 
 
 
 # Chromosome 2
 
 snpgdsClose(genofile_chr2)
-vcf.in_chr2 <- "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/pca_nuc/input/nuclear_samples3x_missing0.9.chr2.recode.vcf"
+vcf.in_chr2 <- "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/input/dirofilaria_global.cohort.2025-06-18.nuclearSNPs..keep_samples.dimmitis-only.chr2.recode.vcf"
 gds_chr2<-snpgdsVCF2GDS(vcf.in_chr2, "nucDNA_chr2.gds", method="biallelic.only")
 genofile_chr2 <- snpgdsOpen(gds_chr2)
 
@@ -422,7 +505,7 @@ data_chr2 <- data.frame(sample.id = pca_chr2$sample.id,
 data_chr2$POPULATION <- factor(data_chr2$POPULATION, 
                                levels = c("USA: Illinois", "USA: Missouri", "USA: Texas", "USA: Louisiana", "USA: Georgia", "USA: Florida",
                                           "CRI: San Jose", "PAN: Boca Chica", "PAN: Puerto Armuelles", "PAN: San Lorenzo",
-                                          "ITA: Northeast", "ITA: Pavia", "ROU: Bucharest", "ROU: Comana", "ROU: Giurgiu", "GRC: Thessaloniki/Xanthi",
+                                          "ITA: Northeast", "ITA: Pavia", "ROU: Bucharest", "ROU: Comana", "ROU: Giurgiu", "GRC: Thess/Xanthi",
                                           "THA: Bangkok", "MYS: Selangor",
                                           "AUS: Lockhart River", "AUS: Cairns", "AUS: Townsville", "AUS: Rockhampton", "AUS: Brisbane", "AUS: Sydney"))
 
@@ -435,14 +518,27 @@ PC1_PC2_plot_chr2 <- ggplot(data_chr2, aes(x = EV1_chr2, y = EV2_chr2, color = P
   labs(x = paste0("PC1 variance: ", round(pca_chr2$varprop[1] * 100, digits = 2), "%"),
        y = paste0("PC2 variance: ", round(pca_chr2$varprop[2] * 100, digits = 2), "%"),
        title = "Nuclear Chr2",
-       subtitle = "SNPS: 44,937") +
+       subtitle = "SNPS: 52,391") +
   scale_colour_pop() +
-  theme(legend.position = "right") +  # Adjust legend position as needed
+  theme(legend.title = element_text(size = 24),
+        legend.key.width = unit(legend_width, "cm"),
+        legend.text = element_text(size = 14),
+        legend.key.size = unit(0.4, "cm"),
+        legend.position = "right",
+        axis.title = element_text(size = 24),
+        axis.text = element_text(size = 18, color = "black"), 
+        plot.title = element_text(size = 24), 
+        plot.subtitle = element_text(size = 18),
+        #panel.grid.major = element_blank(),
+        #panel.grid.minor = element_blank(),
+        panel.border = element_rect(color = "black", fill = NA, linewidth = 2)) +
   guides(color = guide_legend(ncol=1))
 
 PC1_PC2_plot_chr2
 
-ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/pca_nuc/PC1_PC2_plot_chr2.png", PC1_PC2_plot_chr2, height = 8, width = 10)
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/PC1_PC2_plot_chr2.png", PC1_PC2_plot_chr2, height = plot_height, width = plot_width, dpi = 300)
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/PC1_PC2_plot_chr2.tif", PC1_PC2_plot_chr2, height = plot_height, width = plot_width, dpi = 300)
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/PC1_PC2_plot_chr2.pdf", PC1_PC2_plot_chr2, height = plot_height, width = plot_width, dpi = 300)
 
 
 
@@ -450,7 +546,7 @@ ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/
 # Chromosome 3
 
 snpgdsClose(genofile_chr3)
-vcf.in_chr3 <- "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/pca_nuc/input/nuclear_samples3x_missing0.9.chr3.recode.vcf"
+vcf.in_chr3 <- "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/input/dirofilaria_global.cohort.2025-06-18.nuclearSNPs..keep_samples.dimmitis-only.chr3.recode.vcf"
 gds_chr3<-snpgdsVCF2GDS(vcf.in_chr3, "nucDNA_chr3.gds", method="biallelic.only")
 genofile_chr3 <- snpgdsOpen(gds_chr3)
 
@@ -474,7 +570,7 @@ data_chr3 <- data.frame(sample.id = pca_chr3$sample.id,
 data_chr3$POPULATION <- factor(data_chr3$POPULATION, 
                                levels = c("USA: Illinois", "USA: Missouri", "USA: Texas", "USA: Louisiana", "USA: Georgia", "USA: Florida",
                                           "CRI: San Jose", "PAN: Boca Chica", "PAN: Puerto Armuelles", "PAN: San Lorenzo",
-                                          "ITA: Northeast", "ITA: Pavia", "ROU: Bucharest", "ROU: Comana", "ROU: Giurgiu", "GRC: Thessaloniki/Xanthi",
+                                          "ITA: Northeast", "ITA: Pavia", "ROU: Bucharest", "ROU: Comana", "ROU: Giurgiu", "GRC: Thess/Xanthi",
                                           "THA: Bangkok", "MYS: Selangor",
                                           "AUS: Lockhart River", "AUS: Cairns", "AUS: Townsville", "AUS: Rockhampton", "AUS: Brisbane", "AUS: Sydney"))
 
@@ -487,20 +583,33 @@ PC1_PC2_plot_chr3 <- ggplot(data_chr3, aes(x = EV1_chr3, y = EV2_chr3, color = P
   labs(x = paste0("PC1 variance: ", round(pca_chr3$varprop[1] * 100, digits = 2), "%"),
        y = paste0("PC2 variance: ", round(pca_chr3$varprop[2] * 100, digits = 2), "%"),
        title = "Nuclear Chr3",
-       subtitle = "SNPS: 50,855") +
+       subtitle = "SNPS: 55,553") +
   scale_colour_pop() +
-  theme(legend.position = "right") +  # Adjust legend position as needed
+  theme(legend.title = element_text(size = 24),
+        legend.key.width = unit(legend_width, "cm"),
+        legend.text = element_text(size = 14),
+        legend.key.size = unit(0.4, "cm"),
+        legend.position = "right",
+        axis.title = element_text(size = 24),
+        axis.text = element_text(size = 18, color = "black"), 
+        plot.title = element_text(size = 24), 
+        plot.subtitle = element_text(size = 18),
+        #panel.grid.major = element_blank(),
+        #panel.grid.minor = element_blank(),
+        panel.border = element_rect(color = "black", fill = NA, linewidth = 2)) +
   guides(color = guide_legend(ncol=1))
 
 PC1_PC2_plot_chr3
 
-ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/pca_nuc/PC1_PC2_plot_chr3.png", PC1_PC2_plot_chr3, height = 8, width = 10)
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/PC1_PC2_plot_chr3.png", PC1_PC2_plot_chr3, height = plot_height, width = plot_width, dpi = 300)
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/PC1_PC2_plot_chr3.tif", PC1_PC2_plot_chr3, height = plot_height, width = plot_width, dpi = 300)
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/PC1_PC2_plot_chr3.pdf", PC1_PC2_plot_chr3, height = plot_height, width = plot_width, dpi = 300)
 
 
 # Chromosome 4
 
 snpgdsClose(genofile_chr4)
-vcf.in_chr4 <- "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/pca_nuc/input/nuclear_samples3x_missing0.9.chr4.recode.vcf"
+vcf.in_chr4 <- "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/input/dirofilaria_global.cohort.2025-06-18.nuclearSNPs..keep_samples.dimmitis-only.chr4.recode.vcf"
 gds_chr4<-snpgdsVCF2GDS(vcf.in_chr4, "nucDNA_chr4.gds", method="biallelic.only")
 genofile_chr4 <- snpgdsOpen(gds_chr4)
 
@@ -524,7 +633,7 @@ data_chr4 <- data.frame(sample.id = pca_chr4$sample.id,
 data_chr4$POPULATION <- factor(data_chr4$POPULATION, 
                                levels = c("USA: Illinois", "USA: Missouri", "USA: Texas", "USA: Louisiana", "USA: Georgia", "USA: Florida",
                                           "CRI: San Jose", "PAN: Boca Chica", "PAN: Puerto Armuelles", "PAN: San Lorenzo",
-                                          "ITA: Northeast", "ITA: Pavia", "ROU: Bucharest", "ROU: Comana", "ROU: Giurgiu", "GRC: Thessaloniki/Xanthi",
+                                          "ITA: Northeast", "ITA: Pavia", "ROU: Bucharest", "ROU: Comana", "ROU: Giurgiu", "GRC: Thess/Xanthi",
                                           "THA: Bangkok", "MYS: Selangor",
                                           "AUS: Lockhart River", "AUS: Cairns", "AUS: Townsville", "AUS: Rockhampton", "AUS: Brisbane", "AUS: Sydney"))
 
@@ -537,19 +646,32 @@ PC1_PC2_plot_chr4 <- ggplot(data_chr4, aes(x = EV1_chr4, y = EV2_chr4, color = P
   labs(x = paste0("PC1 variance: ", round(pca_chr4$varprop[1] * 100, digits = 2), "%"),
        y = paste0("PC2 variance: ", round(pca_chr4$varprop[2] * 100, digits = 2), "%"),
        title = "Nuclear Chr4",
-       subtitle = "SNPS: 50,683") +
+       subtitle = "SNPS: 53,900") +
   scale_colour_pop() +
-  theme(legend.position = "right") +  # Adjust legend position as needed
+  theme(legend.title = element_text(size = 24),
+        legend.key.width = unit(legend_width, "cm"),
+        legend.text = element_text(size = 14),
+        legend.key.size = unit(0.4, "cm"),
+        legend.position = "right",
+        axis.title = element_text(size = 24),
+        axis.text = element_text(size = 18, color = "black"), 
+        plot.title = element_text(size = 24), 
+        plot.subtitle = element_text(size = 18),
+        #panel.grid.major = element_blank(),
+        #panel.grid.minor = element_blank(),
+        panel.border = element_rect(color = "black", fill = NA, linewidth = 2)) +
   guides(color = guide_legend(ncol=1))
 
 PC1_PC2_plot_chr4
 
-ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/pca_nuc/PC1_PC2_plot_chr4.png", PC1_PC2_plot_chr4, height = 8, width = 10)
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/PC1_PC2_plot_chr4.png", PC1_PC2_plot_chr4, height = plot_height, width = plot_width, dpi = 300)
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/PC1_PC2_plot_chr4.tif", PC1_PC2_plot_chr4, height = plot_height, width = plot_width, dpi = 300)
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/PC1_PC2_plot_chr4.pdf", PC1_PC2_plot_chr4, height = plot_height, width = plot_width, dpi = 300)
 
 # Chromosome X
 
 snpgdsClose(genofile_chrX)
-vcf.in_chrX <- "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/pca_nuc/input/nuclear_samples3x_missing0.9.chrX.recode.vcf"
+vcf.in_chrX <- "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/input/dirofilaria_global.cohort.2025-06-18.nuclearSNPs..keep_samples.dimmitis-only.chrX.recode.vcf"
 gds_chrX<-snpgdsVCF2GDS(vcf.in_chrX, "nucDNA_chrX.gds", method="biallelic.only")
 genofile_chrX <- snpgdsOpen(gds_chrX)
 
@@ -573,7 +695,7 @@ data_chrX <- data.frame(sample.id = pca_chrX$sample.id,
 data_chrX$POPULATION <- factor(data_chrX$POPULATION, 
                                levels = c("USA: Illinois", "USA: Missouri", "USA: Texas", "USA: Louisiana", "USA: Georgia", "USA: Florida",
                                           "CRI: San Jose", "PAN: Boca Chica", "PAN: Puerto Armuelles", "PAN: San Lorenzo",
-                                          "ITA: Northeast", "ITA: Pavia", "ROU: Bucharest", "ROU: Comana", "ROU: Giurgiu", "GRC: Thessaloniki/Xanthi",
+                                          "ITA: Northeast", "ITA: Pavia", "ROU: Bucharest", "ROU: Comana", "ROU: Giurgiu", "GRC: Thess/Xanthi",
                                           "THA: Bangkok", "MYS: Selangor",
                                           "AUS: Lockhart River", "AUS: Cairns", "AUS: Townsville", "AUS: Rockhampton", "AUS: Brisbane", "AUS: Sydney"))
 
@@ -586,14 +708,27 @@ PC1_PC2_plot_chrX <- ggplot(data_chrX, aes(x = EV1_chrX, y = EV2_chrX, color = P
   labs(x = paste0("PC1 variance: ", round(pca_chrX$varprop[1] * 100, digits = 2), "%"),
        y = paste0("PC2 variance: ", round(pca_chrX$varprop[2] * 100, digits = 2), "%"),
        title = "Nuclear chrX",
-       subtitle = "SNPS: 67,561") +
+       subtitle = "SNPS: 82,209") +
   scale_colour_pop() +
-  theme(legend.position = "right") +  # Adjust legend position as needed
+  theme(legend.title = element_text(size = 24),
+        legend.key.width = unit(legend_width, "cm"),
+        legend.text = element_text(size = 14),
+        legend.key.size = unit(0.4, "cm"),
+        legend.position = "right",
+        axis.title = element_text(size = 24),
+        axis.text = element_text(size = 18, color = "black"), 
+        plot.title = element_text(size = 24), 
+        plot.subtitle = element_text(size = 18),
+        #panel.grid.major = element_blank(),
+        #panel.grid.minor = element_blank(),
+        panel.border = element_rect(color = "black", fill = NA, linewidth = 2)) +
   guides(color = guide_legend(ncol=1))
 
 PC1_PC2_plot_chrX
 
-ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/pca_nuc/PC1_PC2_plot_chrX.png", PC1_PC2_plot_chrX, height = 8, width = 10)
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/PC1_PC2_plot_chrX.png", PC1_PC2_plot_chrX, height = plot_height, width = plot_width, dpi = 300)
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/PC1_PC2_plot_chrX.tif", PC1_PC2_plot_chrX, height = plot_height, width = plot_width, dpi = 300)
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/PC1_PC2_plot_chrX.pdf", PC1_PC2_plot_chrX, height = plot_height, width = plot_width, dpi = 300)
 
 
 
@@ -603,24 +738,39 @@ ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/
 # PCA based on the host
 ######################################################################
 
+# make a new column that only labels non-dog hosts
+data$HOST_NONDOG <- ifelse(data$HOST != "Dog", as.character(data$HOST), NA)
 
 
-
-PC1_PC2_plot_host <- ggplot(data, aes(x = EV1, y = EV2, color = POPULATION, label = HOST)) +
+PC1_PC2_plot_host <- ggplot(data, aes(x = EV1, y = EV2, color = POPULATION, label = HOST_NONDOG)) +
+  xlim(x_limits) + ylim(y_limits) +
   theme_bw() +
   geom_point(alpha = 0.8, size = 2) +
   labs(x = paste0("PC1 variance: ", round(pca$varprop[1] * 100, digits = 2), "%"),
        y = paste0("PC2 variance: ", round(pca$varprop[2] * 100, digits = 2), "%"),
        title = "Nuclear",
-       subtitle = "SNPS: 196,550") +
-  geom_text_repel(aes(label = HOST), box.padding = 0.05, point.padding = 0.01, segment.color = 'grey50', size = 3, hjust = 0, vjust = 0, max.overlaps = Inf, show.legend=FALSE) +
+       subtitle = "SNPS: 218,158") +
+  geom_text_repel(aes(label = HOST_NONDOG), box.padding = 0.5, point.padding = 2, segment.color = 'grey50', size = 6, hjust = 0, vjust = 0, show.legend=FALSE) +
   scale_colour_pop() +
-  theme(legend.position = "right") +  # Adjust legend position as needed
+  theme(legend.title = element_text(size = 24),
+        legend.key.width = unit(legend_width, "cm"),
+        legend.text = element_text(size = 14),
+        legend.key.size = unit(0.4, "cm"),
+        legend.position = "right",
+        axis.title = element_text(size = 24),
+        axis.text = element_text(size = 18, color = "black"), 
+        plot.title = element_text(size = 24), 
+        plot.subtitle = element_text(size = 18),
+        #panel.grid.major = element_blank(),
+        #panel.grid.minor = element_blank(),
+        panel.border = element_rect(color = "black", fill = NA, linewidth = 2)) +
   guides (color = guide_legend(ncol=1))
 
 PC1_PC2_plot_host
 
-ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/pca_nuc/PC1_PC2_plot_host.png", PC1_PC2_plot_host, height = 8, width = 10)
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/PC1_PC2_plot_host.png", PC1_PC2_plot_host, height = plot_height, width = plot_width, dpi = 300)
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/PC1_PC2_plot_host.tif", PC1_PC2_plot_host, height = plot_height, width = plot_width, dpi = 300)
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/PC1_PC2_plot_host.pdf", PC1_PC2_plot_host, height = plot_height, width = plot_width, dpi = 300)
 
 
 
@@ -645,7 +795,7 @@ scale_colour_AUS <- function(...){
 
 
 snpgdsClose(genofile_AUS)
-vcf.in_AUS <- "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/pca_nuc/input/nuclear_samples3x_missing0.9.chr1to4.AUS.recode.vcf"
+vcf.in_AUS <- "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/input/dirofilaria_global.cohort.2025-06-18.nuclearSNPs.keep_samples.dimmitis-only.AUS-only.recode.vcf"
 gds_AUS<-snpgdsVCF2GDS(vcf.in_AUS, "nucDNA_AUS.gds", method="biallelic.only")
 genofile_AUS <- snpgdsOpen(gds_AUS)
 
@@ -655,7 +805,7 @@ samples_AUS <- as.data.frame(pca_AUS$sample.id)
 colnames(samples_AUS) <- "name"
 
 # Aus only metadata file
-metadata_file_AUS <- "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/pca_nuc/location_nuclear_AUS.csv"
+metadata_file_AUS <- "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/location_nuclear_AUS.csv"
 metadata_AUS <- read.csv(metadata_file_AUS, header = TRUE)
 
 data_AUS <- data.frame(sample.id = pca_AUS$sample.id,
@@ -676,8 +826,8 @@ data_AUS$POPULATION <- factor(data_AUS$POPULATION,
 
 
 # PC1 vs PC2
-x_limits <- c(-0.3, 0.3)  # Adjust as needed
-y_limits <- c(-0.5, 0.3)
+x_limits <- c(-0.25, 0.27)  # Adjust as needed
+y_limits <- c(-0.4, 0.2)
 
 PC1_PC2_plot_AUS <- ggplot(data_AUS, aes(x = EV1_AUS, y = EV2_AUS, color = POPULATION)) +
   theme_bw() +
@@ -686,12 +836,27 @@ PC1_PC2_plot_AUS <- ggplot(data_AUS, aes(x = EV1_AUS, y = EV2_AUS, color = POPUL
   labs(x = paste0("PC1 variance: ", round(pca_AUS$varprop[1] * 100, digits = 2), "%"),
        y = paste0("PC2 variance: ", round(pca_AUS$varprop[2] * 100, digits = 2), "%"),
        title = "Nuclear AUS",
-       subtitle = "SNPS: 116,492") +
+       subtitle = "SNPS: 131,508") +
   scale_colour_AUS() +
-  theme(legend.position = "right") +  # Adjust legend position as needed
+  theme(legend.title = element_text(size = 24),
+        legend.key.width = unit(legend_width, "cm"),
+        legend.text = element_text(size = 14),
+        legend.key.size = unit(0.4, "cm"),
+        legend.position = "right",
+        axis.title = element_text(size = 24),
+        axis.text = element_text(size = 18, color = "black"), 
+        plot.title = element_text(size = 24), 
+        plot.subtitle = element_text(size = 18),
+       # panel.grid.major = element_blank(),
+        #panel.grid.minor = element_blank(),
+        panel.border = element_rect(color = "black", fill = NA, linewidth = 2)) +
   guides(color = guide_legend(ncol=1))
   
 PC1_PC2_plot_AUS
 
-ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/pca_nuc/PC1_PC2_plot_AUS.png", PC1_PC2_plot_AUS, height = plot_height, width = plot_width)
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/PC1_PC2_plot_AUS.png", PC1_PC2_plot_AUS, height = plot_height, width = plot_width, dpi = 300)
+
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/PC1_PC2_plot_AUS.tif", PC1_PC2_plot_AUS, height = plot_height, width = plot_width, dpi = 300)
+
+ggsave("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_nuc/PC1_PC2_plot_AUS.pdf", PC1_PC2_plot_AUS, height = plot_height, width = plot_width, dpi = 300)
 ```

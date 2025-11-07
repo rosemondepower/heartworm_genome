@@ -1,0 +1,9 @@
+Input: lname=CHROMOSOMES_PL/chromosome.PL nPop=9, fname=(null) qname=(null) outfiles=k_9_s_2_out
+Setup: seed=2 nThreads=10 method=1
+Convergence: maxIter=2000 tol=0.000010 tolLike50=0.100000 dymBound=0
+Filters: misTol=0.900000 minMaf=0.020000 minLrt=0.000000 minInd=0
+Input file has dim: nsites=162134 nind=129
+Input file has dim (AFTER filtering): nsites=161455 nind=129
+	[ALL done] cpu-time used =  1341.20 sec
+	[ALL done] walltime used =  170.00 sec
+best like=-7918575.249979 after 350 iterations

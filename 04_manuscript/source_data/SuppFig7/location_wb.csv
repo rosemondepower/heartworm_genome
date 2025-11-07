@@ -1,0 +1,125 @@
+sample_name,species,country,city,location,latitude,longitude,host,collection
+AUS_BNE_AD_001,D_immitis,AUS,Brisbane,AUS: Brisbane,-27.4705,153.026,Dog,This study
+AUS_BNE_AD_002,D_immitis,AUS,Brisbane,AUS: Brisbane,-27.4705,153.026,Dog,This study
+AUS_BNE_AD_003,D_immitis,AUS,Brisbane,AUS: Brisbane,-27.4705,153.026,Dog,This study
+AUS_BNE_AD_003_R,D_immitis,AUS,Brisbane,AUS: Brisbane,-27.4705,153.026,Dog,This study
+AUS_BNE_AD_004,D_immitis,AUS,Brisbane,AUS: Brisbane,-27.4705,153.026,Dog,This study
+AUS_BNE_AD_005,D_immitis,AUS,Brisbane,AUS: Brisbane,-27.4705,153.026,Fox,This study
+AUS_BNE_AD_006,D_immitis,AUS,Brisbane,AUS: Brisbane,-27.4705,153.026,Fox,This study
+AUS_BNE_AD_008,D_immitis,AUS,Brisbane,AUS: Brisbane,-27.4705,153.026,Dog,This study
+AUS_BNE_AD_009,D_immitis,AUS,Brisbane,AUS: Brisbane,-27.4705,153.026,Dog,This study
+AUS_CNS_AD_001,D_immitis,AUS,Cairns,AUS: Cairns,-16.9203,145.771,Dog,This study
+AUS_CNS_AD_002,D_immitis,AUS,Cairns,AUS: Cairns,-16.9203,145.771,Dog,This study
+AUS_LHR_AD_001,D_immitis,AUS,Lockhart River,AUS: Lockhart River,-12.7861,143.3419,Dog,This study
+AUS_ROK_AD_001,D_immitis,AUS,Rockhampton,AUS: Rockhampton,-23.375,150.511673,Dog,This study
+AUS_SYD_AD_001,D_immitis,AUS,Sydney,AUS: Sydney,-33.8688,151.2093,Dog,Public data
+AUS_SYD_AD_003,D_immitis,AUS,Sydney,AUS: Sydney,-33.8688,151.2093,Dog,Public data
+AUS_SYD_AD_004,D_immitis,AUS,Sydney,AUS: Sydney,-33.8688,151.2093,Dog,Public data
+AUS_SYD_AD_005,D_immitis,AUS,Sydney,AUS: Sydney,-33.8688,151.2093,Dog,Public data
+AUS_SYD_AD_005_R,D_immitis,AUS,Sydney,AUS: Sydney,-33.8688,151.2093,Dog,This study
+AUS_SYD_AD_006,D_immitis,AUS,Sydney,AUS: Sydney,-33.8688,151.2093,Dog,This study
+AUS_SYD_AD_007,D_immitis,AUS,Sydney,AUS: Sydney,-33.8688,151.2093,Dog,This study
+AUS_SYD_AD_008,D_immitis,AUS,Sydney,AUS: Sydney,-33.8688,151.2093,Dog,This study
+AUS_SYD_AD_008_R,D_immitis,AUS,Sydney,AUS: Sydney,-33.8688,151.2093,Dog,This study
+AUS_SYD_AD_009,D_immitis,AUS,Sydney,AUS: Sydney,-33.8688,151.2093,Dog,This study
+AUS_SYD_AD_010,D_immitis,AUS,Sydney,AUS: Sydney,-33.8688,151.2093,Dog,This study
+AUS_SYD_AD_011,D_immitis,AUS,Sydney,AUS: Sydney,-33.8688,151.2093,Dog,This study
+AUS_SYD_AD_012,D_immitis,AUS,Sydney,AUS: Sydney,-33.8688,151.2093,Dog,This study
+AUS_SYD_AD_013,D_immitis,AUS,Sydney,AUS: Sydney,-33.8688,151.2093,Dog,This study
+AUS_SYD_AD_014,D_immitis,AUS,Sydney,AUS: Sydney,-33.8688,151.2093,Dog,This study
+AUS_SYD_AD_015,D_immitis,AUS,Sydney,AUS: Sydney,-33.8688,151.2093,Dog,This study
+AUS_SYD_AD_016,D_immitis,AUS,Sydney,AUS: Sydney,-33.8688,151.2093,Dog,This study
+AUS_SYD_AD_017,D_immitis,AUS,Sydney,AUS: Sydney,-33.8688,151.2093,Dog,This study
+AUS_TVS_AD_001,D_immitis,AUS,Townsville,AUS: Townsville,-19.259,146.8169,Dog,This study
+AUS_TVS_AD_002,D_immitis,AUS,Townsville,AUS: Townsville,-19.259,146.8169,Dog,This study
+AUS_TVS_AD_003,D_immitis,AUS,Townsville,AUS: Townsville,-19.259,146.8169,Dog,This study
+AUS_TVS_AD_004,D_immitis,AUS,Townsville,AUS: Townsville,-19.259,146.8169,Dog,This study
+AUS_TVS_AD_005,D_immitis,AUS,Townsville,AUS: Townsville,-19.259,146.8169,Dog,This study
+AUS_TVS_AD_006,D_immitis,AUS,Townsville,AUS: Townsville,-19.259,146.8169,Dog,This study
+AUS_TVS_AD_007,D_immitis,AUS,Townsville,AUS: Townsville,-19.259,146.8169,Dog,This study
+AUS_TVS_AD_008,D_immitis,AUS,Townsville,AUS: Townsville,-19.259,146.8169,Dog,This study
+AUS_TVS_AD_009,D_immitis,AUS,Townsville,AUS: Townsville,-19.259,146.8169,Dog,This study
+AUS_TVS_AD_010,D_immitis,AUS,Townsville,AUS: Townsville,-19.259,146.8169,Dog,This study
+AUS_TVS_AD_011,D_immitis,AUS,Townsville,AUS: Townsville,-19.259,146.8169,Dog,This study
+AUS_TVS_AD_012,D_immitis,AUS,Townsville,AUS: Townsville,-19.259,146.8169,Dog,This study
+AUS_TVS_AD_013,D_immitis,AUS,Townsville,AUS: Townsville,-19.259,146.8169,Dog,This study
+AUS_TVS_AD_014,D_immitis,AUS,Townsville,AUS: Townsville,-19.259,146.8169,Dog,This study
+AUS_TVS_AD_015,D_immitis,AUS,Townsville,AUS: Townsville,-19.259,146.8169,Dog,This study
+AUS_TVS_AD_016,D_immitis,AUS,Townsville,AUS: Townsville,-19.259,146.8169,Dog,This study
+AUS_TVS_AD_017,D_immitis,AUS,Townsville,AUS: Townsville,-19.259,146.8169,Dog,This study
+AUS_TVS_AD_018,D_immitis,AUS,Townsville,AUS: Townsville,-19.259,146.8169,Dog,This study
+AUS_TVS_AD_019,D_immitis,AUS,Townsville,AUS: Townsville,-19.259,146.8169,Dog,This study
+CRI_SJO_AD_001,D_immitis,CRI,San Jose,CRI: San Jose,9.9281,-84.0907,Cat,This study
+GRC_XAN_AD_001,D_immitis,GRC,Thessaloniki/Xanthi,GRC: Thess/Xanthi,40.6401,22.9444,Dog,This study
+GRC_XAN_AD_002,D_immitis,GRC,Thessaloniki/Xanthi,GRC: Thess/Xanthi,40.6401,22.9444,Dog,This study
+GRC_XAN_AD_003,D_immitis,GRC,Thessaloniki/Xanthi,GRC: Thess/Xanthi,40.6401,22.9444,Dog,This study
+GRC_XAN_AD_004,D_immitis,GRC,Thessaloniki/Xanthi,GRC: Thess/Xanthi,40.6401,22.9444,Dog,This study
+GRC_XAN_AD_005,D_immitis,GRC,Thessaloniki/Xanthi,GRC: Thess/Xanthi,40.6401,22.9444,Dog,This study
+GRC_XAN_AD_006,D_immitis,GRC,Thessaloniki/Xanthi,GRC: Thess/Xanthi,40.6401,22.9444,Dog,This study
+GRC_XAN_AD_007,D_immitis,GRC,Thessaloniki/Xanthi,GRC: Thess/Xanthi,40.6401,22.9444,Dog,This study
+GRC_XAN_AD_008,D_immitis,GRC,Thessaloniki/Xanthi,GRC: Thess/Xanthi,40.6401,22.9444,Dog,This study
+GRC_XAN_AD_009,D_immitis,GRC,Thessaloniki/Xanthi,GRC: Thess/Xanthi,40.6401,22.9444,Dog,This study
+GRC_XAN_AD_010,D_immitis,GRC,Thessaloniki/Xanthi,GRC: Thess/Xanthi,40.6401,22.9444,Dog,This study
+GRC_XAN_AD_012,D_immitis,GRC,Thessaloniki/Xanthi,GRC: Thess/Xanthi,40.6401,22.9444,Dog,This study
+ITA_NEA_AD_001,D_immitis,ITA,Northeast,ITA: Northeast,45.9295,11.5621,Dog,This study
+ITA_NEA_AD_002,D_immitis,ITA,Northeast,ITA: Northeast,45.9295,11.5621,Fox,This study
+ITA_NEA_AD_003,D_immitis,ITA,Northeast,ITA: Northeast,45.9295,11.5621,Fox,This study
+ITA_PAV_AD_001,D_immitis,ITA,Pavia,ITA: Pavia,45.183334,9.15,Dog,Public data
+PAN_BOC_AD_002,D_immitis,PAN,Boca Chica,PAN: Boca Chica,8.2112,-82.1931,Dog,This study
+PAN_BOC_AD_004,D_immitis,PAN,Boca Chica,PAN: Boca Chica,8.2112,-82.1931,Dog,This study
+PAN_BOC_AD_005,D_immitis,PAN,Boca Chica,PAN: Boca Chica,8.2112,-82.1931,Dog,This study
+PAN_PUE_AD_001,D_immitis,PAN,Puerto Armuelles,PAN: Puerto Armuelles,8.2743,-82.86,Dog,This study
+PAN_PUE_AD_002,D_immitis,PAN,Puerto Armuelles,PAN: Puerto Armuelles,8.2743,-82.86,Dog,This study
+PAN_PUE_AD_003,D_immitis,PAN,Puerto Armuelles,PAN: Puerto Armuelles,8.2743,-82.86,Dog,This study
+PAN_PUE_AD_004,D_immitis,PAN,Puerto Armuelles,PAN: Puerto Armuelles,8.2743,-82.86,Dog,This study
+PAN_PUE_AD_004_R,D_immitis,PAN,Puerto Armuelles,PAN: Puerto Armuelles,8.2743,-82.86,Dog,This study
+PAN_PUE_AD_005,D_immitis,PAN,Puerto Armuelles,PAN: Puerto Armuelles,8.2743,-82.86,Dog,This study
+PAN_PUE_AD_006,D_immitis,PAN,Puerto Armuelles,PAN: Puerto Armuelles,8.2743,-82.86,Dog,This study
+PAN_SLO_AD_001,D_immitis,PAN,San Lorenzo,PAN: San Lorenzo,8.307,-82.0952,Dog,This study
+PAN_SLO_AD_002,D_immitis,PAN,San Lorenzo,PAN: San Lorenzo,8.307,-82.0952,Dog,This study
+PAN_SLO_AD_003,D_immitis,PAN,San Lorenzo,PAN: San Lorenzo,8.307,-82.0952,Dog,This study
+ROU_BUC_AD_001,D_immitis,ROU,Bucharest,ROU: Bucharest,44.4268,26.1025,Leopard,This study
+ROU_GIU_AD_001,D_immitis,ROU,Giurgiu,ROU: Giurgiu,43.9037,25.9699,Golden jackal,This study
+THA_BKK_AD_001,D_immitis,THA,Bangkok,THA: Bangkok,13.736717,100.523186,Dog,This study
+THA_BKK_AD_002,D_immitis,THA,Bangkok,THA: Bangkok,13.736717,100.523186,Dog,This study
+THA_BKK_AD_003,D_immitis,THA,Bangkok,THA: Bangkok,13.736717,100.523186,Dog,This study
+THA_BKK_AD_005,D_immitis,THA,Bangkok,THA: Bangkok,13.736717,100.523186,Dog,This study
+THA_BKK_AD_006,D_immitis,THA,Bangkok,THA: Bangkok,13.736717,100.523186,Dog,This study
+USA_FLO_AD_001,D_immitis,USA,Florida,USA: Florida,29.6871,-82.821,Canine,This study
+USA_FLO_AD_002,D_immitis,USA,Florida,USA: Florida,29.6871,-82.821,Canine,This study
+USA_FLO_AD_003,D_immitis,USA,Florida,USA: Florida,29.6871,-82.821,Canine,This study
+USA_FLO_AD_004,D_immitis,USA,Florida,USA: Florida,29.6871,-82.821,Canine,This study
+USA_FLO_AD_005,D_immitis,USA,Florida,USA: Florida,29.6871,-82.821,Canine,This study
+USA_FLO_AD_006,D_immitis,USA,Florida,USA: Florida,29.6871,-82.821,Canine,This study
+USA_FLO_AD_007,D_immitis,USA,Florida,USA: Florida,29.6871,-82.821,Canine,This study
+USA_FLO_AD_008,D_immitis,USA,Florida,USA: Florida,29.6871,-82.821,Canine,This study
+USA_FLO_AD_009,D_immitis,USA,Florida,USA: Florida,29.6871,-82.821,Canine,This study
+USA_FLO_AD_010,D_immitis,USA,Florida,USA: Florida,29.6871,-82.821,Canine,This study
+USA_FLO_AD_011,D_immitis,USA,Florida,USA: Florida,30.3501,-81.6035,Canine??,This study
+USA_FLO_AD_012,D_immitis,USA,Florida,USA: Florida,30.3501,-81.6035,Canine??,This study
+USA_FLO_AD_013,D_immitis,USA,Florida,USA: Florida,30.3501,-81.6035,Canine??,This study
+USA_FLO_AD_014,D_immitis,USA,Florida,USA: Florida,30.3501,-81.6035,Canine??,This study
+USA_FLO_AD_015,D_immitis,USA,Florida,USA: Florida,29.6871,-82.821,Canine,This study
+USA_FLO_AD_016,D_immitis,USA,Florida,USA: Florida,29.6871,-82.821,Canine,This study
+USA_GEO_AD_001,D_immitis,USA,Georgia,USA: Georgia,33.247875,-83.441162,Dog,Public data
+USA_ILL_AD_001,D_immitis,USA,Illinois,USA: Illinois,33.247875,-83.441162,Dog,This study
+USA_ILL_AD_002,D_immitis,USA,Illinois,USA: Illinois,33.247875,-83.441162,Dog,This study
+USA_LOU_AD_001,D_immitis,USA,Louisiana,USA: Louisiana,32.1632,-91.7207,Canine,This study
+USA_LOU_AD_002,D_immitis,USA,Louisiana,USA: Louisiana,32.1632,-91.7207,Canine,This study
+USA_MIS_AD_001,D_immitis,USA,Missouri,USA: Missouri,33.247875,-83.441162,Dog,This study
+USA_MIS_AD_002,D_immitis,USA,Missouri,USA: Missouri,33.247875,-83.441162,Dog,This study
+USA_TEX_AD_001,D_immitis,USA,Texas,USA: Texas,29.4238,-95.2441,Ferret,This study
+USA_TEX_AD_002,D_immitis,USA,Texas,USA: Texas,30.628,-96.3344,Canine,This study
+USA_TEX_AD_003,D_immitis,USA,Texas,USA: Texas,32.7079,-96.9209,Canine,This study
+USA_TEX_AD_004,D_immitis,USA,Texas,USA: Texas,32.7079,-96.9209,Canine,This study
+USA_TEX_AD_005,D_immitis,USA,Texas,USA: Texas,32.7079,-96.9209,Canine,This study
+USA_TEX_AD_006,D_immitis,USA,Texas,USA: Texas,26.3017,-98.1633,Canine,This study
+USA_TEX_AD_007,D_immitis,USA,Texas,USA: Texas,26.3017,-98.1633,Canine,This study
+USA_TEX_AD_008,D_immitis,USA,Texas,USA: Texas,32.7555,-97.3308,Canine,This study
+USA_TEX_AD_009,D_immitis,USA,Texas,USA: Texas,32.7555,-97.3308,Canine,This study
+USA_TEX_AD_010,D_immitis,USA,Texas,USA: Texas,32.7555,-97.3308,Canine,This study
+USA_TEX_AD_011,D_immitis,USA,Texas,USA: Texas,29.7604,-95.3698,Feline,This study
+USA_TEX_AD_012,D_immitis,USA,Texas,USA: Texas,29.7604,-95.3698,Feline,This study
+USA_TEX_AD_013,D_immitis,USA,Texas,USA: Texas,32.6493,-96.7131,Canine,This study
+USA_TEX_AD_014,D_immitis,USA,Texas,USA: Texas,32.6493,-96.7131,Canine,This study
+USA_TEX_AD_015,D_immitis,USA,Texas,USA: Texas,30.7235,-95.5508,Feline,This study

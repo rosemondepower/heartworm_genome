@@ -28,7 +28,7 @@ library(ggimage)
 
 
 # Set working directory
-setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/pca_wb/input")
+setwd("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/R2_Sep25/pca_wb/input")
 
 #Preparing the data for plotting
 # Set colours for different cities
@@ -89,7 +89,7 @@ scale_colour_pop <- function(...){
 
 #PCA on nuclear variants using genotypes
 snpgdsClose(genofile) # you need this line to close any previous file open, otherwise it won't work if you want to re-run
-vcf.in <- "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/pca_wb/input/wb_samples3x_missing0.9.recode.vcf"
+vcf.in <- "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis//R2_Sep25/pca_wb/input/dirofilaria_global.cohort.2025-06-18.WbSNPs..keep_samples.dimmitis-only.recode.vcf"
 gds<-snpgdsVCF2GDS(vcf.in, "wbDNA.gds", method="biallelic.only")
 genofile <- snpgdsOpen(gds)
 
@@ -99,7 +99,7 @@ samples <- as.data.frame(pca$sample.id)
 colnames(samples) <- "name"
 
 # Metadata file that describes where the samples come from
-metadata_file <- "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/pca_wb/location_wb.csv"
+metadata_file <- "C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis//R2_Sep25/pca_wb/location_wb.csv"
 metadata <- read.csv(metadata_file, header = TRUE)
 
 data <- data.frame(sample.id = pca$sample.id,
@@ -149,7 +149,7 @@ create_plot <- function(data_subset) {
     labs(x = paste0("PC1 variance: ",round(pca$varprop[1]*100,digits=2),"%"),
          y = paste0("PC2 variance: ",round(pca$varprop[2]*100,digits=2),"%"),
          title = "Wolbachia",
-         subtitle = "SNPS: 280") +
+         subtitle = "SNPS: 360") +
     theme(legend.key.width = unit(legend_width, "cm"),
           legend.text = element_text(size = 10),
           legend.key.size = unit(0.4, "cm"),
@@ -192,8 +192,8 @@ plot_width <- 7.5   # Adjust as needed
 legend_width <- 0  # Adjust as needed
 
 # Define fixed x-axis limits
-x_limits <- c(-0.15, 0.2)  # Adjust as needed
-y_limits <- c(-0.2, 0.25)
+x_limits <- c(-0.1, 0.125)  # Adjust as needed
+y_limits <- c(-0.125, 0.2)
 
 
 # Iterate through subsets and create/save plots
@@ -206,7 +206,7 @@ for (i in seq_along(subset_list)) {
   # Set fixed x-axis limits
   plot <- plot + scale_x_continuous(limits = x_limits)
   
-  ggsave(paste0("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/pca_wb/plot_wb_", i, ".png"), plot, height = plot_height, width = plot_width, dpi = 300)
-  ggsave(paste0("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/pca_wb/plot_wb_", i, ".tif"), plot, height = plot_height, width = plot_width, dpi = 300)
-  ggsave(paste0("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis/batch4/FILTER1/NO_OUTGROUPS/pca_wb/plot_wb_", i, ".pdf"), plot, height = plot_height, width = plot_width, dpi = 300)
+  ggsave(paste0("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis//R2_Sep25/pca_wb/plot_wb_", i, ".png"), plot, height = plot_height, width = plot_width, dpi = 300)
+  ggsave(paste0("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis//R2_Sep25/pca_wb/plot_wb_", i, ".tif"), plot, height = plot_height, width = plot_width, dpi = 300)
+  ggsave(paste0("C:/Users/rpow2134/OneDrive - The University of Sydney (Staff)/Documents/HW_WGS/R_analysis//R2_Sep25/pca_wb/plot_wb_", i, ".pdf"), plot, height = plot_height, width = plot_width, dpi = 300)
 ```
